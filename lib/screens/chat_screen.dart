@@ -545,7 +545,12 @@ final class _VerticalUserList extends StatelessWidget {
                     itemCount: users.length,
                     itemBuilder: (context, index) {
                       return _VerticalUserListItem(
-                        user: Text(users[index]),
+                        user: Text(
+                          users[index],
+                          style: TextStyle(
+                            color: getNicknameColor(users[index]),
+                          ),
+                        ),
                         onTap: () => onUserTap(users[index]),
                       );
                     },

@@ -1,0 +1,181 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:lisp_chat_client/core/get_user_color.dart';
+import 'package:lisp_chat_client/models/chat_message.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+/// A widget that displays a single chat message bubble.
+final class MessageBubble extends StatelessWidget {
+  /// Creates a [MessageBubble].
+  const MessageBubble({super.key, required this.message});
+
+  /// The chat [message] to display in this bubble.
+  final ChatMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: message.isServerMessage
+            ? LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Theme.of(
+                    context,
+                  ).colorScheme.errorContainer.withValues(alpha: 0.5),
+                  Colors.transparent,
+                ],
+              )
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: SelectableText.rich(
+          TextSpan(
+            children: [
+              if (message.date case final date?)
+                TextSpan(
+                  text:
+                      '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')} ',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              TextSpan(
+                text: '[${message.from}]: ',
+                style: TextStyle(
+                  color: getUserColor(message.from),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              ..._parseContent(context, message.content),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<InlineSpan> _parseContent(BuildContext context, String text) {
+    final spans = <InlineSpan>[];
+
+    final pattern = RegExp(
+      r'(https?://[^\s]+)' // 1: url
+      r'|(@[^\s]+)' // 2: mention
+      r'|\*\*(.*?)\*\*' // 3: bold1
+      r'|__(.*?)__' // 4: bold2
+      r'|\*(.*?)\*' // 5: italic1
+      r'|_(.*?)_' // 6: italic2
+      r'|~~(.*?)~~' // 7: strike
+      r'|`(.*?)`', // 8: code
+    );
+
+    int lastMatchEnd = 0;
+
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > lastMatchEnd) {
+        spans.add(
+          TextSpan(
+            text: text.substring(lastMatchEnd, match.start),
+            style: const TextStyle(color: Colors.white),
+          ),
+        );
+      }
+
+      if (match.group(1) != null) {
+        // url
+        final url = match.group(1)!;
+        spans.add(
+          TextSpan(
+            text: url,
+            style: const TextStyle(
+              color: Colors.blueAccent,
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () async {
+                final uri = Uri.tryParse(url);
+                if (uri != null && await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                }
+              },
+          ),
+        );
+      } else if (match.group(2) != null) {
+        // mention
+        final mention = match.group(2)!;
+        final user = mention.substring(1);
+        spans.add(
+          TextSpan(
+            text: mention,
+            style: TextStyle(
+              color: getUserColor(user),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      } else if (match.group(3) != null || match.group(4) != null) {
+        // bold
+        final content = match.group(3) ?? match.group(4)!;
+        spans.add(
+          TextSpan(
+            text: content,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        );
+      } else if (match.group(5) != null || match.group(6) != null) {
+        // italic
+        final content = match.group(5) ?? match.group(6)!;
+        spans.add(
+          TextSpan(
+            text: content,
+            style: const TextStyle(
+              fontStyle: FontStyle.italic,
+              color: Colors.white,
+            ),
+          ),
+        );
+      } else if (match.group(7) != null) {
+        // strike
+        final content = match.group(7)!;
+        spans.add(
+          TextSpan(
+            text: content,
+            style: const TextStyle(
+              decoration: TextDecoration.lineThrough,
+              color: Colors.white,
+            ),
+          ),
+        );
+      } else if (match.group(8) != null) {
+        // code
+        final content = match.group(8)!;
+        spans.add(
+          TextSpan(
+            text: content,
+            style: TextStyle(
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+              fontFamily: 'monospace',
+              color: Theme.of(context).colorScheme.onSecondaryContainer,
+            ),
+          ),
+        );
+      }
+
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(lastMatchEnd),
+          style: const TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    return spans;
+  }
+}

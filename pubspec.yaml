@@ -1,0 +1,26 @@
+name: lisp_chat_client
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_local_notifications: ^20.1.0
+  flutter_background_service: ^5.1.0
+  shared_preferences: ^2.5.4
+  url_launcher: ^6.3.2
+  web_socket_channel: ^3.0.3
+  prototype_constrained_box: ^2.0.3+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

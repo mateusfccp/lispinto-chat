@@ -2,17 +2,25 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'websocket_factory.dart';
 
 /// A service that manages the server connection and messages processing.
 final class ChatService {
   /// Creates a [ChatService].
-  ChatService({required this.serverUrl, required this.nickname});
+  ChatService({
+    required this.serverUrl,
+    required this.nickname,
+    required this.appVersion,
+  });
 
   /// The WebSocket server URL to connect to.
   final Uri serverUrl;
 
   /// The nickname to use when logging in to the chat server.
   final String nickname;
+
+  /// The version of the app, used for the User-Agent header.
+  final String appVersion;
 
   /// A stream of incoming chat messages to be displayed in the UI.
   Stream<ChatMessage> get messages => _messageController.stream;
@@ -54,10 +62,8 @@ final class ChatService {
     disconnect();
 
     try {
-      final channel = _channel = WebSocketChannel.connect(serverUrl);
+      final channel = _channel = createWebSocketChannel(serverUrl, appVersion);
 
-      // Catch connection errors that bypass the stream listener
-      // avoiding unhandled asynchronous Dart exceptions.
       channel.ready.catchError((_) {
         _handleDisconnect();
       });

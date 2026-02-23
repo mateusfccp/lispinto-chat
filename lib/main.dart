@@ -4,11 +4,16 @@ import 'screens/chat_screen.dart';
 import 'core/user_configuration.dart';
 import 'providers/chat_provider.dart';
 
+import 'package:package_info_plus/package_info_plus.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final packageInfo = await PackageInfo.fromPlatform();
+  final appVersion = packageInfo.version;
+
   final config = await UserConfiguration.load();
-  final chatProvider = ChatProvider(config);
+  final chatProvider = ChatProvider(config, appVersion: appVersion);
 
   runApp(App(config: config, chatProvider: chatProvider));
 }

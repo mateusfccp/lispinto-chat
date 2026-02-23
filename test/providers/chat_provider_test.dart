@@ -15,7 +15,7 @@ void main() {
       await config.setNickname('TestUser');
       await config.setServerUrl('ws://localhost:8080');
 
-      provider = ChatProvider(config);
+      provider = ChatProvider(config, appVersion: "test");
     });
 
     tearDown(() {

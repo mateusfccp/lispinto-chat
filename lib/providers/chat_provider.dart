@@ -15,10 +15,11 @@ import 'package:lispinto_chat/services/web_notifications.dart';
 /// events.
 final class ChatProvider with ChangeNotifier {
   /// Creates a [ChatProvider] with the given user configuration.
-  ChatProvider(this.configuration)
+  ChatProvider(this.configuration, {required this.appVersion})
     : _chatService = ChatService(
         serverUrl: Uri.parse(configuration.serverUrl),
         nickname: configuration.nickname,
+        appVersion: appVersion,
       ) {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
@@ -35,6 +36,9 @@ final class ChatProvider with ChangeNotifier {
 
   /// The user configuration.
   final UserConfiguration configuration;
+
+  /// The version of the app used for the User-Agent header.
+  final String appVersion;
 
   /// The chat service that handles WebSocket communication.
   ChatService _chatService;
@@ -200,6 +204,7 @@ final class ChatProvider with ChangeNotifier {
       _chatService = ChatService(
         serverUrl: Uri.parse(newServerUrl),
         nickname: newNickname,
+        appVersion: appVersion,
       );
 
       _messages.clear();

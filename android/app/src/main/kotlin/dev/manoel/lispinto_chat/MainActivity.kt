@@ -1,4 +1,4 @@
-package dev.manoel.lisp_chat_client
+package dev.manoel.lispinto_chat
 
 import io.flutter.embedding.android.FlutterActivity
 

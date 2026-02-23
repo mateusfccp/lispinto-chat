@@ -1,17 +1,26 @@
-# lisp_chat_client
+# Lispinto Chat
 
-A new Flutter project.
+A chat app that connects to a [https://github.com/ryukinix/lisp-chat](lisp-chat) server.
 
-## Getting Started
+## Support
 
-This project is a starting point for a Flutter application.
+This project is intended to work on these platforms:
 
-A few resources to get you started if this is your first Flutter project:
+- macOS (desktop)
+- iOS (mobile)
+- Android (mobile)
+- Web (browser or PWA)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+I did not test it on all the aforementioned, so if you find any issue, please report it.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## How to use
+
+### Published client
+
+This client is published as a web app at https://labs.mateusfccp.me/lispinto-chat/.
+
+### Other clients
+
+You may clone this repository and run it locally or compile it yourself.
+
+I will soon publish an APK for Android and a macOS app.

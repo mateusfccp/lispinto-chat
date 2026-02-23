@@ -10,9 +10,9 @@ Future<void> initializeBackgroundService() async {
   final service = FlutterBackgroundService();
 
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'lisp_chat_foreground',
-    'Lisp Chat Background Service',
-    description: 'Keeps the Lisp Chat connection alive in the background.',
+    'lispinto_chat_foreground',
+    'Lispinto Chat Background Service',
+    description: 'Keeps the Lispinto Chat connection alive in the background.',
     importance: Importance.low,
   );
 
@@ -30,8 +30,8 @@ Future<void> initializeBackgroundService() async {
       onStart: onStart,
       autoStart: false,
       isForegroundMode: true,
-      notificationChannelId: 'lisp_chat_foreground',
-      initialNotificationTitle: 'Lisp Chat',
+      notificationChannelId: 'lispinto_chat_foreground',
+      initialNotificationTitle: 'Lispinto Chat',
       initialNotificationContent: 'Running in background',
       foregroundServiceNotificationId: 888,
     ),
@@ -76,12 +76,12 @@ void onStart(ServiceInstance service) async {
   chatService.notifications.listen((message) {
     nfy.show(
       id: 100,
-      title: 'Lisp Chat',
+      title: 'Lispinto Chat',
       body: message,
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
-          'lisp_chat_foreground',
-          'Lisp Chat Background',
+          'lispinto_chat_foreground',
+          'Lispinto Chat Background',
           importance: Importance.defaultImportance,
         ),
       ),

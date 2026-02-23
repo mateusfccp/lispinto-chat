@@ -1,5 +1,5 @@
-name: lisp_chat_client
-description: "A new Flutter project."
+name: lispinto_chat
+description: "A Flutter client for lisp-chat."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -21,6 +21,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true

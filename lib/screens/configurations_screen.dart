@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lisp_chat_client/core/user_configuration.dart';
-import 'package:lisp_chat_client/providers/chat_provider.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'chat_screen.dart';
 
 /// A screen that allows the user to configure their settings.
@@ -23,14 +23,14 @@ final class ConfigurationsScreen extends StatefulWidget {
 }
 
 final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
-  late final TextEditingController _usernameController;
+  late final TextEditingController _nicknameController;
   late final TextEditingController _serverUrlController;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController(
+    _nicknameController = TextEditingController(
       text: widget.configuration.nickname,
     );
     _serverUrlController = TextEditingController(
@@ -40,14 +40,14 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _nicknameController.dispose();
     _serverUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _saveAndContinue() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final newNickname = _usernameController.text.trim();
+      final newNickname = _nicknameController.text.trim();
       final newServerUrl = _serverUrlController.text.trim();
 
       await widget.chatProvider.updateConfiguration(newNickname, newServerUrl);
@@ -84,7 +84,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                   ),
                   const SizedBox(height: 32.0),
                   TextFormField(
-                    controller: _usernameController,
+                    controller: _nicknameController,
                     decoration: const InputDecoration(
                       labelText: 'Nickname',
                       border: OutlineInputBorder(),

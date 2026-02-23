@@ -32,9 +32,9 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Lisp Chat',
+      title: 'Lispinto Chat',
       darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       home: config.hasNickname
           ? ChatScreen(provider: chatProvider)
           : ConfigurationsScreen(

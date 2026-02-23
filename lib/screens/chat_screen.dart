@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lisp_chat_client/core/get_user_color.dart';
-import 'package:lisp_chat_client/models/chat_message.dart';
+import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
-import '../providers/chat_provider.dart';
-import '../widgets/message_bubble.dart';
 import 'configurations_screen.dart';
 
 /// The main chat screen of the app.
@@ -119,70 +119,73 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth > 600;
-              return Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      children: [
-                        if (!isDesktop)
-                          _HorizontalUserList(
-                            provider: widget.provider,
-                            onUserTap: _onUserTap,
-                            onOpenConfig: _openConfig,
-                          ),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              _MessageList(
-                                provider: widget.provider,
-                                controller: _scrollController,
-                                notifications: _activeNotifications,
-                                listKey: listKey,
-                                onRemoveNotification: _removeNotification,
-                              ),
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: _InputArea(
-                                  controller: _controller,
-                                  focusNode: _focusNode,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth > 600;
+                return Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          if (!isDesktop)
+                            _HorizontalUserList(
+                              provider: widget.provider,
+                              onUserTap: _onUserTap,
+                              onOpenConfig: _openConfig,
+                            ),
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                _MessageList(
                                   provider: widget.provider,
-                                  onSend: _sendMessage,
+                                  controller: _scrollController,
+                                  notifications: _activeNotifications,
+                                  listKey: listKey,
+                                  onRemoveNotification: _removeNotification,
                                 ),
-                              ),
-                            ],
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: _InputArea(
+                                    controller: _controller,
+                                    focusNode: _focusNode,
+                                    provider: widget.provider,
+                                    onSend: _sendMessage,
+                                    showNickname: isDesktop,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  if (isDesktop)
-                    _VerticalUserList(
-                      provider: widget.provider,
-                      onUserTap: _onUserTap,
-                      onOpenConfig: _openConfig,
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
+                    if (isDesktop)
+                      _VerticalUserList(
+                        provider: widget.provider,
+                        onUserTap: _onUserTap,
+                        onOpenConfig: _openConfig,
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _onUserTap(String username) {
-    if (widget.provider.currentDmUser == username) {
+  void _onUserTap(String nickname) {
+    if (widget.provider.currentDmNickname == nickname) {
       widget.provider.setDmMode(null);
-    } else if (username != widget.provider.configuration.nickname) {
-      widget.provider.setDmMode(username);
+    } else if (nickname != widget.provider.configuration.nickname) {
+      widget.provider.setDmMode(nickname);
     }
 
     _focusNode.requestFocus();
@@ -212,13 +215,6 @@ class _MessageList extends StatelessWidget {
         final messages = provider.messages;
         return Stack(
           children: [
-            Positioned.fill(
-              child: _NotificationsArea(
-                notifications: notifications,
-                listKey: listKey,
-                onRemoveNotification: onRemoveNotification,
-              ),
-            ),
             ListView.builder(
               reverse: true,
               controller: controller,
@@ -267,6 +263,13 @@ class _MessageList extends StatelessWidget {
                 );
               },
             ),
+            Positioned.fill(
+              child: _NotificationsArea(
+                notifications: notifications,
+                listKey: listKey,
+                onRemoveNotification: onRemoveNotification,
+              ),
+            ),
           ],
         );
       },
@@ -292,12 +295,14 @@ final class _InputArea extends StatelessWidget {
     required this.focusNode,
     required this.provider,
     required this.onSend,
+    required this.showNickname,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final ChatProvider provider;
   final VoidCallback onSend;
+  final bool showNickname;
 
   @override
   Widget build(BuildContext context) {
@@ -308,20 +313,22 @@ final class _InputArea extends StatelessWidget {
           padding: const EdgeInsets.all(8.0),
           child: Row(
             children: [
-              Text(
-                '[${provider.configuration.nickname}]:',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 8.0),
+              if (showNickname) ...[
+                Text(
+                  '[${provider.configuration.nickname}]:',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8.0),
+              ],
               Expanded(
                 child: TextField(
                   controller: controller,
                   focusNode: focusNode,
                   enabled: provider.isConnected,
                   decoration: InputDecoration(
-                    prefix: provider.currentDmUser != null
+                    prefix: provider.currentDmNickname != null
                         ? _DmIndicator(
-                            user: provider.currentDmUser!,
+                            user: provider.currentDmNickname!,
                             onTap: () {
                               provider.setDmMode(null);
                               focusNode.requestFocus();
@@ -449,13 +456,13 @@ final class _DmIndicator extends StatelessWidget {
           margin: const EdgeInsets.only(right: 8.0),
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           decoration: BoxDecoration(
-            color: getUserColor(user).withValues(alpha: 0.2),
+            color: getNicknameColor(user).withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(16.0),
           ),
           child: Text(
             '@$user',
             style: TextStyle(
-              color: getUserColor(user),
+              color: getNicknameColor(user),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -492,7 +499,7 @@ final class _HorizontalUserList extends StatelessWidget {
             TextButton(
               child: Text(
                 ' $user ',
-                style: TextStyle(color: getUserColor(user)),
+                style: TextStyle(color: getNicknameColor(user)),
               ),
               onPressed: () => onUserTap(user),
             ),

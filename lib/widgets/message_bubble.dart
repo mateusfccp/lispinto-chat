@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:lisp_chat_client/core/get_user_color.dart';
-import 'package:lisp_chat_client/models/chat_message.dart';
+import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that displays a single chat message bubble.
@@ -43,7 +43,7 @@ final class MessageBubble extends StatelessWidget {
               TextSpan(
                 text: '[${message.from}]: ',
                 style: TextStyle(
-                  color: getUserColor(message.from),
+                  color: getNicknameColor(message.from),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -108,7 +108,7 @@ final class MessageBubble extends StatelessWidget {
           TextSpan(
             text: mention,
             style: TextStyle(
-              color: getUserColor(user),
+              color: getNicknameColor(user),
               fontWeight: FontWeight.bold,
             ),
           ),

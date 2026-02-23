@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../services/chat_service.dart';
-import '../models/chat_message.dart';
-import '../core/user_configuration.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/services/chat_service.dart';
 
 /// A provider that manages chat state.
 ///
@@ -56,8 +55,8 @@ final class ChatProvider with ChangeNotifier {
   bool get isConnected => _isConnected;
   bool _isConnected = false;
 
-  /// The username of the current DM target, or null if not in DM mode.
-  String? get currentDmUser => _currentDmUser;
+  /// The nickname of the current DM target, or null if not in DM mode.
+  String? get currentDmNickname => _currentDmUser;
   String? _currentDmUser;
 
   /// A stream of important notifications to show as local notifications.
@@ -130,7 +129,7 @@ final class ChatProvider with ChangeNotifier {
 
   Future<void> _showLocalNotification(String message) async {
     const androidDetails = AndroidNotificationDetails(
-      'lisp_chat_channel',
+      'lispinto_chat_channel',
       'Lisp Chat Notifications',
       importance: Importance.max,
       priority: Priority.high,

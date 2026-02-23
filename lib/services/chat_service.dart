@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:lisp_chat_client/models/chat_message.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// A service that manages the server connection and messages processing.
@@ -36,7 +36,7 @@ final class ChatService {
 
   /// A stream of the current user's nick changes.
   ///
-  /// The UI can listen to this stream to update the displayed username when the
+  /// The UI can listen to this stream to update the displayed nickname when the
   /// user changes their nick.
   Stream<String> get nickChanges => _nickChangeController.stream;
   final _nickChangeController = StreamController<String>.broadcast();

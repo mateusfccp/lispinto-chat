@@ -18,11 +18,11 @@ const List<Color> _availableColors = [
   Color(0xffa29bfe),
 ];
 
-/// Returns a consistent color for a given username.
+/// Returns a consistent color for a given nickname.
 ///
-/// The same username will always get the same color. Special usernames like
+/// The same nickname will always get the same color. Special nicknames like
 /// '@server' get a specific color.
-Color getUserColor(String name) {
+Color getNicknameColor(String name) {
   if (name == '@server') return const Color(0xffbb2222);
 
   int hash = 0;

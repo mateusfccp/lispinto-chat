@@ -5,7 +5,7 @@ final class ChatMessage {
   /// This may be null for messages that don't include a timestamp.
   final DateTime? date;
 
-  /// The username of the sender.
+  /// The nickname of the sender.
   ///
   /// Special senders like the server start with '@', e.g. '@server'.
   final String from;

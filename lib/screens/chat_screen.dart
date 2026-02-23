@@ -120,6 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Stack(
           children: [
             LayoutBuilder(
@@ -216,8 +217,14 @@ class _MessageList extends StatelessWidget {
         return Stack(
           children: [
             ListView.builder(
+              padding:
+                  MediaQuery.paddingOf(context) +
+                  const EdgeInsets.only(bottom: 8.0),
               reverse: true,
               controller: controller,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               itemCount: messages.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
@@ -263,7 +270,10 @@ class _MessageList extends StatelessWidget {
                 );
               },
             ),
-            Positioned.fill(
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
               child: _NotificationsArea(
                 notifications: notifications,
                 listKey: listKey,
@@ -306,53 +316,55 @@ final class _InputArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: provider,
-      builder: (context, child) {
-        return Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              if (showNickname) ...[
-                Text(
-                  '[${provider.configuration.nickname}]:',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8.0),
-              ],
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  enabled: provider.isConnected,
-                  decoration: InputDecoration(
-                    prefix: provider.currentDmNickname != null
-                        ? _DmIndicator(
-                            user: provider.currentDmNickname!,
-                            onTap: () {
-                              provider.setDmMode(null);
-                              focusNode.requestFocus();
-                            },
-                          )
-                        : null,
-                    hintText: 'Type a message...',
-                    border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(32.0)),
-                    ),
-                    fillColor: Colors.black87,
-                    filled: true,
+    return SafeArea(
+      child: ListenableBuilder(
+        listenable: provider,
+        builder: (context, child) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                if (showNickname) ...[
+                  Text(
+                    '[${provider.configuration.nickname}]:',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  onSubmitted: (_) => onSend(),
+                  const SizedBox(width: 8.0),
+                ],
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    enabled: provider.isConnected,
+                    decoration: InputDecoration(
+                      prefix: provider.currentDmNickname != null
+                          ? _DmIndicator(
+                              user: provider.currentDmNickname!,
+                              onTap: () {
+                                provider.setDmMode(null);
+                                focusNode.requestFocus();
+                              },
+                            )
+                          : null,
+                      hintText: 'Type a message...',
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(32.0)),
+                      ),
+                      fillColor: Colors.black87,
+                      filled: true,
+                    ),
+                    onSubmitted: (_) => onSend(),
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: provider.isConnected ? onSend : null,
-              ),
-            ],
-          ),
-        );
-      },
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: provider.isConnected ? onSend : null,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -375,29 +387,29 @@ final class _NotificationsArea extends StatefulWidget {
 class _NotificationsAreaState extends State<_NotificationsArea> {
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Padding(
+    return IgnorePointer(
+      ignoring: widget.notifications.isEmpty,
+      child: AnimatedList.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.all(8.0),
-        child: AnimatedList.separated(
-          key: widget.listKey,
-          initialItemCount: widget.notifications.length,
-          removedSeparatorBuilder: (context, index, animation) {
-            return const SizedBox(height: 8.0);
-          },
-          separatorBuilder: (context, index, animation) {
-            return const SizedBox(height: 8.0);
-          },
-          itemBuilder: (context, index, animation) {
-            final notification = widget.notifications[index];
-            return Center(
-              child: _NotificationPill(
-                text: Text(notification.text),
-                onTap: () => widget.onRemoveNotification(notification.id),
-              ),
-            );
-          },
-        ),
+        key: widget.listKey,
+        initialItemCount: widget.notifications.length,
+        removedSeparatorBuilder: (context, index, animation) {
+          return const SizedBox(height: 8.0);
+        },
+        separatorBuilder: (context, index, animation) {
+          return const SizedBox(height: 8.0);
+        },
+        itemBuilder: (context, index, animation) {
+          final notification = widget.notifications[index];
+          return Center(
+            child: _NotificationPill(
+              text: Text(notification.text),
+              onTap: () => widget.onRemoveNotification(notification.id),
+            ),
+          );
+        },
       ),
     );
   }
@@ -411,29 +423,32 @@ final class _NotificationPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
       borderRadius: BorderRadius.circular(32.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.inversePrimary,
-          borderRadius: BorderRadius.circular(32.0),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 4.0,
-              offset: Offset(0.0, 2.0),
-            ),
-          ],
-        ),
-        child: DefaultTextStyle.merge(
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(32.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.inversePrimary,
+            borderRadius: BorderRadius.circular(32.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 4.0,
+                offset: Offset(0.0, 2.0),
+              ),
+            ],
           ),
-          textAlign: TextAlign.center,
-          child: text,
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            child: text,
+          ),
         ),
       ),
     );

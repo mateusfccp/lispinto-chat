@@ -11,7 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_local_notifications: ^20.1.0
-  flutter_background_service: ^5.1.0
   shared_preferences: ^2.5.4
   url_launcher: ^6.3.2
   web_socket_channel: ^3.0.3

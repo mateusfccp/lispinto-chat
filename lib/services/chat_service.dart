@@ -55,6 +55,13 @@ final class ChatService {
 
     try {
       final channel = _channel = WebSocketChannel.connect(serverUrl);
+
+      // Catch connection errors that bypass the stream listener
+      // avoiding unhandled asynchronous Dart exceptions.
+      channel.ready.catchError((_) {
+        _handleDisconnect();
+      });
+
       _connectionStateController.add(true);
 
       _subscription = channel.stream.listen(
@@ -73,7 +80,9 @@ final class ChatService {
   void disconnect() {
     _keepAliveTimer?.cancel();
     _subscription?.cancel();
-    _channel?.sink.close();
+    try {
+      _channel?.sink.close();
+    } catch (_) {}
     _channel = null;
     _loggedIn = false;
     _connectionStateController.add(false);
@@ -199,6 +208,12 @@ final class ChatService {
   void _handleDisconnect() {
     _loggedIn = false;
     _keepAliveTimer?.cancel();
+    _subscription?.cancel();
+    try {
+      _channel?.sink.close();
+    } catch (_) {}
+    _channel = null;
+
     _connectionStateController.add(false);
     _notificationsController.add('Disconnected from server.');
 

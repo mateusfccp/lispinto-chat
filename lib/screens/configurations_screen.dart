@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
@@ -25,6 +26,8 @@ final class ConfigurationsScreen extends StatefulWidget {
 final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late final TextEditingController _nicknameController;
   late final TextEditingController _serverUrlController;
+  late bool _pushNotificationsEnabled;
+  late bool _mentionNotificationsEnabled;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -36,6 +39,9 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _serverUrlController = TextEditingController(
       text: widget.configuration.serverUrl,
     );
+    _pushNotificationsEnabled = widget.configuration.pushNotificationsEnabled;
+    _mentionNotificationsEnabled =
+        widget.configuration.mentionNotificationsEnabled;
   }
 
   @override
@@ -50,6 +56,12 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       final newNickname = _nicknameController.text.trim();
       final newServerUrl = _serverUrlController.text.trim();
 
+      await widget.configuration.setPushNotificationsEnabled(
+        _pushNotificationsEnabled,
+      );
+      await widget.configuration.setMentionNotificationsEnabled(
+        _mentionNotificationsEnabled,
+      );
       await widget.chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       if (mounted) {
@@ -64,6 +76,10 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    final shouldShowNotificationsArea =
+        kIsWeb || platform == TargetPlatform.macOS;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Configuration')),
       body: Center(
@@ -119,6 +135,98 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (value) => _saveAndContinue(),
                   ),
+                  if (shouldShowNotificationsArea) ...[
+                    const SizedBox(height: 16.0),
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                              ),
+                              child: Text(
+                                'Push Notifications',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            SwitchListTile(
+                              title: const Text('Server Messages'),
+                              subtitle: const Text(
+                                'Receive generic notifications pushed by the server',
+                              ),
+                              value: _pushNotificationsEnabled,
+                              onChanged: (value) async {
+                                if (value) {
+                                  final granted = await widget.chatProvider
+                                      .requestPermissions();
+                                  if (granted) {
+                                    setState(() {
+                                      _pushNotificationsEnabled = true;
+                                    });
+                                  } else if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Notification permissions disabled or denied.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  setState(() {
+                                    _pushNotificationsEnabled = false;
+                                  });
+                                }
+                              },
+                            ),
+                            const Divider(),
+                            SwitchListTile(
+                              title: const Text('Mentions (@nickname)'),
+                              subtitle: const Text(
+                                'Targeted notifications when someone tags you',
+                              ),
+                              value: _mentionNotificationsEnabled,
+                              onChanged: (value) async {
+                                if (value) {
+                                  final granted = await widget.chatProvider
+                                      .requestPermissions();
+                                  if (granted) {
+                                    setState(() {
+                                      _mentionNotificationsEnabled = true;
+                                    });
+                                  } else if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Notification permissions disabled or denied.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  setState(() {
+                                    _mentionNotificationsEnabled = false;
+                                  });
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 32.0),
                   ElevatedButton(
                     onPressed: _saveAndContinue,

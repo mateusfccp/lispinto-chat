@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:collection';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:lispinto_chat/services/web_notifications.dart';
 
 /// A provider that manages chat state.
 ///
@@ -68,23 +70,42 @@ final class ChatProvider with ChangeNotifier {
   final List<StreamSubscription> _subscriptions = [];
 
   Future<void> _initializeNotifications() async {
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-
     const darwinSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: darwinSettings,
-      macOS: darwinSettings,
-    );
+    const settings = InitializationSettings(macOS: darwinSettings);
 
     await _localNotifications.initialize(settings: settings);
+  }
+
+  /// Requests permissions for local notifications.
+  /// Returns whether the permissions were granted.
+  Future<bool> requestPermissions() async {
+    if (kIsWeb) {
+      return await requestWebNotificationPermissions();
+    } else if (defaultTargetPlatform == TargetPlatform.macOS) {
+      final result = await _localNotifications
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
+      return result ?? false;
+    }
+    return false;
+  }
+
+  /// Checks if [content] contains a mention for [nickname] strictly.
+  @visibleForTesting
+  static bool hasMention(String content, String nickname) {
+    if (nickname.isEmpty) return false;
+    final mentionRegExp = RegExp(
+      r'@' + RegExp.escape(nickname) + r'(?=[^\w]|$)',
+      caseSensitive: false,
+    );
+    return mentionRegExp.hasMatch(content);
   }
 
   void _initializeService() {
@@ -92,6 +113,16 @@ final class ChatProvider with ChangeNotifier {
       _chatService.messages.listen((message) {
         _messages.add(message);
         notifyListeners();
+
+        if (configuration.mentionNotificationsEnabled &&
+            configuration.hasNickname &&
+            message.from != configuration.nickname &&
+            hasMention(message.content, configuration.nickname)) {
+          _triggerDisplayNotification(
+            'Mention from ${message.from}',
+            message.content,
+          );
+        }
       }),
     );
 
@@ -120,31 +151,29 @@ final class ChatProvider with ChangeNotifier {
 
     _subscriptions.add(
       _chatService.notifications.listen((notification) {
-        _showLocalNotification(notification);
+        if (configuration.pushNotificationsEnabled) {
+          _triggerDisplayNotification('Lisp Chat', notification);
+        }
       }),
     );
 
-    _chatService.connect();
+    if (configuration.hasNickname) {
+      _chatService.connect();
+    }
   }
 
-  Future<void> _showLocalNotification(String message) async {
-    const androidDetails = AndroidNotificationDetails(
-      'lispinto_chat_channel',
-      'Lisp Chat Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    const darwinDetails = DarwinNotificationDetails();
-    const details = NotificationDetails(
-      android: androidDetails,
-      iOS: darwinDetails,
-      macOS: darwinDetails,
-    );
+  Future<void> _triggerDisplayNotification(String title, String body) async {
+    if (kIsWeb) {
+      showWebNotification(title, body);
+      return;
+    }
+
+    const details = NotificationDetails(macOS: DarwinNotificationDetails());
 
     await _localNotifications.show(
-      id: 0,
-      title: 'Lisp Chat',
-      body: message,
+      id: body.hashCode,
+      title: title,
+      body: body,
       notificationDetails: details,
     );
   }

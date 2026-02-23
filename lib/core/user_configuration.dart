@@ -13,6 +13,8 @@ final class UserConfiguration {
 
   static const String _keyNickname = 'nickname';
   static const String _keyServerUrl = 'server_url';
+  static const String _keyPushNotifications = 'push_notifications';
+  static const String _keyMentionNotifications = 'mention_notifications';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
 
   final SharedPreferences _preferences;
@@ -45,4 +47,24 @@ final class UserConfiguration {
 
   /// Returns true if the user has set a non-empty nickname.
   bool get hasNickname => nickname.trim().isNotEmpty;
+
+  /// Whether push notifications are enabled.
+  bool get pushNotificationsEnabled {
+    return _preferences.getBool(_keyPushNotifications) ?? false;
+  }
+
+  /// Saves the push notifications preference to shared preferences.
+  Future<void> setPushNotificationsEnabled(bool value) async {
+    await _preferences.setBool(_keyPushNotifications, value);
+  }
+
+  /// Whether mention notifications are enabled.
+  bool get mentionNotificationsEnabled {
+    return _preferences.getBool(_keyMentionNotifications) ?? false;
+  }
+
+  /// Saves the mention notifications preference to shared preferences.
+  Future<void> setMentionNotificationsEnabled(bool value) async {
+    await _preferences.setBool(_keyMentionNotifications, value);
+  }
 }

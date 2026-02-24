@@ -70,7 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ..remove(widget.provider.configuration.nickname);
         if (users.contains(username)) {
           widget.provider.setDmMode(username);
-          _controller.typedText = '';
+          _controller.clear();
         }
       }
     }
@@ -209,12 +209,28 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onUserTap(String nickname) {
+    final bool didChangeDmMode;
     if (widget.provider.currentDmNickname == nickname) {
       widget.provider.setDmMode(null);
-      _focusNode.requestFocus();
+      didChangeDmMode = true;
     } else if (nickname != widget.provider.configuration.nickname) {
       widget.provider.setDmMode(nickname);
+      didChangeDmMode = true;
+    } else {
+      didChangeDmMode = false;
+    }
+
+    if (didChangeDmMode) {
+      final previousSelection = _controller.selection;
       _focusNode.requestFocus();
+      // We wait until the next frame to restore the selection because changing
+      // the DM mode might cause the input field to rebuild and mess up the
+      // selection.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _controller.selection = previousSelection;
+        }
+      });
     }
   }
 }

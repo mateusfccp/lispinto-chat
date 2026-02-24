@@ -23,6 +23,7 @@ void main() {
     Widget buildSubject({
       List<String> onlineUsers = const ['alice', 'bob', 'charlie'],
       TextEditingController? customController,
+      FocusNode? customFocusNode,
     }) {
       final defaultTriggers = [
         const TagAutocompleteTrigger(),
@@ -34,12 +35,12 @@ void main() {
         home: Scaffold(
           body: MentionsAutocomplete(
             controller: customController ?? controller,
-            focusNode: focusNode,
+            focusNode: customFocusNode ?? focusNode,
             users: onlineUsers,
             triggers: defaultTriggers,
             child: TextField(
               controller: customController ?? controller,
-              focusNode: focusNode,
+              focusNode: customFocusNode ?? focusNode,
             ),
           ),
         ),
@@ -144,6 +145,7 @@ void main() {
             body: buildSubject(
               onlineUsers: const ['alice', 'bob', 'charlie'],
               customController: deleteAwareController,
+              customFocusNode: localFocusNode,
             ),
           ),
         ),
@@ -189,6 +191,7 @@ void main() {
             body: buildSubject(
               onlineUsers: const ['alice', 'bob', 'charlie'],
               customController: deleteAwareController,
+              customFocusNode: localFocusNode,
             ),
           ),
         ),
@@ -199,7 +202,7 @@ void main() {
 
       // Type "@a" directly after the zero-width space
       deleteAwareController.value = const TextEditingValue(
-        text: '\u200B@a',
+        text: '${DeleteAwareEditingController.zeroWidthSpace}@a',
         selection: TextSelection.collapsed(offset: 3),
       );
       await tester.pumpAndSettle();
@@ -210,7 +213,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // The key behavior: \u200B must remain intact at index 0.
-      expect(deleteAwareController.text, '\u200B@alice ');
+      expect(
+        deleteAwareController.text,
+        '${DeleteAwareEditingController.zeroWidthSpace}@alice ',
+      );
       expect(deleteAwareController.typedText, '@alice ');
       expect(deleteAwareController.selection.baseOffset, 8);
 

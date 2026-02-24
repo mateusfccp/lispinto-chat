@@ -15,12 +15,17 @@ import 'package:lispinto_chat/services/web_notifications.dart';
 /// events.
 final class ChatProvider with ChangeNotifier {
   /// Creates a [ChatProvider] with the given user configuration.
-  ChatProvider(this.configuration, {required this.appVersion})
-    : _chatService = ChatService(
-        serverUrl: Uri.parse(configuration.serverUrl),
-        nickname: configuration.nickname,
-        appVersion: appVersion,
-      ) {
+  ChatProvider(
+    this.configuration, {
+    required this.appVersion,
+    FlutterLocalNotificationsPlugin? localNotifications,
+    ChatService? chatService,
+  })  : _localNotifications = localNotifications ?? FlutterLocalNotificationsPlugin(),
+        _chatService = chatService ?? ChatService(
+          serverUrl: Uri.parse(configuration.serverUrl),
+          nickname: configuration.nickname,
+          appVersion: appVersion,
+        ) {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
         if (!_isConnected) {
@@ -68,7 +73,7 @@ final class ChatProvider with ChangeNotifier {
   /// A stream of important notifications to show as local notifications.
   Stream<String> get notifications => _chatService.notifications;
 
-  final _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications;
 
   // Track stream subscriptions
   final List<StreamSubscription> _subscriptions = [];

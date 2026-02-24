@@ -2,6 +2,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:mockito/mockito.dart';
+
+import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
+
+class MockFlutterLocalNotificationsPlugin extends Mock implements FlutterLocalNotificationsPlugin {
+  @override
+  Future<bool?> initialize({
+    required InitializationSettings settings,
+    DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
+    DidReceiveBackgroundNotificationResponseCallback?
+    onDidReceiveBackgroundNotificationResponse,
+  }) async {
+    return true;
+  }
+}
+
+class MockChatService extends Mock implements ChatService {
+  @override
+  Stream<ChatMessage> get messages => const Stream.empty();
+
+  @override
+  Stream<String> get notifications => const Stream.empty();
+
+  @override
+  Stream<List<String>> get users => const Stream.empty();
+
+  @override
+  Stream<bool> get connectionState => Stream.value(true);
+
+  @override
+  Stream<String> get nickChanges => const Stream.empty();
+}
 
 void main() {
   group('ChatProvider', () {
@@ -14,8 +48,16 @@ void main() {
       config = await UserConfiguration.load();
       await config.setNickname('TestUser');
       await config.setServerUrl('ws://localhost:8080');
-
-      provider = ChatProvider(config, appVersion: "test");
+      
+      final mockNotifications = MockFlutterLocalNotificationsPlugin();
+      final mockChatService = MockChatService();
+      
+      provider = ChatProvider(
+        config, 
+        appVersion: "test", 
+        localNotifications: mockNotifications,
+        chatService: mockChatService,
+      );
     });
 
     tearDown(() {

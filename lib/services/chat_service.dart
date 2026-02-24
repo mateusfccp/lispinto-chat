@@ -5,7 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'websocket_factory.dart';
 
 /// A service that manages the server connection and messages processing.
-final class ChatService {
+interface class ChatService {
   /// Creates a [ChatService].
   ChatService({
     required this.serverUrl,

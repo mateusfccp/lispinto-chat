@@ -161,7 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (!isDesktop)
                             _HorizontalUserList(
                               provider: widget.provider,
-                              onUserTap: _onUserTap,
+                              onUserMenuTap: _showUserContextMenu,
                               onOpenConfig: _openConfig,
                             ),
                           Expanded(
@@ -196,6 +196,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       _VerticalUserList(
                         provider: widget.provider,
                         onUserTap: _onUserTap,
+                        onUserMenuTap: _showUserContextMenu,
                         onOpenConfig: _openConfig,
                       ),
                   ],
@@ -232,6 +233,30 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
     }
+  }
+
+  void _showUserContextMenu(BuildContext context, Offset position, String user) async {
+    final action = await showMenu<VoidCallback>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [
+        PopupMenuItem(
+          value: () => _onUserTap(user),
+          child: Text('Direct Message @$user'),
+        ),
+        PopupMenuItem(
+          value: () => widget.provider.sendMessage('/whois $user'),
+          child: Text('Whois @$user'),
+        ),
+      ],
+    );
+
+    action?.call();
   }
 }
 
@@ -551,12 +576,12 @@ final class _DmIndicator extends StatelessWidget {
 final class _HorizontalUserList extends StatelessWidget {
   const _HorizontalUserList({
     required this.provider,
-    required this.onUserTap,
+    required this.onUserMenuTap,
     required this.onOpenConfig,
   });
 
   final ChatProvider provider;
-  final ValueChanged<String> onUserTap;
+  final void Function(BuildContext, Offset, String) onUserMenuTap;
   final VoidCallback onOpenConfig;
 
   @override
@@ -572,12 +597,22 @@ final class _HorizontalUserList extends StatelessWidget {
         children: [
           IconButton(onPressed: onOpenConfig, icon: const Icon(Icons.settings)),
           for (final user in provider.onlineUsers)
-            TextButton(
-              child: Text(
-                ' $user ',
-                style: TextStyle(color: getNicknameColor(user)),
-              ),
-              onPressed: () => onUserTap(user),
+            Builder(
+              builder: (buttonContext) {
+                return TextButton(
+                  child: Text(
+                    ' $user ',
+                    style: TextStyle(color: getNicknameColor(user)),
+                  ),
+                  onPressed: () {
+                    final box = buttonContext.findRenderObject() as RenderBox;
+                    final position = box.localToGlobal(
+                      Offset(0, box.size.height),
+                    );
+                    onUserMenuTap(context, position, user);
+                  },
+                );
+              }
             ),
         ],
       ),
@@ -589,11 +624,13 @@ final class _VerticalUserList extends StatelessWidget {
   const _VerticalUserList({
     required this.provider,
     required this.onUserTap,
+    required this.onUserMenuTap,
     required this.onOpenConfig,
   });
 
   final ChatProvider provider;
   final ValueChanged<String> onUserTap;
+  final void Function(BuildContext, Offset, String) onUserMenuTap;
   final VoidCallback onOpenConfig;
 
   @override
@@ -628,6 +665,13 @@ final class _VerticalUserList extends StatelessWidget {
                           ),
                         ),
                         onTap: () => onUserTap(users[index]),
+                        onSecondaryTapDown: (details) {
+                          onUserMenuTap(
+                            context,
+                            details.globalPosition,
+                            users[index],
+                          );
+                        },
                       );
                     },
                   ),
@@ -647,17 +691,23 @@ final class _VerticalUserList extends StatelessWidget {
 }
 
 final class _VerticalUserListItem extends StatelessWidget {
-  const _VerticalUserListItem({required this.user, required this.onTap});
+  const _VerticalUserListItem({
+    required this.user,
+    required this.onTap,
+    required this.onSecondaryTapDown,
+  });
 
   final Widget user;
   final VoidCallback onTap;
+  final GestureTapDownCallback onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
+        onSecondaryTapDown: onSecondaryTapDown,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: user,

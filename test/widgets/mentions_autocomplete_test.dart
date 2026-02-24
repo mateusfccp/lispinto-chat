@@ -161,5 +161,52 @@ void main() {
       deleteAwareController.dispose();
       localFocusNode.dispose();
     });
+
+    testWidgets('preserves zero-width space when mention is at the start', (tester) async {
+      final localFocusNode = FocusNode();
+      final deleteAwareController = DeleteAwareEditingController(
+        focusNode: localFocusNode,
+        onDeleteEmpty: () {},
+      );
+      // Manually force prefix mode for simulation
+      deleteAwareController.text = '\u200B'; 
+      
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: MentionsAutocomplete(
+            controller: deleteAwareController,
+            focusNode: localFocusNode,
+            users: const ['alice', 'bob', 'charlie'],
+            child: TextField(
+              controller: deleteAwareController,
+              focusNode: localFocusNode,
+            ),
+          ),
+        ),
+      ));
+
+      localFocusNode.requestFocus();
+      await tester.pump();
+
+      // Type "@a" directly after the zero-width space
+      deleteAwareController.value = const TextEditingValue(
+        text: '\u200B@a',
+        selection: TextSelection.collapsed(offset: 3),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('alice'), findsOneWidget);
+
+      await tester.tap(find.text('alice'));
+      await tester.pumpAndSettle();
+
+      // The key behavior: \u200B must remain intact at index 0.
+      expect(deleteAwareController.text, '\u200B@alice ');
+      expect(deleteAwareController.realText, '@alice ');
+      expect(deleteAwareController.selection.baseOffset, 8);
+      
+      deleteAwareController.dispose();
+      localFocusNode.dispose();
+    });
   });
 }

@@ -85,7 +85,11 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
 
     // Find the last word boundary (space or newline) before the cursor.
     final lastSpaceIndex = textBeforeCursor.lastIndexOf(RegExp(r'[\s]'));
-    final currentWordStartIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
+    var currentWordStartIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
+    if (currentWordStartIndex == 0 && textBeforeCursor.startsWith('\u200B')) {
+      currentWordStartIndex = 1;
+    }
+
     var currentWord = textBeforeCursor.substring(currentWordStartIndex);
 
     // Strip out the zero-width space if it happens to be at the start of the word
@@ -144,7 +148,10 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
     final textAfterCursor = text.substring(cursorPosition);
 
     final lastSpaceIndex = textBeforeCursor.lastIndexOf(RegExp(r'[\s]'));
-    final currentWordStartIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
+    var currentWordStartIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
+    if (currentWordStartIndex == 0 && textBeforeCursor.startsWith('\u200B')) {
+      currentWordStartIndex = 1;
+    }
 
     // Replace the `@query` with `@username `
     final textBeforeMention = textBeforeCursor.substring(

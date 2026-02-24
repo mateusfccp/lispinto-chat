@@ -15,6 +15,7 @@ final class UserConfiguration {
   static const String _keyServerUrl = 'server_url';
   static const String _keyPushNotifications = 'push_notifications';
   static const String _keyMentionNotifications = 'mention_notifications';
+  static const String _keyAutoConnect = 'auto_connect';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
 
   final SharedPreferences _preferences;
@@ -66,5 +67,15 @@ final class UserConfiguration {
   /// Saves the mention notifications preference to shared preferences.
   Future<void> setMentionNotificationsEnabled(bool value) async {
     await _preferences.setBool(_keyMentionNotifications, value);
+  }
+
+  /// Whether the user wants to automatically skip the initial screen on startup.
+  bool get autoConnect {
+    return _preferences.getBool(_keyAutoConnect) ?? false;
+  }
+
+  /// Saves the auto-connect preference.
+  Future<void> setAutoConnect(bool value) async {
+    await _preferences.setBool(_keyAutoConnect, value);
   }
 }

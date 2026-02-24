@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/configurations_screen.dart';
-import 'screens/chat_screen.dart';
+import 'screens/initial_screen.dart';
 import 'core/user_configuration.dart';
 import 'providers/chat_provider.dart';
 
@@ -30,12 +29,10 @@ class App extends StatelessWidget {
       title: 'Lispinto Chat',
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.dark,
-      home: config.hasNickname
-          ? ChatScreen(provider: chatProvider)
-          : ConfigurationsScreen(
-              configuration: config,
-              chatProvider: chatProvider,
-            ),
+      home: InitialScreen(
+        configuration: config,
+        chatProvider: chatProvider,
+      ),
     );
   }
 }

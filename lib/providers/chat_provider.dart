@@ -165,10 +165,6 @@ final class ChatProvider with ChangeNotifier {
         }
       }),
     );
-
-    if (configuration.hasNickname) {
-      _chatService.connect();
-    }
   }
 
   Future<void> _triggerDisplayNotification(String title, String body) async {
@@ -266,6 +262,12 @@ final class ChatProvider with ChangeNotifier {
     _messages.clear();
     notifyListeners();
   }
+
+  /// Connects to the chat server explicitly.
+  void connect() => _chatService.connect();
+
+  /// Disconnects from the chat server explicitly.
+  void disconnect() => _chatService.disconnect();
 
   @override
   void dispose() {

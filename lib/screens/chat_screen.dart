@@ -36,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final List<_NotificationItem> _activeNotifications = [];
   int _notificationCounter = 0;
+  bool _isQuitting = false;
 
   void _removeNotification(String id) {
     if (!mounted) return;
@@ -80,6 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
+    widget.provider.addListener(_onProviderChanged);
     _notificationSubscription = widget.provider.notifications.listen((
       notification,
     ) {
@@ -100,6 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
+    widget.provider.removeListener(_onProviderChanged);
     _notificationSubscription?.cancel();
     _controller.dispose();
     _scrollController.dispose();
@@ -122,6 +125,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isNotEmpty) {
       if (text == '/clear') {
         widget.provider.clearMessages();
+      } else if (text == '/quit') {
+        _quit();
       } else {
         widget.provider.sendMessage(text);
       }
@@ -132,7 +137,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _openConfig() {
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ConfigurationsScreen(
           configuration: widget.provider.configuration,
@@ -142,68 +147,88 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _quit() {
+    _isQuitting = true;
+    widget.provider.configuration.setAutoConnect(false);
+    widget.provider.disconnect();
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
+  void _onProviderChanged() {
+    if (!widget.provider.isConnected && !_isQuitting && mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isDesktop = constraints.maxWidth > 600;
-                return Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        children: [
-                          if (!isDesktop)
-                            _HorizontalUserList(
-                              provider: widget.provider,
-                              onUserMenuTap: _showUserContextMenu,
-                              onOpenConfig: _openConfig,
-                            ),
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                _MessageList(
-                                  provider: widget.provider,
-                                  controller: _scrollController,
-                                  notifications: _activeNotifications,
-                                  listKey: listKey,
-                                  onRemoveNotification: _removeNotification,
-                                ),
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  child: _InputArea(
-                                    controller: _controller,
-                                    focusNode: _focusNode,
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isDesktop = constraints.maxWidth > 600;
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: [
+                            if (!isDesktop)
+                              _HorizontalUserList(
+                                provider: widget.provider,
+                                onUserMenuTap: _showUserContextMenu,
+                                onOpenConfig: _openConfig,
+                                onQuit: _quit,
+                              ),
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  _MessageList(
                                     provider: widget.provider,
-                                    onSend: _sendMessage,
-                                    showNickname: isDesktop,
+                                    controller: _scrollController,
+                                    notifications: _activeNotifications,
+                                    listKey: listKey,
+                                    onRemoveNotification: _removeNotification,
                                   ),
-                                ),
-                              ],
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    child: _InputArea(
+                                      controller: _controller,
+                                      focusNode: _focusNode,
+                                      provider: widget.provider,
+                                      onSend: _sendMessage,
+                                      showNickname: isDesktop,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    if (isDesktop)
-                      _VerticalUserList(
-                        provider: widget.provider,
-                        onUserTap: _onUserTap,
-                        onUserMenuTap: _showUserContextMenu,
-                        onOpenConfig: _openConfig,
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
+                      if (isDesktop)
+                        _VerticalUserList(
+                          provider: widget.provider,
+                          onUserTap: _onUserTap,
+                          onUserMenuTap: _showUserContextMenu,
+                          onOpenConfig: _openConfig,
+                          onQuit: _quit,
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -235,7 +260,11 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _showUserContextMenu(BuildContext context, Offset position, String user) async {
+  void _showUserContextMenu(
+    BuildContext context,
+    Offset position,
+    String user,
+  ) async {
     final action = await showMenu<VoidCallback>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -578,11 +607,13 @@ final class _HorizontalUserList extends StatelessWidget {
     required this.provider,
     required this.onUserMenuTap,
     required this.onOpenConfig,
+    required this.onQuit,
   });
 
   final ChatProvider provider;
   final void Function(BuildContext, Offset, String) onUserMenuTap;
   final VoidCallback onOpenConfig;
+  final VoidCallback onQuit;
 
   @override
   Widget build(BuildContext context) {
@@ -595,6 +626,7 @@ final class _HorizontalUserList extends StatelessWidget {
         spacing: 8.0,
         runSpacing: 8.0,
         children: [
+          IconButton(onPressed: onQuit, icon: const Icon(Icons.exit_to_app)),
           IconButton(onPressed: onOpenConfig, icon: const Icon(Icons.settings)),
           for (final user in provider.onlineUsers)
             Builder(
@@ -612,7 +644,7 @@ final class _HorizontalUserList extends StatelessWidget {
                     onUserMenuTap(context, position, user);
                   },
                 );
-              }
+              },
             ),
         ],
       ),
@@ -626,12 +658,14 @@ final class _VerticalUserList extends StatelessWidget {
     required this.onUserTap,
     required this.onUserMenuTap,
     required this.onOpenConfig,
+    required this.onQuit,
   });
 
   final ChatProvider provider;
   final ValueChanged<String> onUserTap;
   final void Function(BuildContext, Offset, String) onUserMenuTap;
   final VoidCallback onOpenConfig;
+  final VoidCallback onQuit;
 
   @override
   Widget build(BuildContext context) {
@@ -676,10 +710,20 @@ final class _VerticalUserList extends StatelessWidget {
                     },
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: onOpenConfig,
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Settings'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: onOpenConfig,
+                      icon: const Icon(Icons.settings),
+                      label: const Text('Settings'),
+                    ),
+                    TextButton.icon(
+                      onPressed: onQuit,
+                      icon: const Icon(Icons.exit_to_app),
+                      label: const Text('Quit'),
+                    ),
+                  ],
                 ),
               ],
             );

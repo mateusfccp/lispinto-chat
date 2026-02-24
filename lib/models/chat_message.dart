@@ -16,7 +16,20 @@ final class ChatMessage {
   /// Creates a [ChatMessage].
   ChatMessage({this.date, required this.from, required this.content});
 
+  /// Whether the message is a system message.
+  ///
+  /// System messages include messages sent by the server and messages sent by
+  /// commands.
+  bool get isSystemMessage => isServerMessage || isCommandMessage;
+
+  /// Whether the message was sent by the server.
+  ///
+  /// Messages sent by the server are not logged in the backend and won't
+  /// come in a /log command.
   bool get isServerMessage => from == '@server';
+
+  /// Whether the message was sent by a command.
+  bool get isCommandMessage => from == '@command';
 
   /// Factory constructor to create a [ChatMessage] from a parsed regex match.
   factory ChatMessage.fromParsed(List<String?> match) {

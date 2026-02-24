@@ -140,7 +140,7 @@ final class ChatService {
 
         final message = ChatMessage.fromParsed(groups);
 
-        if (message.isServerMessage) {
+        if (message.isSystemMessage) {
           final shouldRender = _processServerMessage(message.content);
           if (shouldRender) {
             _messageController.add(message);
@@ -150,7 +150,10 @@ final class ChatService {
         }
       } else {
         final rawMessage = ChatMessage(from: 'unknown', content: line);
-        _messageController.add(rawMessage);
+        final shouldRender = _processServerMessage(rawMessage.content);
+        if (shouldRender) {
+          _messageController.add(rawMessage);
+        }
       }
     }
   }
@@ -159,21 +162,23 @@ final class ChatService {
     final isJoin = content.contains('joined to the party');
     final isExit = content.contains('exited from the party');
     final isNickChange = content.contains('Your new nick is');
-    final isSystemMessage = isJoin || isExit || isNickChange;
+    final isNowKnownAs = content.contains('is now known as');
+    final isSystemMessage = isJoin || isExit || isNickChange || isNowKnownAs;
     final isUsersListResponse = content.startsWith('users: ');
 
-    if (isNickChange) {
-      final match = RegExp(r'Your new nick is: @(.*)').firstMatch(content);
-      if (match != null) {
-        if (match.group(1) case final newNick?) {
-          _nickChangeController.add(newNick);
+    if (isSystemMessage) {
+      if (isNickChange) {
+        final match = RegExp(r'Your new nick is: @(.*)').firstMatch(content);
+        if (match != null) {
+          if (match.group(1) case final newNick?) {
+            _nickChangeController.add(newNick);
+            _notificationsController.add('Successfully changed nick to: $newNick');
+          }
         }
       }
-    }
 
-    if (isSystemMessage) {
       _requestUserList(isBackground: true);
-      if (isJoin || isExit) {
+      if (isJoin || isExit || isNowKnownAs) {
         _notificationsController.add(content);
         return false;
       }

@@ -4,6 +4,7 @@ import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'configurations_screen.dart';
@@ -329,42 +330,55 @@ final class _InputArea extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (showNickname) ...[
-                  Text(
-                    '[${provider.configuration.nickname}]:',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14.0),
+                    child: Text(
+                      '[${provider.configuration.nickname}]:',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(width: 8.0),
                 ],
                 Expanded(
-                  child: TextField(
+                  child: MentionsAutocomplete(
                     controller: controller,
                     focusNode: focusNode,
-                    enabled: provider.isConnected,
-                    decoration: InputDecoration(
-                      prefix: provider.currentDmNickname != null
-                          ? _DmIndicator(
-                              user: provider.currentDmNickname!,
-                              onTap: () {
-                                provider.setDmMode(null);
-                                focusNode.requestFocus();
-                              },
-                            )
-                          : null,
-                      hintText: 'Type a message...',
-                      border: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(32.0)),
+                    users: [...provider.onlineUsers, "test 1", "test 2", "test 3", "test 4", "test 5", "test 6"]
+                      ..remove(provider.configuration.nickname),
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      enabled: provider.isConnected,
+                      decoration: InputDecoration(
+                        prefix: provider.currentDmNickname != null
+                            ? _DmIndicator(
+                                user: provider.currentDmNickname!,
+                                onTap: () {
+                                  provider.setDmMode(null);
+                                  focusNode.requestFocus();
+                                },
+                              )
+                            : null,
+                        hintText: 'Type a message...',
+                        border: const OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(32.0)),
+                        ),
+                        fillColor: Colors.black87,
+                        filled: true,
                       ),
-                      fillColor: Colors.black87,
-                      filled: true,
+                      onSubmitted: (_) => onSend(),
                     ),
-                    onSubmitted: (_) => onSend(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: provider.isConnected ? onSend : null,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: provider.isConnected ? onSend : null,
+                  ),
                 ),
               ],
             ),

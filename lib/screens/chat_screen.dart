@@ -206,7 +206,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       focusNode: _focusNode,
                                       provider: widget.provider,
                                       onSend: _sendMessage,
-                                      showNickname: isDesktop,
+                                      isDesktop: isDesktop,
                                     ),
                                   ),
                                 ],
@@ -401,14 +401,14 @@ final class _InputArea extends StatelessWidget {
     required this.focusNode,
     required this.provider,
     required this.onSend,
-    required this.showNickname,
+    required this.isDesktop,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final ChatProvider provider;
   final VoidCallback onSend;
-  final bool showNickname;
+  final bool isDesktop;
 
   @override
   Widget build(BuildContext context) {
@@ -416,19 +416,25 @@ final class _InputArea extends StatelessWidget {
       child: ListenableBuilder(
         listenable: provider,
         builder: (context, child) {
-          final users = [...provider.onlineUsers]
-            ..remove(provider.configuration.nickname);
+          final sendButton = IconButton(
+            icon: Icon(Icons.send),
+            onPressed: provider.isConnected ? onSend : null,
+          );
+
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (showNickname) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14.0),
-                    child: Text(
-                      '[${provider.configuration.nickname}]:',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                if (isDesktop) ...[
+                  PrototypeConstrainedBox.tightFor(
+                    height: true,
+                    prototype: sendButton,
+                    child: Center(
+                      child: Text(
+                        '[${provider.configuration.nickname}]:',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8.0),
@@ -437,7 +443,10 @@ final class _InputArea extends StatelessWidget {
                   child: MentionsAutocomplete(
                     controller: controller,
                     focusNode: focusNode,
-                    users: users,
+                    users: [
+                      for (final user in provider.onlineUsers)
+                        if (user != provider.configuration.nickname) user,
+                    ],
                     triggers: [
                       const TagAutocompleteTrigger(),
                       const CommandAutocompleteTrigger(command: 'dm'),
@@ -457,6 +466,7 @@ final class _InputArea extends StatelessWidget {
                                 },
                               )
                             : null,
+                        isDense: isDesktop,
                         hintText: 'Type a message...',
                         border: const OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(32.0)),
@@ -468,13 +478,8 @@ final class _InputArea extends StatelessWidget {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
-                  child: IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: provider.isConnected ? onSend : null,
-                  ),
-                ),
+                const SizedBox(width: 4.0),
+                sendButton,
               ],
             ),
           );

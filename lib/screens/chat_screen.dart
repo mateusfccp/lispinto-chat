@@ -4,6 +4,8 @@ import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
@@ -58,9 +60,26 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _onTextChanged() {
+    final text = _controller.typedText;
+
+    if (text.startsWith('/dm')) {
+      final parts = text.split(RegExp(r'\s+'));
+      if (parts case ['/dm', final username, '']) {
+        final users = [...widget.provider.onlineUsers]
+          ..remove(widget.provider.configuration.nickname);
+        if (users.contains(username)) {
+          widget.provider.setDmMode(username);
+          _controller.typedText = '';
+        }
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _controller.addListener(_onTextChanged);
     _notificationSubscription = widget.provider.notifications.listen((
       notification,
     ) {
@@ -80,6 +99,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _notificationSubscription?.cancel();
     _controller.dispose();
     _scrollController.dispose();
@@ -98,8 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() {
-    var text = _controller.realText;
-    text = text.trimRight();
+    final text = _controller.typedText.trimRight();
     if (text.isNotEmpty) {
       if (text == '/clear') {
         widget.provider.clearMessages();
@@ -327,6 +346,8 @@ final class _InputArea extends StatelessWidget {
       child: ListenableBuilder(
         listenable: provider,
         builder: (context, child) {
+          final users = [...provider.onlineUsers]
+            ..remove(provider.configuration.nickname);
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -346,8 +367,12 @@ final class _InputArea extends StatelessWidget {
                   child: MentionsAutocomplete(
                     controller: controller,
                     focusNode: focusNode,
-                    users: [...provider.onlineUsers]
-                      ..remove(provider.configuration.nickname),
+                    users: users,
+                    triggers: [
+                      const TagAutocompleteTrigger(),
+                      const CommandAutocompleteTrigger(command: 'dm'),
+                      const CommandAutocompleteTrigger(command: 'whois'),
+                    ],
                     child: TextField(
                       controller: controller,
                       focusNode: focusNode,

@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-const _zeroWidthSpace = '\u200B';
-
 /// A custom [TextEditingController] that manages a zero-width space prefix to
 /// detect when a user deletes everything in the field using the backspace key.
 ///
@@ -28,6 +26,13 @@ final class DeleteAwareEditingController extends TextEditingController {
     _onFocusChanged();
   }
 
+  /// The zero-width space character.
+  ///
+  /// This is used as a prefix to detect when the user has deleted all visible
+  /// text in the field. It is invisible to the user but allows us to track
+  /// backspace.
+  static const zeroWidthSpace = '\u200B';
+
   /// Callback fired when the user hits backspace on an empty field.
   ///
   /// This is triggered when the user deletes the zero-width space prefix, which
@@ -42,10 +47,10 @@ final class DeleteAwareEditingController extends TextEditingController {
 
   void _onFocusChanged() {
     if (focusNode.hasFocus) {
-      if (!text.startsWith(_zeroWidthSpace)) {
+      if (!text.startsWith(zeroWidthSpace)) {
         _isDeletingFromApi = true;
         value = value.copyWith(
-          text: '$_zeroWidthSpace$text',
+          text: '$zeroWidthSpace$text',
           selection: TextSelection.collapsed(
             offset: value.selection.baseOffset + 1,
           ),
@@ -53,7 +58,7 @@ final class DeleteAwareEditingController extends TextEditingController {
         _isDeletingFromApi = false;
       }
     } else {
-      if (text == _zeroWidthSpace) {
+      if (text == zeroWidthSpace) {
         _isDeletingFromApi = true;
         value = const TextEditingValue(
           text: '',
@@ -71,11 +76,20 @@ final class DeleteAwareEditingController extends TextEditingController {
   }
 
   /// Returns the actual user-input text without the zero-width space prefix.
-  String get realText {
-    if (text.startsWith(_zeroWidthSpace)) {
+  String get typedText {
+    if (text.startsWith(zeroWidthSpace)) {
       return text.substring(1);
+    } else {
+      return text;
     }
-    return text;
+  }
+
+  set typedText(String newText) {
+    if (text.startsWith(zeroWidthSpace)) {
+      text = '$zeroWidthSpace$newText';
+    } else {
+      text = newText;
+    }
   }
 
   @override
@@ -86,11 +100,11 @@ final class DeleteAwareEditingController extends TextEditingController {
     }
 
     if (focusNode.hasFocus) {
-      if (value.text.startsWith(_zeroWidthSpace) &&
-          !newValue.text.startsWith(_zeroWidthSpace)) {
+      if (value.text.startsWith(zeroWidthSpace) &&
+          !newValue.text.startsWith(zeroWidthSpace)) {
         // User deleted the space
         final textWithoutZeroWidth = newValue.text.replaceAll(
-          _zeroWidthSpace,
+          zeroWidthSpace,
           '',
         );
         _isDeletingFromApi = true;
@@ -103,10 +117,10 @@ final class DeleteAwareEditingController extends TextEditingController {
         _isDeletingFromApi = false;
         onDeleteEmpty();
         return;
-      } else if (!newValue.text.startsWith(_zeroWidthSpace)) {
+      } else if (!newValue.text.startsWith(zeroWidthSpace)) {
         // Enforce the space programmatically
         _isDeletingFromApi = true;
-        final newText = '$_zeroWidthSpace${newValue.text}';
+        final newText = '$zeroWidthSpace${newValue.text}';
         super.value = newValue.copyWith(
           text: newText,
           selection: TextSelection.collapsed(

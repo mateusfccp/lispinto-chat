@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 
@@ -22,12 +24,19 @@ void main() {
       List<String> onlineUsers = const ['alice', 'bob', 'charlie'],
       TextEditingController? customController,
     }) {
+      final defaultTriggers = [
+        const TagAutocompleteTrigger(),
+        const CommandAutocompleteTrigger(command: 'dm'),
+        const CommandAutocompleteTrigger(command: 'whois'),
+      ];
+
       return MaterialApp(
         home: Scaffold(
           body: MentionsAutocomplete(
             controller: customController ?? controller,
             focusNode: focusNode,
             users: onlineUsers,
+            triggers: defaultTriggers,
             child: TextField(
               controller: customController ?? controller,
               focusNode: focusNode,
@@ -48,7 +57,7 @@ void main() {
       // Focus and type '@'
       focusNode.requestFocus();
       await tester.pump();
-      
+
       controller.value = const TextEditingValue(
         text: '@',
         selection: TextSelection.collapsed(offset: 1),
@@ -62,7 +71,9 @@ void main() {
     });
 
     testWidgets('filters list based on query', (tester) async {
-      await tester.pumpWidget(buildSubject(onlineUsers: ['alice', 'albert', 'bob']));
+      await tester.pumpWidget(
+        buildSubject(onlineUsers: ['alice', 'albert', 'bob']),
+      );
 
       focusNode.requestFocus();
       await tester.pump();
@@ -115,29 +126,28 @@ void main() {
       expect(controller.selection.baseOffset, 11);
       expect(find.byType(Card), findsNothing);
     });
-    
-    testWidgets('works flawlessly with DeleteAwareEditingController', (tester) async {
+
+    testWidgets('works flawlessly with DeleteAwareEditingController', (
+      tester,
+    ) async {
       final localFocusNode = FocusNode();
       final deleteAwareController = DeleteAwareEditingController(
         focusNode: localFocusNode,
         onDeleteEmpty: () {},
       );
       // Manually force prefix mode for simulation
-      deleteAwareController.text = '\u200B'; 
-      
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: MentionsAutocomplete(
-            controller: deleteAwareController,
-            focusNode: localFocusNode,
-            users: const ['alice', 'bob', 'charlie'],
-            child: TextField(
-              controller: deleteAwareController,
-              focusNode: localFocusNode,
+      deleteAwareController.text = '\u200B';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: buildSubject(
+              onlineUsers: const ['alice', 'bob', 'charlie'],
+              customController: deleteAwareController,
             ),
           ),
         ),
-      ));
+      );
 
       localFocusNode.requestFocus();
       await tester.pump();
@@ -155,35 +165,34 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(deleteAwareController.text, '\u200BHello @charlie ');
-      expect(deleteAwareController.realText, 'Hello @charlie ');
+      expect(deleteAwareController.typedText, 'Hello @charlie ');
       expect(deleteAwareController.selection.baseOffset, 16);
-      
+
       deleteAwareController.dispose();
       localFocusNode.dispose();
     });
 
-    testWidgets('preserves zero-width space when mention is at the start', (tester) async {
+    testWidgets('preserves zero-width space when mention is at the start', (
+      tester,
+    ) async {
       final localFocusNode = FocusNode();
       final deleteAwareController = DeleteAwareEditingController(
         focusNode: localFocusNode,
         onDeleteEmpty: () {},
       );
       // Manually force prefix mode for simulation
-      deleteAwareController.text = '\u200B'; 
-      
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: MentionsAutocomplete(
-            controller: deleteAwareController,
-            focusNode: localFocusNode,
-            users: const ['alice', 'bob', 'charlie'],
-            child: TextField(
-              controller: deleteAwareController,
-              focusNode: localFocusNode,
+      deleteAwareController.text = '\u200B';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: buildSubject(
+              onlineUsers: const ['alice', 'bob', 'charlie'],
+              customController: deleteAwareController,
             ),
           ),
         ),
-      ));
+      );
 
       localFocusNode.requestFocus();
       await tester.pump();
@@ -202,9 +211,9 @@ void main() {
 
       // The key behavior: \u200B must remain intact at index 0.
       expect(deleteAwareController.text, '\u200B@alice ');
-      expect(deleteAwareController.realText, '@alice ');
+      expect(deleteAwareController.typedText, '@alice ');
       expect(deleteAwareController.selection.baseOffset, 8);
-      
+
       deleteAwareController.dispose();
       localFocusNode.dispose();
     });

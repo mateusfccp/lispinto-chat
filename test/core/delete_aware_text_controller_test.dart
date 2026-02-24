@@ -13,7 +13,7 @@ void main() {
 
       // Focus node is not active initially, so there should be no prefix.
       expect(controller.text, isEmpty);
-      expect(controller.realText, isEmpty);
+      expect(controller.typedText, isEmpty);
 
       controller.dispose();
       focusNode.dispose();
@@ -28,7 +28,7 @@ void main() {
       );
 
       expect(controller.text, 'hello');
-      expect(controller.realText, 'hello');
+      expect(controller.typedText, 'hello');
 
       controller.dispose();
       focusNode.dispose();
@@ -57,8 +57,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(focusNode.hasFocus, isTrue);
-      expect(controller.text, '\u200B');
-      expect(controller.realText, isEmpty);
+      expect(controller.text, DeleteAwareEditingController.zeroWidthSpace);
+      expect(controller.typedText, isEmpty);
       expect(deleteEmptyCalledCounter, 0);
 
       controller.dispose();
@@ -90,7 +90,7 @@ void main() {
       // Focus our field
       await tester.tap(find.byType(TextField).first);
       await tester.pumpAndSettle();
-      expect(controller.text, '\u200B');
+      expect(controller.text, DeleteAwareEditingController.zeroWidthSpace);
 
       // Focus another field to unfocus our field
       await tester.tap(find.byKey(const Key('other_field')));
@@ -98,7 +98,7 @@ void main() {
 
       expect(focusNode.hasFocus, isFalse);
       expect(controller.text, isEmpty);
-      expect(controller.realText, isEmpty);
+      expect(controller.typedText, isEmpty);
 
       controller.dispose();
       focusNode.dispose();
@@ -128,11 +128,11 @@ void main() {
         await tester.tap(find.byType(TextField));
         await tester.pumpAndSettle();
 
-        expect(controller.text, '\u200B');
-        expect(controller.realText, isEmpty);
+        expect(controller.text, DeleteAwareEditingController.zeroWidthSpace);
+        expect(controller.typedText, isEmpty);
 
         // Simulate a backspace by setting the text to empty directly
-        // When the user presses backspace, the text goes from '\u200B' to ''
+        // When the user presses backspace, the text goes from '${DeleteAwareEditingController.zeroWidthSpace}' to ''
         controller.value = const TextEditingValue(text: '');
         await tester.pump();
 
@@ -170,11 +170,17 @@ void main() {
         await tester.pumpAndSettle();
 
         // Type some text natively as a user would
-        await tester.enterText(find.byType(TextField).first, '\u200BHello');
+        await tester.enterText(
+          find.byType(TextField).first,
+          '${DeleteAwareEditingController.zeroWidthSpace}Hello',
+        );
         await tester.pumpAndSettle();
 
-        expect(controller.text, '\u200BHello');
-        expect(controller.realText, 'Hello');
+        expect(
+          controller.text,
+          '${DeleteAwareEditingController.zeroWidthSpace}Hello',
+        );
+        expect(controller.typedText, 'Hello');
 
         // Unfocus
         await tester.tap(find.byKey(const Key('other_field')));
@@ -182,9 +188,9 @@ void main() {
 
         expect(
           controller.text,
-          '\u200BHello',
+          '${DeleteAwareEditingController.zeroWidthSpace}Hello',
         ); // Text should be preserved but zero width space remains due to 'set value' implementation details if text exists
-        expect(controller.realText, 'Hello');
+        expect(controller.typedText, 'Hello');
 
         controller.dispose();
         focusNode.dispose();

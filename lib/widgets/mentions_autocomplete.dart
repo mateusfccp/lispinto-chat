@@ -4,10 +4,25 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 
-/// A widget that and provides a popout overlay for autocompleting `@` mentions.
+/// Defines a generic text-based trigger to activate an autocomplete dropdown.
+abstract interface class AutocompleteTrigger {
+  /// Defines how to detect the trigger from the text preceding the cursor.
+  ///
+  /// The [textBeforeCursor] parameter will contain the full text from the start
+  /// of the input up to the current cursor position, allowing for flexible
+  /// detection logic such as looking for specific characters, keywords, or
+  /// patterns.
+  ///
+  /// Should return the raw 'query' string if detected, or null if unrelated.
+  String? triggerDetector(String textBeforeCursor);
+}
+
+/// A widget that and provides a popout overlay for autocompleting.
 final class MentionsAutocomplete extends StatefulWidget {
   /// Creates a [MentionsAutocomplete].
   const MentionsAutocomplete({
@@ -15,6 +30,7 @@ final class MentionsAutocomplete extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     required this.users,
+    required this.triggers,
     required this.child,
   });
 
@@ -27,6 +43,9 @@ final class MentionsAutocomplete extends StatefulWidget {
   /// The list of users available for autocomplete.
   final List<String> users;
 
+  /// The list of triggers that can activate the autocomplete.
+  final List<AutocompleteTrigger> triggers;
+
   /// The text input widget to wrap.
   final Widget child;
 
@@ -38,6 +57,7 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
   String? _mentionQuery;
   int _mentionSelectedIndex = 0;
   List<String> _filteredUsers = [];
+  AutocompleteTrigger? _activeTrigger;
 
   @override
   void initState() {
@@ -83,25 +103,21 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
     // Extract the substring before the cursor.
     final textBeforeCursor = text.substring(0, cursorPosition);
 
-    // Find the last word boundary (space or newline) before the cursor.
-    final lastSpaceIndex = textBeforeCursor.lastIndexOf(RegExp(r'[\s]'));
-    var currentWordStartIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
-    if (currentWordStartIndex == 0 && textBeforeCursor.startsWith('\u200B')) {
-      currentWordStartIndex = 1;
+    final cleanTextBeforeCursor = textBeforeCursor.replaceAll(
+      DeleteAwareEditingController.zeroWidthSpace,
+      '',
+    );
+
+    for (final trigger in widget.triggers) {
+      final query = trigger.triggerDetector(cleanTextBeforeCursor);
+      if (query != null) {
+        _activeTrigger = trigger;
+        _filterUsers(query);
+        return;
+      }
     }
 
-    var currentWord = textBeforeCursor.substring(currentWordStartIndex);
-
-    // Strip out the zero-width space if it happens to be at the start of the word
-    currentWord = currentWord.replaceAll('\u200B', '');
-
-    // If the word starts with '@', it's a mention query.
-    if (currentWord.startsWith('@')) {
-      final query = currentWord.substring(1); // Exclude the '@'
-      _filterUsers(query);
-    } else {
-      _hideDropdown();
-    }
+    _hideDropdown();
   }
 
   void _filterUsers(String query) {
@@ -133,39 +149,72 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
         _mentionQuery = null;
         _filteredUsers = [];
         _mentionSelectedIndex = 0;
+        _activeTrigger = null;
       });
     }
   }
 
   void _onUserSelected(String username) {
-    if (_mentionQuery == null) return;
+    if (_activeTrigger == null) return;
 
-    final text = widget.controller.text;
-    final selection = widget.controller.selection;
-    final cursorPosition = selection.baseOffset;
+    final hasZeroWidthPrefix = widget.controller.text.startsWith(
+      DeleteAwareEditingController.zeroWidthSpace,
+    );
+    final cleanText = widget.controller.text.replaceAll(
+      DeleteAwareEditingController.zeroWidthSpace,
+      '',
+    );
+    final cleanBaseOffset = hasZeroWidthPrefix
+        ? max(0, widget.controller.selection.baseOffset - 1)
+        : widget.controller.selection.baseOffset;
+    final cleanExtentOffset = hasZeroWidthPrefix
+        ? max(0, widget.controller.selection.extentOffset - 1)
+        : widget.controller.selection.extentOffset;
 
-    final textBeforeCursor = text.substring(0, cursorPosition);
-    final textAfterCursor = text.substring(cursorPosition);
+    final cleanValue = TextEditingValue(
+      text: cleanText,
+      selection: widget.controller.selection.copyWith(
+        baseOffset: cleanBaseOffset,
+        extentOffset: cleanExtentOffset,
+      ),
+    );
+
+    final textBeforeCursor = cleanValue.text.substring(
+      0,
+      cleanValue.selection.baseOffset,
+    );
+    final textAfterCursor = cleanValue.text.substring(
+      cleanValue.selection.baseOffset,
+    );
 
     final lastSpaceIndex = textBeforeCursor.lastIndexOf(RegExp(r'[\s]'));
-    var currentWordStartIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
-    if (currentWordStartIndex == 0 && textBeforeCursor.startsWith('\u200B')) {
-      currentWordStartIndex = 1;
-    }
+    final startIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
 
-    // Replace the `@query` with `@username `
-    final textBeforeMention = textBeforeCursor.substring(
-      0,
-      currentWordStartIndex,
-    );
-    final injectedMention = '@$username ';
+    final textBeforeMention = textBeforeCursor.substring(0, startIndex);
+    final triggerPrefix =
+        _activeTrigger is TagAutocompleteTrigger ? '@' : ''; // Keep @ for tags
+    final injectedMention = '$triggerPrefix$username ';
 
     final newText = textBeforeMention + injectedMention + textAfterCursor;
     final newCursorPosition = textBeforeMention.length + injectedMention.length;
 
-    widget.controller.value = TextEditingValue(
+    final newCleanValue = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: newCursorPosition),
+    );
+
+    widget.controller.value = newCleanValue.copyWith(
+      text: hasZeroWidthPrefix
+          ? '${DeleteAwareEditingController.zeroWidthSpace}${newCleanValue.text}'
+          : newCleanValue.text,
+      selection: newCleanValue.selection.copyWith(
+        baseOffset: hasZeroWidthPrefix
+            ? newCleanValue.selection.baseOffset + 1
+            : newCleanValue.selection.baseOffset,
+        extentOffset: hasZeroWidthPrefix
+            ? newCleanValue.selection.extentOffset + 1
+            : newCleanValue.selection.extentOffset,
+      ),
     );
 
     _hideDropdown();
@@ -347,7 +396,6 @@ final class _MobileDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final itemCount = min(3, filteredUsers.length);
-    print('Item count: $itemCount, Filtered users: $filteredUsers');
 
     return Card(
       clipBehavior: Clip.antiAlias,

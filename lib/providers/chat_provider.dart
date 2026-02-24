@@ -70,6 +70,10 @@ final class ChatProvider with ChangeNotifier {
   String? get currentDmNickname => _currentDmUser;
   String? _currentDmUser;
 
+  /// The current search query being filtered on the server.
+  String get searchQuery => _searchQuery;
+  String _searchQuery = '';
+
   /// A stream of important notifications to show as local notifications.
   Stream<String> get notifications => _chatService.notifications;
 
@@ -248,10 +252,25 @@ final class ChatProvider with ChangeNotifier {
   /// Sets the current DM mode to the specified [user].
   ///
   /// If [user] is null, DM mode is disabled and messages will be sent to the
-  /// main chat.
+  /// public chat.
   void setDmMode(String? user) {
     _currentDmUser = user;
     notifyListeners();
+  }
+
+  /// Triggers a search on the backend and updates the search query.
+  void search(String query) {
+    if (_searchQuery == query) return;
+    
+    _searchQuery = query;
+    _messages.clear();
+    notifyListeners();
+
+    if (query.trim().isEmpty) {
+      _chatService.sendMessage('/log :depth 100 :date-format date');
+    } else {
+      _chatService.sendMessage('/search "$query"');
+    }
   }
 
   /// Clears the chat messages from the UI.

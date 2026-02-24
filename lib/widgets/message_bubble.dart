@@ -7,10 +7,17 @@ import 'package:url_launcher/url_launcher.dart';
 /// A widget that displays a single chat message bubble.
 final class MessageBubble extends StatelessWidget {
   /// Creates a [MessageBubble].
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.searchQuery = '',
+  });
 
   /// The chat [message] to display in this bubble.
   final ChatMessage message;
+
+  /// The current active search query to highlight in the message content.
+  final String searchQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -73,10 +80,10 @@ final class MessageBubble extends StatelessWidget {
 
     for (final match in pattern.allMatches(text)) {
       if (match.start > lastMatchEnd) {
-        spans.add(
-          TextSpan(
-            text: text.substring(lastMatchEnd, match.start),
-            style: const TextStyle(color: Colors.white),
+        spans.addAll(
+          _highlightSearchText(
+            text.substring(lastMatchEnd, match.start),
+            const TextStyle(color: Colors.white),
           ),
         );
       }
@@ -104,10 +111,10 @@ final class MessageBubble extends StatelessWidget {
         // mention
         final mention = match.group(2)!;
         final user = mention.substring(1);
-        spans.add(
-          TextSpan(
-            text: mention,
-            style: TextStyle(
+        spans.addAll(
+          _highlightSearchText(
+            mention,
+            TextStyle(
               color: getNicknameColor(user),
               fontWeight: FontWeight.bold,
             ),
@@ -116,34 +123,28 @@ final class MessageBubble extends StatelessWidget {
       } else if (match.group(3) != null || match.group(4) != null) {
         // bold
         final content = match.group(3) ?? match.group(4)!;
-        spans.add(
-          TextSpan(
-            text: content,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+        spans.addAll(
+          _highlightSearchText(
+            content,
+            const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
         );
       } else if (match.group(5) != null || match.group(6) != null) {
         // italic
         final content = match.group(5) ?? match.group(6)!;
-        spans.add(
-          TextSpan(
-            text: content,
-            style: const TextStyle(
-              fontStyle: FontStyle.italic,
-              color: Colors.white,
-            ),
+        spans.addAll(
+          _highlightSearchText(
+            content,
+            const TextStyle(fontStyle: FontStyle.italic, color: Colors.white),
           ),
         );
       } else if (match.group(7) != null) {
         // strike
         final content = match.group(7)!;
-        spans.add(
-          TextSpan(
-            text: content,
-            style: const TextStyle(
+        spans.addAll(
+          _highlightSearchText(
+            content,
+            const TextStyle(
               decoration: TextDecoration.lineThrough,
               color: Colors.white,
             ),
@@ -168,12 +169,52 @@ final class MessageBubble extends StatelessWidget {
     }
 
     if (lastMatchEnd < text.length) {
-      spans.add(
-        TextSpan(
-          text: text.substring(lastMatchEnd),
-          style: const TextStyle(color: Colors.white),
+      spans.addAll(
+        _highlightSearchText(
+          text.substring(lastMatchEnd),
+          const TextStyle(color: Colors.white),
         ),
       );
+    }
+
+    return spans;
+  }
+
+  List<InlineSpan> _highlightSearchText(String text, TextStyle baseStyle) {
+    if (searchQuery.trim().isEmpty) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+
+    final spans = <InlineSpan>[];
+    int start = 0;
+    final lowerText = text.toLowerCase();
+    final lowerQuery = searchQuery.toLowerCase();
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        if (start < text.length) {
+          spans.add(TextSpan(text: text.substring(start), style: baseStyle));
+        }
+        break;
+      }
+
+      if (index > start) {
+        spans.add(
+          TextSpan(text: text.substring(start, index), style: baseStyle),
+        );
+      }
+
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + searchQuery.length),
+          style: baseStyle.copyWith(
+            backgroundColor: Colors.yellow.withValues(alpha: 0.3),
+          ),
+        ),
+      );
+
+      start = index + searchQuery.length;
     }
 
     return spans;

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -10,6 +11,16 @@ import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'configurations_screen.dart';
+
+/// Intent to trigger the search bar from keyboard shortcuts.
+class SearchIntent extends Intent {
+  const SearchIntent();
+}
+
+/// Intent to close the search bar from keyboard shortcuts.
+class CloseSearchIntent extends Intent {
+  const CloseSearchIntent();
+}
 
 /// The main chat screen of the app.
 final class ChatScreen extends StatefulWidget {
@@ -33,6 +44,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final FocusNode _focusNode = FocusNode();
   final listKey = GlobalKey<AnimatedListState>();
   StreamSubscription? _notificationSubscription;
+
+  bool _isSearchVisible = false;
+  late final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  Timer? _searchDebounce;
 
   final List<_NotificationItem> _activeNotifications = [];
   int _notificationCounter = 0;
@@ -97,10 +113,25 @@ class _ChatScreenState extends State<ChatScreen> {
         _removeNotification(id);
       });
     });
+
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus &&
+          _searchController.text.isEmpty &&
+          _isSearchVisible) {
+        if (mounted) {
+          setState(() {
+            _isSearchVisible = false;
+          });
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     _controller.removeListener(_onTextChanged);
     widget.provider.removeListener(_onProviderChanged);
     _notificationSubscription?.cancel();
@@ -162,72 +193,145 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      widget.provider.search(query);
+      if (mounted) {
+        setState(() {}); // Trigger rebuild to show/hide clear icon
+      }
+    });
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearchVisible = !_isSearchVisible;
+      if (!_isSearchVisible) {
+        _searchController.clear();
+        widget.provider.search('');
+        _focusNode.requestFocus();
+      } else {
+        _searchFocusNode.requestFocus();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isDesktop = constraints.maxWidth > 600;
-                  return Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          children: [
-                            if (!isDesktop)
-                              _HorizontalUserList(
-                                provider: widget.provider,
-                                onUserMenuTap: _showUserContextMenu,
-                                onOpenConfig: _openConfig,
-                                onQuit: _quit,
-                              ),
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  _MessageList(
+      child: Shortcuts(
+        shortcuts: <LogicalKeySet, Intent>{
+          LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyS):
+              const SearchIntent(),
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS):
+              const SearchIntent(),
+          LogicalKeySet(LogicalKeyboardKey.escape): const CloseSearchIntent(),
+        },
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            SearchIntent: CallbackAction<SearchIntent>(
+              onInvoke: (SearchIntent intent) {
+                if (!_isSearchVisible) {
+                  _toggleSearch();
+                } else {
+                  _searchFocusNode.requestFocus();
+                }
+                return null;
+              },
+            ),
+            CloseSearchIntent: CallbackAction<CloseSearchIntent>(
+              onInvoke: (CloseSearchIntent intent) {
+                if (_isSearchVisible) {
+                  _searchController.clear();
+                  _onSearchChanged('');
+                  setState(() {
+                    _isSearchVisible = false;
+                    _focusNode.requestFocus();
+                  });
+                }
+                return null;
+              },
+            ),
+          },
+          child: Scaffold(
+            body: SafeArea(
+              bottom: false,
+              child: Stack(
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isDesktop = constraints.maxWidth > 600;
+                      return Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              children: [
+                                if (!isDesktop)
+                                  _HorizontalUserList(
                                     provider: widget.provider,
-                                    controller: _scrollController,
-                                    notifications: _activeNotifications,
-                                    listKey: listKey,
-                                    onRemoveNotification: _removeNotification,
+                                    onUserMenuTap: _showUserContextMenu,
+                                    onOpenConfig: _openConfig,
+                                    onQuit: _quit,
                                   ),
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    child: _InputArea(
-                                      controller: _controller,
-                                      focusNode: _focusNode,
-                                      provider: widget.provider,
-                                      onSend: _sendMessage,
-                                      isDesktop: isDesktop,
-                                    ),
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      _MessageList(
+                                        provider: widget.provider,
+                                        controller: _scrollController,
+                                        notifications: _activeNotifications,
+                                        listKey: listKey,
+                                        onRemoveNotification:
+                                            _removeNotification,
+                                      ),
+                                      Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        child: _InputArea(
+                                          controller: _controller,
+                                          focusNode: _focusNode,
+                                          provider: widget.provider,
+                                          onSend: _sendMessage,
+                                          isDesktop: isDesktop,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 8.0,
+                                        left: 8.0,
+                                        right: 8.0,
+                                        child: _SearchInput(
+                                          isDesktop: isDesktop,
+                                          isSearchVisible: _isSearchVisible,
+                                          searchController: _searchController,
+                                          searchFocusNode: _searchFocusNode,
+                                          onToggleSearch: _toggleSearch,
+                                          onSearchChanged: _onSearchChanged,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      if (isDesktop)
-                        _VerticalUserList(
-                          provider: widget.provider,
-                          onUserTap: _onUserTap,
-                          onUserMenuTap: _showUserContextMenu,
-                          onOpenConfig: _openConfig,
-                          onQuit: _quit,
-                        ),
-                    ],
-                  );
-                },
+                          ),
+                          if (isDesktop)
+                            _VerticalUserList(
+                              provider: widget.provider,
+                              onUserTap: _onUserTap,
+                              onUserMenuTap: _showUserContextMenu,
+                              onOpenConfig: _openConfig,
+                              onQuit: _quit,
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -286,6 +390,81 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     action?.call();
+  }
+}
+
+final class _SearchInput extends StatelessWidget {
+  const _SearchInput({
+    required this.isDesktop,
+    required this.isSearchVisible,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.onToggleSearch,
+    required this.onSearchChanged,
+  });
+
+  final bool isDesktop;
+  final bool isSearchVisible;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final VoidCallback onToggleSearch;
+  final ValueChanged<String> onSearchChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = isSearchVisible ? constraints.maxWidth : 48.0;
+
+          return AnimatedContainer(
+            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 150),
+            width: width,
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              border: Border.all(color: Colors.white24, width: 2.0),
+              borderRadius: BorderRadius.circular(32.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4.0,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Row(
+              children: [
+                AbsorbPointer(
+                  absorbing: isSearchVisible,
+                  child: IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: onToggleSearch,
+                  ),
+                ),
+                if (isSearchVisible)
+                  Expanded(
+                    child: TextField(
+                      controller: searchController,
+                      focusNode: searchFocusNode,
+                      onChanged: onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Search messages...',
+                        isDense: isDesktop,
+                        border: InputBorder.none,
+                        fillColor: Colors.transparent,
+                        filled: true,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -361,7 +540,10 @@ class _MessageList extends StatelessWidget {
                           ),
                         ),
                       ),
-                    MessageBubble(message: message),
+                    MessageBubble(
+                      message: message,
+                      searchQuery: provider.searchQuery,
+                    ),
                   ],
                 );
               },

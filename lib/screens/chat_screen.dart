@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
@@ -20,7 +21,11 @@ final class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _controller = TextEditingController();
+  late final DeleteAwareEditingController _controller =
+      DeleteAwareEditingController(
+        onDeleteEmpty: () => widget.provider.setDmMode(null),
+        focusNode: _focusNode,
+      );
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   final listKey = GlobalKey<AnimatedListState>();
@@ -92,7 +97,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() {
-    final text = _controller.text.trimRight();
+    var text = _controller.realText;
+    text = text.trimRight();
     if (text.isNotEmpty) {
       if (text == '/clear') {
         widget.provider.clearMessages();

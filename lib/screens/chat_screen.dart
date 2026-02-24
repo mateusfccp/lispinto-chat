@@ -346,7 +346,7 @@ final class _InputArea extends StatelessWidget {
                   child: MentionsAutocomplete(
                     controller: controller,
                     focusNode: focusNode,
-                    users: [...provider.onlineUsers, "test 1", "test 2", "test 3", "test 4", "test 5", "test 6"]
+                    users: [...provider.onlineUsers]
                       ..remove(provider.configuration.nickname),
                     child: TextField(
                       controller: controller,

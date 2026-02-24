@@ -211,11 +211,11 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onUserTap(String nickname) {
     if (widget.provider.currentDmNickname == nickname) {
       widget.provider.setDmMode(null);
+      _focusNode.requestFocus();
     } else if (nickname != widget.provider.configuration.nickname) {
       widget.provider.setDmMode(nickname);
+      _focusNode.requestFocus();
     }
-
-    _focusNode.requestFocus();
   }
 }
 

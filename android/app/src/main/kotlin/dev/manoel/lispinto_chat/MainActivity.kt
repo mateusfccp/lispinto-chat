@@ -1,4 +1,4 @@
-package dev.manoel.lispinto_chat
+package me.mateusfccp.lispinto
 
 import io.flutter.embedding.android.FlutterActivity
 

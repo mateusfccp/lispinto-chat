@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.manoel.lispinto_chat"
+    namespace = "me.mateusfccp.lispinto"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.manoel.lispinto_chat"
+        applicationId = "me.mateusfccp.lispinto"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

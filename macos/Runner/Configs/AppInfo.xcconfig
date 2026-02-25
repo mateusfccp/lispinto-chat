@@ -8,7 +8,7 @@
 PRODUCT_NAME = Lispinto Chat
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = dev.manoel.lispChatClient
+PRODUCT_BUNDLE_IDENTIFIER = me.mateusfccp.lispinto
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 dev.manoel. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Mateus Felipe Cordeiro Caetano Pinto. All rights reserved.

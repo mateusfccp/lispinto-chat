@@ -27,14 +27,12 @@ final class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: message.isServerMessage
+        gradient: message.isSystemMessage
             ? LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  Theme.of(
-                    context,
-                  ).colorScheme.errorContainer.withValues(alpha: 0.5),
+                  getNicknameColor(message.from).withValues(alpha: 0.5),
                   Colors.transparent,
                 ],
               )

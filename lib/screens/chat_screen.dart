@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
@@ -10,6 +11,7 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_tri
 import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
+
 import 'configurations_screen.dart';
 
 /// Intent to trigger the search bar from keyboard shortcuts.
@@ -52,7 +54,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final List<_NotificationItem> _activeNotifications = [];
   int _notificationCounter = 0;
-  bool _isQuitting = false;
 
   void _removeNotification(String id) {
     if (!mounted) return;
@@ -97,7 +98,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
-    widget.provider.addListener(_onProviderChanged);
     _notificationSubscription = widget.provider.notifications.listen((
       notification,
     ) {
@@ -133,7 +133,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _controller.removeListener(_onTextChanged);
-    widget.provider.removeListener(_onProviderChanged);
     _notificationSubscription?.cancel();
     _controller.dispose();
     _scrollController.dispose();
@@ -179,16 +178,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _quit() {
-    _isQuitting = true;
     widget.provider.configuration.setAutoConnect(false);
     widget.provider.disconnect();
     if (mounted) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    }
-  }
-
-  void _onProviderChanged() {
-    if (!widget.provider.isConnected && !_isQuitting && mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }

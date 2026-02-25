@@ -20,12 +20,15 @@ final class ChatProvider with ChangeNotifier {
     required this.appVersion,
     FlutterLocalNotificationsPlugin? localNotifications,
     ChatService? chatService,
-  })  : _localNotifications = localNotifications ?? FlutterLocalNotificationsPlugin(),
-        _chatService = chatService ?? ChatService(
-          serverUrl: Uri.parse(configuration.serverUrl),
-          nickname: configuration.nickname,
-          appVersion: appVersion,
-        ) {
+  }) : _localNotifications =
+           localNotifications ?? FlutterLocalNotificationsPlugin(),
+       _chatService =
+           chatService ??
+           ChatService(
+             serverUrl: Uri.parse(configuration.serverUrl),
+             nickname: configuration.nickname,
+             appVersion: appVersion,
+           ) {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
         if (!_isConnected) {
@@ -75,9 +78,15 @@ final class ChatProvider with ChangeNotifier {
   String _searchQuery = '';
 
   /// A stream of important notifications to show as local notifications.
-  Stream<String> get notifications => _chatService.notifications;
+  Stream<String> get notifications {
+    return _chatService.notifications.map(
+      (notification) => notification.content,
+    );
+  }
 
   final FlutterLocalNotificationsPlugin _localNotifications;
+
+  DateTime _lastNotificationTimestamp = DateTime.now();
 
   // Track stream subscriptions
   final List<StreamSubscription> _subscriptions = [];
@@ -131,10 +140,14 @@ final class ChatProvider with ChangeNotifier {
             configuration.hasNickname &&
             message.from != configuration.nickname &&
             hasMention(message.content, configuration.nickname)) {
-          _triggerDisplayNotification(
-            'Mention from ${message.from}',
-            message.content,
-          );
+          final timestamp = message.date ?? DateTime.now();
+          if (timestamp.isAfter(_lastNotificationTimestamp)) {
+            _lastNotificationTimestamp = timestamp;
+            _triggerDisplayNotification(
+              'Mention from ${message.from}',
+              message.content,
+            );
+          }
         }
       }),
     );
@@ -165,7 +178,11 @@ final class ChatProvider with ChangeNotifier {
     _subscriptions.add(
       _chatService.notifications.listen((notification) {
         if (configuration.pushNotificationsEnabled) {
-          _triggerDisplayNotification('Lisp Chat', notification);
+          if (notification.date case final date?
+              when date.isAfter(_lastNotificationTimestamp)) {
+            _lastNotificationTimestamp = date;
+            _triggerDisplayNotification('Lisp Chat', notification.content);
+          }
         }
       }),
     );
@@ -261,7 +278,7 @@ final class ChatProvider with ChangeNotifier {
   /// Triggers a search on the backend and updates the search query.
   void search(String query) {
     if (_searchQuery == query) return;
-    
+
     _searchQuery = query;
     _messages.clear();
     notifyListeners();

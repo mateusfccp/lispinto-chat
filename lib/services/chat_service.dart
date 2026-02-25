@@ -27,8 +27,8 @@ interface class ChatService {
   final _messageController = StreamController<ChatMessage>.broadcast();
 
   /// A stream of important notifications to be shown as local notifications.
-  Stream<String> get notifications => _notificationsController.stream;
-  final _notificationsController = StreamController<String>.broadcast();
+  Stream<ChatMessage> get notifications => _notificationsController.stream;
+  final _notificationsController = StreamController<ChatMessage>.broadcast();
 
   /// A stream of the current online users list to be displayed in the UI.
   Stream<List<String>> get users => _usersController.stream;
@@ -118,7 +118,13 @@ interface class ChatService {
       }
 
       if (!_loggedIn && line.contains('> Name cannot be empty')) {
-        _notificationsController.add('Failed to login: name cannot be empty');
+        _notificationsController.add(
+          ChatMessage(
+            from: 'system',
+            content: 'Nickname cannot be empty. Please set a valid nickname.',
+            date: DateTime.now(),
+          ),
+        );
         disconnect();
         return;
       }
@@ -141,7 +147,7 @@ interface class ChatService {
         final message = ChatMessage.fromParsed(groups);
 
         if (message.isSystemMessage) {
-          final shouldRender = _processServerMessage(message.content);
+          final shouldRender = _processServerMessage(message);
           if (shouldRender) {
             _messageController.add(message);
           }
@@ -150,7 +156,7 @@ interface class ChatService {
         }
       } else {
         final rawMessage = ChatMessage(from: 'unknown', content: line);
-        final shouldRender = _processServerMessage(rawMessage.content);
+        final shouldRender = _processServerMessage(rawMessage);
         if (shouldRender) {
           _messageController.add(rawMessage);
         }
@@ -158,7 +164,9 @@ interface class ChatService {
     }
   }
 
-  bool _processServerMessage(String content) {
+  bool _processServerMessage(ChatMessage message) {
+    final content = message.content;
+
     final isJoin = content.contains('joined to the party');
     final isExit = content.contains('exited from the party');
     final isNickChange = content.contains('Your new nick is');
@@ -172,14 +180,20 @@ interface class ChatService {
         if (match != null) {
           if (match.group(1) case final newNick?) {
             _nickChangeController.add(newNick);
-            _notificationsController.add('Successfully changed nick to: $newNick');
+            _notificationsController.add(
+              ChatMessage(
+                from: 'system',
+                content: 'Your nickname has been changed to $newNick.',
+                date: DateTime.now(),
+              ),
+            );
           }
         }
       }
 
       _requestUserList(isBackground: true);
       if (isJoin || isExit || isNowKnownAs) {
-        _notificationsController.add(content);
+        _notificationsController.add(message);
         return false;
       }
     } else if (isUsersListResponse) {
@@ -226,7 +240,13 @@ interface class ChatService {
     _channel = null;
 
     _connectionStateController.add(false);
-    _notificationsController.add('Disconnected from server.');
+    _notificationsController.add(
+      ChatMessage(
+        from: 'system',
+        content: 'Connection lost. Attempting to reconnect...',
+        date: DateTime.now(),
+      ),
+    );
 
     // Attempt reconnect after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {

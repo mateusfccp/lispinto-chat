@@ -135,149 +135,94 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                           ),
                           if (shouldShowNotificationsArea) ...[
                             const Gap(16.0),
-                            Card(
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
+                            _ConfigurationSection(
+                              title: Text('Push Notifications'),
+                              children: [
+                                SwitchListTile(
+                                  title: const Text('Server Messages'),
+                                  subtitle: const Text(
+                                    'Receive generic notifications pushed by the server',
+                                  ),
+                                  value: _pushNotificationsEnabled,
+                                  onChanged: (value) async {
+                                    if (value) {
+                                      final granted = await widget.chatProvider
+                                          .requestPermissions();
+                                      if (granted) {
+                                        setState(() {
+                                          _pushNotificationsEnabled = true;
+                                        });
+                                      } else if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Notification permissions disabled or denied.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      setState(() {
+                                        _pushNotificationsEnabled = false;
+                                      });
+                                    }
+                                  },
                                 ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 16.0,
-                                        vertical: 8.0,
-                                      ),
-                                      child: Text(
-                                        'Push Notifications',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    SwitchListTile(
-                                      title: const Text('Server Messages'),
-                                      subtitle: const Text(
-                                        'Receive generic notifications pushed by the server',
-                                      ),
-                                      value: _pushNotificationsEnabled,
-                                      onChanged: (value) async {
-                                        if (value) {
-                                          final granted = await widget
-                                              .chatProvider
-                                              .requestPermissions();
-                                          if (granted) {
-                                            setState(() {
-                                              _pushNotificationsEnabled = true;
-                                            });
-                                          } else if (context.mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Notification permissions disabled or denied.',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          setState(() {
-                                            _pushNotificationsEnabled = false;
-                                          });
-                                        }
-                                      },
-                                    ),
-                                    const Divider(),
-                                    SwitchListTile(
-                                      title: const Text('Mentions (@nickname)'),
-                                      subtitle: const Text(
-                                        'Targeted notifications when someone tags you',
-                                      ),
-                                      value: _mentionNotificationsEnabled,
-                                      onChanged: (value) async {
-                                        if (value) {
-                                          final granted = await widget
-                                              .chatProvider
-                                              .requestPermissions();
-                                          if (granted) {
-                                            setState(() {
-                                              _mentionNotificationsEnabled =
-                                                  true;
-                                            });
-                                          } else if (context.mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Notification permissions disabled or denied.',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          setState(() {
-                                            _mentionNotificationsEnabled =
-                                                false;
-                                          });
-                                        }
-                                      },
-                                    ),
-                                  ],
+                                const Divider(),
+                                SwitchListTile(
+                                  title: const Text('Mentions (@nickname)'),
+                                  subtitle: const Text(
+                                    'Targeted notifications when someone tags you',
+                                  ),
+                                  value: _mentionNotificationsEnabled,
+                                  onChanged: (value) async {
+                                    if (value) {
+                                      final granted = await widget.chatProvider
+                                          .requestPermissions();
+                                      if (granted) {
+                                        setState(() {
+                                          _mentionNotificationsEnabled = true;
+                                        });
+                                      } else if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Notification permissions disabled or denied.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      setState(() {
+                                        _mentionNotificationsEnabled = false;
+                                      });
+                                    }
+                                  },
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                           const Gap(16.0),
-                          Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8.0,
+                          _ConfigurationSection(
+                            title: Text('Visual Aspects'),
+                            children: [
+                              SwitchListTile(
+                                title: const Text('Show time seconds'),
+                                subtitle: const Text(
+                                  'Show seconds in message timestamps',
+                                ),
+                                value: _showTimeSeconds,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _showTimeSeconds = value;
+                                  });
+                                },
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 8.0,
-                                    ),
-                                    child: Text(
-                                      'Visual Aspects',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  SwitchListTile(
-                                    title: const Text('Show time seconds'),
-                                    subtitle: const Text(
-                                      'Show seconds in message timestamps',
-                                    ),
-                                    value: _showTimeSeconds,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _showTimeSeconds = value;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
+                            ],
                           ),
                           const Gap(32.0),
                           ElevatedButton(
@@ -301,6 +246,46 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+final class _ConfigurationSection extends StatelessWidget {
+  const _ConfigurationSection({required this.title, required this.children});
+
+  final Widget title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: DefaultTextStyle(
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                child: title,
+              ),
+            ),
+            ...children,
+          ],
+        ),
       ),
     );
   }

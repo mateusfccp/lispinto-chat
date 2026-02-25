@@ -69,20 +69,6 @@ final class DeleteAwareEditingController extends TextEditingController {
     }
   }
 
-  // @override
-  // void clear() {
-  //   final hasPrefix = value.text.startsWith(zeroWidthSpace);
-  //
-  //   _isDeletingFromApi = true;
-  //   super.value = hasPrefix || focusNode.hasFocus
-  //       ? TextEditingValue(
-  //           text: zeroWidthSpace,
-  //           selection: const TextSelection.collapsed(offset: 1),
-  //         )
-  //       : TextEditingValue.empty;
-  //   _isDeletingFromApi = false;
-  // }
-
   @override
   void dispose() {
     focusNode.removeListener(_onFocusChanged);

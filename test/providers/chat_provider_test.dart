@@ -26,8 +26,7 @@ class MockChatService extends Mock implements ChatService {
   Stream<ChatMessage> get messages => const Stream.empty();
 
   @override
-  Stream<({String message, DateTime timestamp})> get notifications =>
-      const Stream.empty();
+  Stream<ChatMessage> get notifications => const Stream.empty();
 
   @override
   Stream<List<String>> get users => const Stream.empty();

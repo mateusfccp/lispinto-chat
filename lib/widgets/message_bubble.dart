@@ -11,6 +11,7 @@ final class MessageBubble extends StatelessWidget {
     super.key,
     required this.message,
     this.searchQuery = '',
+    this.showSeconds = false,
   });
 
   /// The chat [message] to display in this bubble.
@@ -18,6 +19,9 @@ final class MessageBubble extends StatelessWidget {
 
   /// The current active search query to highlight in the message content.
   final String searchQuery;
+
+  /// Whether to show seconds in the timestamp.
+  final bool showSeconds;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +47,7 @@ final class MessageBubble extends StatelessWidget {
             children: [
               if (message.date case final date?)
                 TextSpan(
-                  text:
-                      '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')} ',
+                  text: _getTimestampText(date),
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               TextSpan(
@@ -60,6 +63,17 @@ final class MessageBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getTimestampText(DateTime date) {
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    if (showSeconds) {
+      final second = date.second.toString().padLeft(2, '0');
+      return '$hour:$minute:$second ';
+    } else {
+      return '$hour:$minute ';
+    }
   }
 
   List<InlineSpan> _parseContent(BuildContext context, String text) {

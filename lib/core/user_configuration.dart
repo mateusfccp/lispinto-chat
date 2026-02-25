@@ -16,6 +16,7 @@ final class UserConfiguration {
   static const String _keyPushNotifications = 'push_notifications';
   static const String _keyMentionNotifications = 'mention_notifications';
   static const String _keyAutoConnect = 'auto_connect';
+  static const String _keyShowTimeSeconds = 'show_time_seconds';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
 
   final SharedPreferences _preferences;
@@ -77,5 +78,15 @@ final class UserConfiguration {
   /// Saves the auto-connect preference.
   Future<void> setAutoConnect(bool value) async {
     await _preferences.setBool(_keyAutoConnect, value);
+  }
+
+  /// Whether to show seconds in message timestamps.
+  bool get showTimeSeconds {
+    return _preferences.getBool(_keyShowTimeSeconds) ?? false;
+  }
+
+  /// Saves the show-time-seconds preference.
+  Future<void> setShowTimeSeconds(bool value) async {
+    await _preferences.setBool(_keyShowTimeSeconds, value);
   }
 }

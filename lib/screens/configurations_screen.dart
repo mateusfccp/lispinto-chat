@@ -27,6 +27,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late final TextEditingController _serverUrlController;
   late bool _pushNotificationsEnabled;
   late bool _mentionNotificationsEnabled;
+  late bool _showTimeSeconds;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -41,6 +42,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _pushNotificationsEnabled = widget.configuration.pushNotificationsEnabled;
     _mentionNotificationsEnabled =
         widget.configuration.mentionNotificationsEnabled;
+    _showTimeSeconds = widget.configuration.showTimeSeconds;
   }
 
   @override
@@ -61,6 +63,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       await widget.configuration.setMentionNotificationsEnabled(
         _mentionNotificationsEnabled,
       );
+      await widget.configuration.setShowTimeSeconds(_showTimeSeconds);
       await widget.chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       if (mounted) {
@@ -232,6 +235,49 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 16.0),
+                          Card(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16.0,
+                                      vertical: 8.0,
+                                    ),
+                                    child: Text(
+                                      'Visual Aspects',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  SwitchListTile(
+                                    title: const Text('Show time seconds'),
+                                    subtitle: const Text(
+                                      'Show seconds in message timestamps',
+                                    ),
+                                    value: _showTimeSeconds,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _showTimeSeconds = value;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 32.0),
                           ElevatedButton(
                             onPressed: _saveAndPop,

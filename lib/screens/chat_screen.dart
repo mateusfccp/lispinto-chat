@@ -535,6 +535,7 @@ class _MessageList extends StatelessWidget {
                     MessageBubble(
                       message: message,
                       searchQuery: provider.searchQuery,
+                      showSeconds: provider.configuration.showTimeSeconds,
                     ),
                   ],
                 );

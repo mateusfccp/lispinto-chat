@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+
 import 'chat_screen.dart';
 
 /// The initial screen shown when the app starts.
@@ -117,7 +119,7 @@ final class _InitialScreenState extends State<InitialScreen> {
                             },
                             textInputAction: TextInputAction.next,
                           ),
-                          const SizedBox(height: 16),
+                          const Gap(16.0),
                           TextFormField(
                             controller: _serverUrlController,
                             decoration: const InputDecoration(
@@ -138,7 +140,7 @@ final class _InitialScreenState extends State<InitialScreen> {
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (value) => _handleConnectPresed(),
                           ),
-                          const SizedBox(height: 32.0),
+                          const Gap(32.0),
                           ElevatedButton(
                             onPressed: _isConnecting
                                 ? null

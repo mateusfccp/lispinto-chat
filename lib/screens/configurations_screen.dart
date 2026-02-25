@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 
@@ -111,7 +112,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             },
                             textInputAction: TextInputAction.next,
                           ),
-                          const SizedBox(height: 16),
+                          const Gap(16.0),
                           TextFormField(
                             controller: _serverUrlController,
                             decoration: const InputDecoration(
@@ -133,7 +134,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             onFieldSubmitted: (value) => _saveAndPop(),
                           ),
                           if (shouldShowNotificationsArea) ...[
-                            const SizedBox(height: 16.0),
+                            const Gap(16.0),
                             Card(
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -235,7 +236,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               ),
                             ),
                           ],
-                          const SizedBox(height: 16.0),
+                          const Gap(16.0),
                           Card(
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -278,7 +279,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32.0),
+                          const Gap(32.0),
                           ElevatedButton(
                             onPressed: _saveAndPop,
                             style: ElevatedButton.styleFrom(

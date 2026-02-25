@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -612,7 +613,7 @@ final class _InputArea extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8.0),
+                  const Gap(8.0),
                 ],
                 Expanded(
                   child: MentionsAutocomplete(
@@ -657,7 +658,7 @@ final class _InputArea extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 4.0),
+                const Gap(4.0),
                 sendButton,
               ],
             ),
@@ -695,10 +696,10 @@ class _NotificationsAreaState extends State<_NotificationsArea> {
         key: widget.listKey,
         initialItemCount: widget.notifications.length,
         removedSeparatorBuilder: (context, index, animation) {
-          return const SizedBox(height: 8.0);
+          return const Gap(8.0);
         },
         separatorBuilder: (context, index, animation) {
-          return const SizedBox(height: 8.0);
+          return const Gap(8.0);
         },
         itemBuilder: (context, index, animation) {
           final notification = widget.notifications[index];

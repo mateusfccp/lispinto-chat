@@ -362,6 +362,7 @@ class _ChatScreenState extends State<ChatScreen> {
     Offset position,
     String user,
   ) async {
+    final isSelf = user == widget.provider.configuration.nickname;
     final action = await showMenu<VoidCallback>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -371,13 +372,14 @@ class _ChatScreenState extends State<ChatScreen> {
         position.dy,
       ),
       items: [
-        PopupMenuItem(
-          value: () => _onUserTap(user),
-          child: Text('Direct Message @$user'),
-        ),
+        if (!isSelf)
+          PopupMenuItem(
+            value: () => _onUserTap(user),
+            child: Text('Direct Message @$user'),
+          ),
         PopupMenuItem(
           value: () => widget.provider.sendMessage('/whois $user'),
-          child: Text('Whois @$user'),
+          child: Text(isSelf ? 'Who am I?' : 'Who is @$user?'),
         ),
       ],
     );

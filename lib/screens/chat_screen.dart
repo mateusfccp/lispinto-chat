@@ -416,7 +416,7 @@ final class _SearchInput extends StatelessWidget {
       alignment: Alignment.centerRight,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final width = isSearchVisible ? constraints.maxWidth : 48.0;
+          final width = isSearchVisible ? constraints.maxWidth : 44.0;
 
           return AnimatedContainer(
             curve: Curves.easeInOut,

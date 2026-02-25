@@ -14,7 +14,7 @@ import 'package:lispinto_chat/services/web_notifications.dart';
 /// It listens to the ChatService streams and updates the UI accordingly. It
 /// also handles sending messages and showing local notifications for important
 /// events.
-final class ChatProvider with ChangeNotifier {
+class ChatProvider with ChangeNotifier {
   /// Creates a [ChatProvider] with the given user configuration.
   ChatProvider(
     this.configuration, {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
 import 'chat_screen_test.mocks.dart';
 
@@ -41,15 +40,15 @@ void main() {
 
       // Children: ["Hello ", "@user ", "world"]
       expect(span.children, hasLength(3));
-      
+
       final first = span.children![0] as TextSpan;
       expect(first.text, 'Hello ');
-      
+
       final second = span.children![1] as TextSpan;
       expect(second.text, '@user ');
       expect(second.style?.color, isNotNull);
       expect(second.style?.fontWeight, FontWeight.bold);
-      
+
       final third = span.children![2] as TextSpan;
       expect(third.text, 'world');
     });
@@ -79,16 +78,16 @@ void main() {
 
       // Children: ["@alice ", "@bob "]
       expect(span.children, hasLength(2));
-      
+
       final first = span.children![0] as TextSpan;
       expect(first.text, '@alice ');
       expect(first.style?.color, isNotNull);
-      
+
       final second = span.children![1] as TextSpan;
       expect(second.text, '@bob ');
       expect(second.style?.color, isNotNull);
     });
-    
+
     test('works with custom base style', () {
       const text = '@user ';
       const baseStyle = TextStyle(fontSize: 20);

@@ -214,117 +214,116 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Shortcuts(
-        shortcuts: <LogicalKeySet, Intent>{
-          LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyS):
+      child: FocusableActionDetector(
+        autofocus: true,
+        shortcuts: <ShortcutActivator, Intent>{
+          const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
               const SearchIntent(),
-          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS):
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true):
               const SearchIntent(),
-          LogicalKeySet(LogicalKeyboardKey.escape): const CloseSearchIntent(),
+          const SingleActivator(LogicalKeyboardKey.escape):
+              const CloseSearchIntent(),
         },
-        child: Actions(
-          actions: <Type, Action<Intent>>{
-            SearchIntent: CallbackAction<SearchIntent>(
-              onInvoke: (SearchIntent intent) {
-                if (!_isSearchVisible) {
-                  _toggleSearch();
-                } else {
-                  _searchFocusNode.requestFocus();
-                }
-                return null;
-              },
-            ),
-            CloseSearchIntent: CallbackAction<CloseSearchIntent>(
-              onInvoke: (CloseSearchIntent intent) {
-                if (_isSearchVisible) {
-                  _searchController.clear();
-                  _onSearchChanged('');
-                  setState(() {
-                    _isSearchVisible = false;
-                    _focusNode.requestFocus();
-                  });
-                }
-                return null;
-              },
-            ),
-          },
-          child: Scaffold(
-            body: SafeArea(
-              bottom: false,
-              child: Stack(
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isDesktop = constraints.maxWidth > 600;
-                      return Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              children: [
-                                if (!isDesktop)
-                                  _HorizontalUserList(
-                                    provider: widget.provider,
-                                    onUserMenuTap: _showUserContextMenu,
-                                    onOpenConfig: _openConfig,
-                                    onQuit: _quit,
-                                  ),
-                                Expanded(
-                                  child: Stack(
-                                    children: [
-                                      _MessageList(
-                                        provider: widget.provider,
-                                        controller: _scrollController,
-                                        notifications: _activeNotifications,
-                                        listKey: listKey,
-                                        onRemoveNotification:
-                                            _removeNotification,
-                                      ),
-                                      Positioned(
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        child: _InputArea(
-                                          controller: _controller,
-                                          focusNode: _focusNode,
-                                          provider: widget.provider,
-                                          onSend: _sendMessage,
-                                          isDesktop: isDesktop,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 8.0,
-                                        left: 8.0,
-                                        right: 8.0,
-                                        child: _SearchInput(
-                                          isDesktop: isDesktop,
-                                          isSearchVisible: _isSearchVisible,
-                                          searchController: _searchController,
-                                          searchFocusNode: _searchFocusNode,
-                                          onToggleSearch: _toggleSearch,
-                                          onSearchChanged: _onSearchChanged,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+        actions: <Type, Action<Intent>>{
+          SearchIntent: CallbackAction<SearchIntent>(
+            onInvoke: (SearchIntent intent) {
+              if (!_isSearchVisible) {
+                _toggleSearch();
+              } else {
+                _searchFocusNode.requestFocus();
+              }
+              return null;
+            },
+          ),
+          CloseSearchIntent: CallbackAction<CloseSearchIntent>(
+            onInvoke: (CloseSearchIntent intent) {
+              if (_isSearchVisible) {
+                _searchController.clear();
+                _onSearchChanged('');
+                setState(() {
+                  _isSearchVisible = false;
+                  _focusNode.requestFocus();
+                });
+              }
+              return null;
+            },
+          ),
+        },
+        child: Scaffold(
+          body: SafeArea(
+            bottom: false,
+            child: Stack(
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isDesktop = constraints.maxWidth > 600;
+                    return Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            children: [
+                              if (!isDesktop)
+                                _HorizontalUserList(
+                                  provider: widget.provider,
+                                  onUserMenuTap: _showUserContextMenu,
+                                  onOpenConfig: _openConfig,
+                                  onQuit: _quit,
                                 ),
-                              ],
-                            ),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    _MessageList(
+                                      provider: widget.provider,
+                                      controller: _scrollController,
+                                      notifications: _activeNotifications,
+                                      listKey: listKey,
+                                      onRemoveNotification: _removeNotification,
+                                    ),
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      child: _InputArea(
+                                        controller: _controller,
+                                        focusNode: _focusNode,
+                                        provider: widget.provider,
+                                        onSend: _sendMessage,
+                                        isDesktop: isDesktop,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 8.0,
+                                      left: 8.0,
+                                      right: 8.0,
+                                      child: _SearchInput(
+                                        isDesktop: isDesktop,
+                                        isSearchVisible: _isSearchVisible,
+                                        searchController: _searchController,
+                                        searchFocusNode: _searchFocusNode,
+                                        onToggleSearch: _toggleSearch,
+                                        onSearchChanged: _onSearchChanged,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          if (isDesktop)
-                            _VerticalUserList(
-                              provider: widget.provider,
-                              onUserTap: _onUserTap,
-                              onUserMenuTap: _showUserContextMenu,
-                              onOpenConfig: _openConfig,
-                              onQuit: _quit,
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
+                        ),
+                        if (isDesktop)
+                          _VerticalUserList(
+                            provider: widget.provider,
+                            onUserTap: _onUserTap,
+                            onUserMenuTap: _showUserContextMenu,
+                            onOpenConfig: _openConfig,
+                            onQuit: _quit,
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),

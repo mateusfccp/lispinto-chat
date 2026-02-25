@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -143,10 +144,7 @@ final class ChatProvider with ChangeNotifier {
           final timestamp = message.date ?? DateTime.now();
           if (timestamp.isAfter(_lastNotificationTimestamp)) {
             _lastNotificationTimestamp = timestamp;
-            _triggerDisplayNotification(
-              'Mention from ${message.from}',
-              message.content,
-            );
+            _triggerDisplayNotification('Mention from ${message.from}');
           }
         }
       }),
@@ -181,27 +179,28 @@ final class ChatProvider with ChangeNotifier {
           if (notification.date case final date?
               when date.isAfter(_lastNotificationTimestamp)) {
             _lastNotificationTimestamp = date;
-            _triggerDisplayNotification('Lisp Chat', notification.content);
+            _triggerDisplayNotification(notification.content);
           }
         }
       }),
     );
   }
 
-  Future<void> _triggerDisplayNotification(String title, String body) async {
+  Future<void> _triggerDisplayNotification(String body) async {
+    final title = 'Lispinto Chat';
+
     if (kIsWeb) {
       showWebNotification(title, body);
-      return;
+    } else {
+      const details = NotificationDetails(macOS: DarwinNotificationDetails());
+
+      await _localNotifications.show(
+        id: body.hashCode,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
     }
-
-    const details = NotificationDetails(macOS: DarwinNotificationDetails());
-
-    await _localNotifications.show(
-      id: body.hashCode,
-      title: title,
-      body: body,
-      notificationDetails: details,
-    );
   }
 
   /// Updates the connection configuration dynamically.

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+
 import 'websocket_factory.dart';
 
 /// A service that manages the server connection and messages processing.
@@ -170,8 +172,7 @@ interface class ChatService {
     final isJoin = content.contains('joined to the party');
     final isExit = content.contains('exited from the party');
     final isNickChange = content.contains('Your new nick is');
-    final isNowKnownAs = content.contains('is now known as');
-    final isSystemMessage = isJoin || isExit || isNickChange || isNowKnownAs;
+    final isSystemMessage = isJoin || isExit || isNickChange;
     final isUsersListResponse = content.startsWith('users: ');
 
     if (isSystemMessage) {
@@ -192,7 +193,7 @@ interface class ChatService {
       }
 
       _requestUserList(isBackground: true);
-      if (isJoin || isExit || isNowKnownAs) {
+      if (isJoin || isExit) {
         _notificationsController.add(message);
         return false;
       }

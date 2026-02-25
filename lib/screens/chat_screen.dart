@@ -42,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
       DeleteAwareEditingController(
         onDeleteEmpty: () => widget.provider.setDmMode(null),
         focusNode: _focusNode,
+        builder: buildTextWithMentionsHighlight,
       );
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -375,17 +376,86 @@ class _ChatScreenState extends State<ChatScreen> {
         if (!isSelf)
           PopupMenuItem(
             value: () => _onUserTap(user),
-            child: Text('Direct Message @$user'),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(text: 'Direct Message '),
+                  TextSpan(
+                    text: '@$user',
+                    style: TextStyle(
+                      color: getNicknameColor(user),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         PopupMenuItem(
           value: () => widget.provider.sendMessage('/whois $user'),
-          child: Text(isSelf ? 'Who am I?' : 'Who is @$user?'),
+          child: isSelf
+              ? const Text('Who am I?')
+              : Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(text: 'Who is '),
+                      TextSpan(
+                        text: '@$user',
+                        style: TextStyle(
+                          color: getNicknameColor(user),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const TextSpan(text: '?'),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
 
     action?.call();
   }
+}
+
+@visibleForTesting
+TextSpan buildTextWithMentionsHighlight(
+  BuildContext context,
+  String text,
+  TextStyle? style,
+  bool withComposing,
+) {
+  final children = <InlineSpan>[];
+  final mentionRegex = RegExp(r'@([^\s]+\s)');
+
+  int lastMatchEnd = 0;
+  for (final match in mentionRegex.allMatches(text)) {
+    if (match.start > lastMatchEnd) {
+      children.add(
+        TextSpan(text: text.substring(lastMatchEnd, match.start), style: style),
+      );
+    }
+
+    final mention = match.group(0)!;
+    final username = match.group(1)!.trim();
+    children.add(
+      TextSpan(
+        text: mention,
+        style: (style ?? const TextStyle()).copyWith(
+          color: getNicknameColor(username),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+
+    lastMatchEnd = match.end;
+  }
+
+  if (lastMatchEnd < text.length) {
+    children.add(TextSpan(text: text.substring(lastMatchEnd), style: style));
+  }
+
+  return TextSpan(children: children, style: style);
 }
 
 final class _SearchInput extends StatelessWidget {
@@ -609,8 +679,22 @@ final class _InputArea extends StatelessWidget {
                     height: true,
                     prototype: sendButton,
                     child: Center(
-                      child: Text(
-                        '[${provider.configuration.nickname}]:',
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(text: '['),
+                            TextSpan(
+                              text: provider.configuration.nickname,
+                              style: TextStyle(
+                                color: getNicknameColor(
+                                  provider.configuration.nickname,
+                                ),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const TextSpan(text: ']:'),
+                          ],
+                        ),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),

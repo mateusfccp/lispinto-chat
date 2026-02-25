@@ -1,5 +1,19 @@
 import 'package:flutter/widgets.dart';
 
+/// Builder that constructs a [TextSpan] for the content of the text field.
+///
+/// The provided [text] will not contain the [zeroWidthSpace] prefix.
+///
+/// This allows for custom text styling, such as syntax highlighting, while
+/// still supporting the delete-aware functionality of the controller.
+typedef DeleteAwareEditingControllerBuilder =
+    TextSpan Function(
+      BuildContext context,
+      String text,
+      TextStyle? style,
+      bool withComposing,
+    );
+
 /// A custom [TextEditingController] that manages a zero-width space prefix to
 /// detect when a user deletes everything in the field using the backspace key.
 ///
@@ -21,6 +35,7 @@ final class DeleteAwareEditingController extends TextEditingController {
     super.text,
     required this.onDeleteEmpty,
     required this.focusNode,
+    this.builder,
   }) {
     focusNode.addListener(_onFocusChanged);
     _onFocusChanged();
@@ -42,6 +57,11 @@ final class DeleteAwareEditingController extends TextEditingController {
 
   /// The focus node attached to the text field this controller is controlling.
   final FocusNode focusNode;
+
+  /// An optional builder callback that allows for custom [TextSpan] building.
+  ///
+  /// The provided [text] will not contain the [zeroWidthSpace] prefix.
+  final DeleteAwareEditingControllerBuilder? builder;
 
   bool _isDeletingFromApi = false;
 
@@ -125,5 +145,41 @@ final class DeleteAwareEditingController extends TextEditingController {
     }
 
     super.value = newValue;
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final text = this.text;
+
+    if (text.isEmpty) {
+      return TextSpan(text: text, style: style);
+    }
+
+    // Handle zeroWidthSpace prefix
+    final hasPrefix = text.startsWith(zeroWidthSpace);
+    final contentText = hasPrefix ? text.substring(1) : text;
+
+    final TextSpan contentSpan;
+    if (builder case final builder?) {
+      contentSpan = builder(context, contentText, style, withComposing);
+    } else {
+      contentSpan = TextSpan(text: contentText, style: style);
+    }
+
+    if (!hasPrefix) {
+      return contentSpan;
+    }
+
+    return TextSpan(
+      children: [
+        TextSpan(text: zeroWidthSpace, style: style),
+        contentSpan,
+      ],
+      style: style,
+    );
   }
 }

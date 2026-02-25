@@ -191,8 +191,9 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
     final startIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
 
     final textBeforeMention = textBeforeCursor.substring(0, startIndex);
-    final triggerPrefix =
-        _activeTrigger is TagAutocompleteTrigger ? '@' : ''; // Keep @ for tags
+    final triggerPrefix = _activeTrigger is TagAutocompleteTrigger
+        ? '@'
+        : ''; // Keep @ for tags
     final injectedMention = '$triggerPrefix$username ';
 
     final newText = textBeforeMention + injectedMention + textAfterCursor;

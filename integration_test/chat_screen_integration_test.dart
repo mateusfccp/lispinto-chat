@@ -44,7 +44,7 @@ class MockChatService extends Mock implements ChatService {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  
+
   group('ChatScreen Selection Bug (Integration Test)', () {
     late ChatProvider provider;
 
@@ -98,25 +98,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        controller.text,
-        '​abcdefg',
-      );
+      expect(controller.text, '​abcdefg');
       expect(controller.selection.baseOffset, 5);
       expect(controller.selection.extentOffset, 7);
 
       expect(find.text('alice'), findsOneWidget);
 
       await tester.tap(find.text('alice'));
-      
+
       await tester.pumpAndSettle();
 
       expect(provider.currentDmNickname, 'alice');
 
-      expect(
-        controller.text,
-        '​abcdefg',
-      );
+      expect(controller.text, '​abcdefg');
       expect(
         controller.selection.baseOffset,
         5,

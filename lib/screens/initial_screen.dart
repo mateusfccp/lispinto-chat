@@ -90,9 +90,7 @@ final class _InitialScreenState extends State<InitialScreen> {
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
@@ -142,9 +140,13 @@ final class _InitialScreenState extends State<InitialScreen> {
                           ),
                           const SizedBox(height: 32.0),
                           ElevatedButton(
-                            onPressed: _isConnecting ? null : _handleConnectPresed,
+                            onPressed: _isConnecting
+                                ? null
+                                : _handleConnectPresed,
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16.0,
+                              ),
                             ),
                             child: _isConnecting
                                 ? const CircularProgressIndicator()

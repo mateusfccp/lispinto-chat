@@ -29,10 +29,7 @@ class App extends StatelessWidget {
       title: 'Lispinto Chat',
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.dark,
-      home: InitialScreen(
-        configuration: config,
-        chatProvider: chatProvider,
-      ),
+      home: InitialScreen(configuration: config, chatProvider: chatProvider),
     );
   }
 }

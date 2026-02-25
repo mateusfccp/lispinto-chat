@@ -8,7 +8,8 @@ import 'package:mockito/mockito.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 
-class MockFlutterLocalNotificationsPlugin extends Mock implements FlutterLocalNotificationsPlugin {
+class MockFlutterLocalNotificationsPlugin extends Mock
+    implements FlutterLocalNotificationsPlugin {
   @override
   Future<bool?> initialize({
     required InitializationSettings settings,
@@ -25,7 +26,8 @@ class MockChatService extends Mock implements ChatService {
   Stream<ChatMessage> get messages => const Stream.empty();
 
   @override
-  Stream<String> get notifications => const Stream.empty();
+  Stream<({String message, DateTime timestamp})> get notifications =>
+      const Stream.empty();
 
   @override
   Stream<List<String>> get users => const Stream.empty();
@@ -48,13 +50,13 @@ void main() {
       config = await UserConfiguration.load();
       await config.setNickname('TestUser');
       await config.setServerUrl('ws://localhost:8080');
-      
+
       final mockNotifications = MockFlutterLocalNotificationsPlugin();
       final mockChatService = MockChatService();
-      
+
       provider = ChatProvider(
-        config, 
-        appVersion: "test", 
+        config,
+        appVersion: "test",
         localNotifications: mockNotifications,
         chatService: mockChatService,
       );

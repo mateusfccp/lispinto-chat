@@ -639,7 +639,7 @@ final class _InputArea extends StatelessWidget {
                       focusNode: focusNode,
                       enabled: provider.isConnected,
                       decoration: InputDecoration(
-                        prefix: provider.currentDmNickname != null
+                        prefixIcon: provider.currentDmNickname != null
                             ? _DmIndicator(
                                 user: provider.currentDmNickname!,
                                 onTap: () {
@@ -648,6 +648,10 @@ final class _InputArea extends StatelessWidget {
                                 },
                               )
                             : null,
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 0,
+                          minHeight: 0,
+                        ),
                         isDense: isDesktop,
                         hintText: 'Type a message...',
                         border: const OutlineInputBorder(
@@ -770,7 +774,7 @@ final class _DmIndicator extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          margin: const EdgeInsets.only(right: 8.0),
+          margin: const EdgeInsets.symmetric(horizontal: 8.0),
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           decoration: BoxDecoration(
             color: getNicknameColor(user).withValues(alpha: 0.2),

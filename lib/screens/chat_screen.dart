@@ -11,6 +11,7 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
+import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 
 import 'configurations_screen.dart';
@@ -42,8 +43,18 @@ class _ChatScreenState extends State<ChatScreen> {
       DeleteAwareEditingController(
         onDeleteEmpty: () => widget.provider.setDmMode(null),
         focusNode: _focusNode,
-        builder: buildTextWithMentionsHighlight,
+        builder: (context, text, style, withComposing) {
+          return TextSpan(
+            style: style,
+            children: buildStylizedText(
+              context: context,
+              text: text,
+              buildImagePills: false,
+            ),
+          );
+        },
       );
+
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   final listKey = GlobalKey<AnimatedListState>();
@@ -417,46 +428,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-@visibleForTesting
-TextSpan buildTextWithMentionsHighlight(
-  BuildContext context,
-  String text,
-  TextStyle? style,
-  bool withComposing,
-) {
-  final children = <InlineSpan>[];
-  final mentionRegex = RegExp(r'@([^\s]+\s)');
-
-  int lastMatchEnd = 0;
-  for (final match in mentionRegex.allMatches(text)) {
-    if (match.start > lastMatchEnd) {
-      children.add(
-        TextSpan(text: text.substring(lastMatchEnd, match.start), style: style),
-      );
-    }
-
-    final mention = match.group(0)!;
-    final username = match.group(1)!.trim();
-    children.add(
-      TextSpan(
-        text: mention,
-        style: (style ?? const TextStyle()).copyWith(
-          color: getNicknameColor(username),
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-
-    lastMatchEnd = match.end;
-  }
-
-  if (lastMatchEnd < text.length) {
-    children.add(TextSpan(text: text.substring(lastMatchEnd), style: style));
-  }
-
-  return TextSpan(children: children, style: style);
-}
-
 final class _SearchInput extends StatelessWidget {
   const _SearchInput({
     required this.isDesktop,
@@ -608,6 +579,8 @@ class _MessageList extends StatelessWidget {
                       message: message,
                       searchQuery: provider.searchQuery,
                       showSeconds: provider.configuration.showTimeSeconds,
+                      showImagePreviews:
+                          provider.configuration.showImagePreviews,
                     ),
                   ],
                 );

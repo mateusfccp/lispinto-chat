@@ -29,6 +29,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late bool _pushNotificationsEnabled;
   late bool _mentionNotificationsEnabled;
   late bool _showTimeSeconds;
+  late bool _showImagePreviews;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -44,6 +45,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _mentionNotificationsEnabled =
         widget.configuration.mentionNotificationsEnabled;
     _showTimeSeconds = widget.configuration.showTimeSeconds;
+    _showImagePreviews = widget.configuration.showImagePreviews;
   }
 
   @override
@@ -65,6 +67,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
         _mentionNotificationsEnabled,
       );
       await widget.configuration.setShowTimeSeconds(_showTimeSeconds);
+      await widget.configuration.setShowImagePreviews(_showImagePreviews);
       await widget.chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       if (mounted) {
@@ -219,6 +222,19 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                 onChanged: (value) {
                                   setState(() {
                                     _showTimeSeconds = value;
+                                  });
+                                },
+                              ),
+                              const Divider(),
+                              SwitchListTile(
+                                title: const Text('In-line Image Previews'),
+                                subtitle: const Text(
+                                  'Automatically render images from URLs',
+                                ),
+                                value: _showImagePreviews,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _showImagePreviews = value;
                                   });
                                 },
                               ),

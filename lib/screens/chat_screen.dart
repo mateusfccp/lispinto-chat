@@ -953,20 +953,31 @@ final class _VerticalUserList extends StatelessWidget {
                     },
                   ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton.icon(
-                      onPressed: onOpenConfig,
-                      icon: const Icon(Icons.settings),
-                      label: const Text('Settings'),
-                    ),
-                    TextButton.icon(
-                      onPressed: onQuit,
-                      icon: const Icon(Icons.exit_to_app),
-                      label: const Text('Quit'),
-                    ),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 4.0,
+                    runSpacing: 4.0,
+                    children: [
+                      TextButton.icon(
+                        onPressed: onOpenConfig,
+                        icon: const Icon(Icons.settings, size: 18),
+                        label: const Text('Settings', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: onQuit,
+                        icon: const Icon(Icons.exit_to_app, size: 18),
+                        label: const Text('Quit', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );

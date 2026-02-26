@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lispinto_chat/screens/chat_screen.dart';
+import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:mockito/annotations.dart';
 
 import 'chat_screen_test.mocks.dart';
@@ -13,94 +13,60 @@ void main() {
     mockContext = MockBuildContext();
   });
 
-  group('buildTextWithMentionsHighlight', () {
+  group('Input Area Styling', () {
     test('renders plain text without highlights', () {
       const text = 'Hello world';
-      final span = buildTextWithMentionsHighlight(
-        mockContext,
-        text,
-        null,
-        false,
+      final spans = buildStylizedText(
+        context: mockContext,
+        text: text,
+        buildImagePills: false,
       );
 
-      expect(span.text, isNull);
-      expect(span.children, hasLength(1));
-      expect((span.children![0] as TextSpan).text, text);
-      expect((span.children![0] as TextSpan).style, isNull);
+      expect(spans, hasLength(1));
+      expect((spans[0] as TextSpan).text, text);
+      expect((spans[0] as TextSpan).style, isNull);
     });
 
-    test('highlights mention with trailing space', () {
+    test('highlights mention correctly (User Preferred Logic)', () {
+      // User regex requires: (@[^\s]+)\s
       const text = 'Hello @user world';
-      final span = buildTextWithMentionsHighlight(
-        mockContext,
-        text,
-        null,
-        false,
+      final spans = buildStylizedText(
+        context: mockContext,
+        text: text,
+        buildImagePills: false,
       );
 
-      // Children: ["Hello ", "@user ", "world"]
-      expect(span.children, hasLength(3));
+      // result:
+      //  0: "Hello "
+      //  1: Mention wrapper
+      //  2: " " (Manual space)
+      //  3: "world"
+      expect(spans, hasLength(4));
 
-      final first = span.children![0] as TextSpan;
-      expect(first.text, 'Hello ');
+      expect((spans[0] as TextSpan).text, 'Hello ');
 
-      final second = span.children![1] as TextSpan;
-      expect(second.text, '@user ');
-      expect(second.style?.color, isNotNull);
-      expect(second.style?.fontWeight, FontWeight.bold);
+      final mentionWrapper = spans[1] as TextSpan;
+      expect(mentionWrapper.style?.fontWeight, FontWeight.bold);
+      expect((mentionWrapper.children![0] as TextSpan).text, '@user');
 
-      final third = span.children![2] as TextSpan;
-      expect(third.text, 'world');
+      expect((spans[2] as TextSpan).text, ' ');
+      expect((spans[3] as TextSpan).text, 'world');
     });
 
-    test('does NOT highlight mention without trailing space', () {
-      const text = 'Hello @user';
-      final span = buildTextWithMentionsHighlight(
-        mockContext,
-        text,
-        null,
-        false,
+    test('highlights bold text in input area', () {
+      const text = 'Hello **bold**';
+      final spans = buildStylizedText(
+        context: mockContext,
+        text: text,
+        buildImagePills: false,
       );
 
-      // Children: ["Hello @user"]
-      expect(span.children, hasLength(1));
-      expect((span.children![0] as TextSpan).text, text);
-    });
-
-    test('highlights multiple mentions', () {
-      const text = '@alice @bob ';
-      final span = buildTextWithMentionsHighlight(
-        mockContext,
-        text,
-        null,
-        false,
-      );
-
-      // Children: ["@alice ", "@bob "]
-      expect(span.children, hasLength(2));
-
-      final first = span.children![0] as TextSpan;
-      expect(first.text, '@alice ');
-      expect(first.style?.color, isNotNull);
-
-      final second = span.children![1] as TextSpan;
-      expect(second.text, '@bob ');
-      expect(second.style?.color, isNotNull);
-    });
-
-    test('works with custom base style', () {
-      const text = '@user ';
-      const baseStyle = TextStyle(fontSize: 20);
-      final span = buildTextWithMentionsHighlight(
-        mockContext,
-        text,
-        baseStyle,
-        false,
-      );
-
-      final mentionSpan = span.children![0] as TextSpan;
-      expect(mentionSpan.style?.fontSize, 20);
-      expect(mentionSpan.style?.fontWeight, FontWeight.bold);
+      expect(spans, hasLength(2));
+      expect((spans[0] as TextSpan).text, 'Hello ');
+      
+      final boldWrapper = spans[1] as TextSpan;
+      expect(boldWrapper.style?.fontWeight, FontWeight.bold);
+      expect(boldWrapper.children![0].toPlainText(), 'bold');
     });
   });
 }

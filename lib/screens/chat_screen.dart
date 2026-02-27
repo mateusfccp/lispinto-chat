@@ -963,7 +963,10 @@ final class _VerticalUserList extends StatelessWidget {
                       TextButton.icon(
                         onPressed: onOpenConfig,
                         icon: const Icon(Icons.settings, size: 18),
-                        label: const Text('Settings', style: TextStyle(fontSize: 12)),
+                        label: const Text(
+                          'Settings',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         ),
@@ -971,7 +974,10 @@ final class _VerticalUserList extends StatelessWidget {
                       TextButton.icon(
                         onPressed: onQuit,
                         icon: const Icon(Icons.exit_to_app, size: 18),
-                        label: const Text('Quit', style: TextStyle(fontSize: 12)),
+                        label: const Text(
+                          'Quit',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         ),

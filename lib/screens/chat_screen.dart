@@ -391,7 +391,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   const TextSpan(text: 'Direct Message '),
                   TextSpan(
-                    text: '@$user',
+                    text: user,
                     style: TextStyle(
                       color: getNicknameColor(user),
                       fontWeight: FontWeight.bold,
@@ -410,7 +410,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       const TextSpan(text: 'Who is '),
                       TextSpan(
-                        text: '@$user',
+                        text: user,
                         style: TextStyle(
                           color: getNicknameColor(user),
                           fontWeight: FontWeight.bold,
@@ -833,7 +833,7 @@ final class _DmIndicator extends StatelessWidget {
             borderRadius: BorderRadius.circular(16.0),
           ),
           child: Text(
-            '@$user',
+            user,
             style: TextStyle(
               color: getNicknameColor(user),
               fontWeight: FontWeight.bold,

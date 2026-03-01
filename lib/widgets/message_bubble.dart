@@ -1,18 +1,21 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/services/link_image_detector.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that displays a single chat message bubble.
-final class MessageBubble extends StatelessWidget {
+final class MessageBubble extends StatefulWidget {
   /// Creates a [MessageBubble].
   const MessageBubble({
     super.key,
     required this.message,
-    this.searchQuery = '',
-    this.showSeconds = false,
-    this.showImagePreviews = true,
+    required this.searchQuery,
   });
 
   /// The chat [message] to display in this bubble.
@@ -21,25 +24,99 @@ final class MessageBubble extends StatelessWidget {
   /// The current active search query to highlight in the message content.
   final String searchQuery;
 
-  /// Whether to show seconds in the timestamp.
-  final bool showSeconds;
+  @override
+  State<MessageBubble> createState() => _MessageBubbleState();
+}
 
-  /// Whether to show in-line image previews.
-  final bool showImagePreviews;
+class _MessageBubbleState extends State<MessageBubble> {
+  List<ImageType> _imageTypes = [];
+  final Map<String, TapGestureRecognizer> _linkRecognizers = {};
+
+  @override
+  void dispose() {
+    for (final recognizer in _linkRecognizers.values) {
+      recognizer.dispose();
+    }
+    _linkRecognizers.clear();
+    super.dispose();
+  }
+
+  TapGestureRecognizer _getRecognizer(String url) {
+    return _linkRecognizers.putIfAbsent(
+      url,
+      () => TapGestureRecognizer()..onTap = () => _launchUrl(url),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _detectImages();
+  }
+
+  @override
+  void didUpdateWidget(MessageBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.content != widget.message.content) {
+      for (final recognizer in _linkRecognizers.values) {
+        recognizer.dispose();
+      }
+      _linkRecognizers.clear();
+      _detectImages();
+    }
+  }
+
+  Future<void> _detectImages() async {
+    final pattern = RegExp(r'https?://\S+');
+    final urls = [
+      for (final match in pattern.allMatches(widget.message.content))
+        ?match.group(0),
+    ];
+    if (urls.isEmpty) {
+      if (mounted) setState(() => _imageTypes = []);
+      return;
+    }
+
+    final detector = locator<LinkImageDetector>();
+
+    // Check if we already have these cached to avoid flicker
+    final cachedResults = [
+      for (final url in urls) ?detector.getCachedStatus(url),
+    ];
+
+    if (cachedResults.length == urls.length) {
+      if (mounted) setState(() => _imageTypes = cachedResults);
+      return;
+    }
+
+    final results = await [for (final url in urls) detector.isImage(url)].wait;
+
+    if (mounted) {
+      setState(() {
+        _imageTypes = [for (final result in results) ?result];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final showImagePreviews = locator
+        .get<UserConfiguration>()
+        .showImagePreviews;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DecoratedBox(
           decoration: BoxDecoration(
-            gradient: message.isSystemMessage
+            gradient: widget.message.isSystemMessage
                 ? LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      getNicknameColor(message.from).withValues(alpha: 0.5),
+                      getNicknameColor(
+                        widget.message.from,
+                      ).withValues(alpha: 0.5),
                       Colors.transparent,
                     ],
                   )
@@ -50,91 +127,39 @@ final class MessageBubble extends StatelessWidget {
             child: _buildContent(context),
           ),
         ),
-        if (showImagePreviews) _buildGallery(context, message.content),
+        if (_imageTypes.isNotEmpty && showImagePreviews)
+          _ImageGallery(imageTypes: _imageTypes, onImageTap: _launchUrl),
       ],
     );
   }
 
   Widget _buildContent(BuildContext context) {
+    final stylizedSpans = buildStylizedText(
+      context: context,
+      text: widget.message.content,
+      linkRecognizerFactory: _getRecognizer,
+    );
+
     return SelectableText.rich(
       TextSpan(
         children: [
-          if (message.date case final date?)
+          if (widget.message.date case final date?)
             TextSpan(
               text: _getTimestampText(date),
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(color: Colors.grey, fontSize: 12.0),
             ),
           TextSpan(
-            text: '[${message.from}]: ',
+            text: '[${widget.message.from}]: ',
             style: TextStyle(
-              color: getNicknameColor(message.from),
+              color: getNicknameColor(widget.message.from),
               fontWeight: FontWeight.bold,
             ),
           ),
-          ...() {
-            final stylizedSpans = buildStylizedText(
-              context: context,
-              text: message.content,
-              buildImagePills: showImagePreviews,
-            );
-            if (searchQuery.isEmpty) {
-              return stylizedSpans;
-            } else {
-              return [
-                for (final span in stylizedSpans)
-                  ...buildHighlightedSearchText(span, searchQuery),
-              ];
-            }
-          }(),
+          for (final span in stylizedSpans)
+            ...buildHighlightedSearchText(span, widget.searchQuery),
         ],
       ),
     );
-  }
-
-  Widget _buildGallery(BuildContext context, String text) {
-    final imageUrls = _getImageUrls(text);
-    if (imageUrls.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      child: SizedBox(
-        height: 120,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: imageUrls.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 8.0),
-          itemBuilder: (context, index) {
-            final url = imageUrls[index];
-            return GestureDetector(
-              onTap: () => _launchUrl(url),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  url,
-                  height: 120,
-                  width: 120,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 120,
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  List<String> _getImageUrls(String text) {
-    final pattern = RegExp(r'https?://[^\s]+');
-    return pattern
-        .allMatches(text)
-        .map((m) => m.group(0)!)
-        .where(_isImageUrl)
-        .toList();
   }
 
   Future<void> _launchUrl(String url) async {
@@ -144,16 +169,8 @@ final class MessageBubble extends StatelessWidget {
     }
   }
 
-  bool _isImageUrl(String url) {
-    final lowerUrl = url.toLowerCase();
-    return lowerUrl.endsWith('.jpg') ||
-        lowerUrl.endsWith('.jpeg') ||
-        lowerUrl.endsWith('.png') ||
-        lowerUrl.endsWith('.gif') ||
-        lowerUrl.endsWith('.webp');
-  }
-
   String _getTimestampText(DateTime date) {
+    final showSeconds = locator.get<UserConfiguration>().showTimeSeconds;
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     if (showSeconds) {
@@ -162,5 +179,73 @@ final class MessageBubble extends StatelessWidget {
     } else {
       return '$hour:$minute ';
     }
+  }
+}
+
+final class _ImageGallery extends StatelessWidget {
+  const _ImageGallery({required this.imageTypes, this.onImageTap});
+
+  static final _imageSize = 120.0;
+
+  final List<ImageType> imageTypes;
+  final ValueSetter<String>? onImageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final onImageTap = this.onImageTap;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: SizedBox(
+        height: 120,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: imageTypes.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 8.0),
+          itemBuilder: (context, index) {
+            final imageType = imageTypes[index];
+            return MouseRegion(
+              cursor: onImageTap == null
+                  ? MouseCursor.defer
+                  : SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: onImageTap == null
+                    ? null
+                    : () => onImageTap(imageType.url),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: switch (imageType) {
+                    SvgImageType(:final url) => SvgPicture.network(
+                      url,
+                      height: _imageSize,
+                      width: _imageSize,
+                      fit: BoxFit.cover,
+                      placeholderBuilder: (context) => Container(
+                        width: _imageSize,
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                    RasterImageType(:final url) => Image.network(
+                      url,
+                      height: _imageSize,
+                      width: _imageSize,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: _imageSize,
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

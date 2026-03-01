@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
@@ -28,33 +29,16 @@ class CloseSearchIntent extends Intent {
 
 /// The main chat screen of the app.
 final class ChatScreen extends StatefulWidget {
-  /// Creates a [ChatScreen] with the given [ChatProvider].
-  const ChatScreen({super.key, required this.provider});
-
-  /// The chat provider that manages the chat state and communication.
-  final ChatProvider provider;
+  /// Creates a [ChatScreen].
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late final DeleteAwareEditingController _controller =
-      DeleteAwareEditingController(
-        onDeleteEmpty: () => widget.provider.setDmMode(null),
-        focusNode: _focusNode,
-        builder: (context, text, style, withComposing) {
-          return TextSpan(
-            style: style,
-            children: buildStylizedText(
-              context: context,
-              text: text,
-              buildImagePills: false,
-            ),
-          );
-        },
-      );
-
+  late final ChatProvider _provider;
+  late final DeleteAwareEditingController _controller;
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   final listKey = GlobalKey<AnimatedListState>();
@@ -67,6 +51,53 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final List<_NotificationItem> _activeNotifications = [];
   int _notificationCounter = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = locator<ChatProvider>();
+    _controller = DeleteAwareEditingController(
+      onDeleteEmpty: () => _provider.setDmMode(null),
+      focusNode: _focusNode,
+      builder: (context, text, style, withComposing) {
+        return TextSpan(
+          style: style,
+          children: buildStylizedText(
+            context: context,
+            text: text,
+            buildImagePills: false,
+          ),
+        );
+      },
+    );
+
+    _controller.addListener(_onTextChanged);
+    _notificationSubscription = _provider.notifications.listen((notification) {
+      if (!mounted) return;
+
+      final id = 'notif_${_notificationCounter++}';
+      final item = _NotificationItem(id, notification);
+
+      _activeNotifications.add(item);
+      listKey.currentState?.insertItem(_activeNotifications.length - 1);
+
+      Timer(const Duration(seconds: 3), () {
+        _removeNotification(id);
+      });
+    });
+
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus &&
+          _searchController.text.isEmpty &&
+          _isSearchVisible) {
+        if (mounted) {
+          setState(() {
+            _isSearchVisible = false;
+          });
+        }
+      }
+    });
+  }
 
   void _removeNotification(String id) {
     if (!mounted) return;
@@ -97,47 +128,14 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.startsWith('/dm')) {
       final parts = text.split(RegExp(r'\s+'));
       if (parts case ['/dm', final username, '']) {
-        final users = [...widget.provider.onlineUsers]
-          ..remove(widget.provider.configuration.nickname);
+        final users = [..._provider.onlineUsers]
+          ..remove(_provider.configuration.nickname);
         if (users.contains(username)) {
-          widget.provider.setDmMode(username);
+          _provider.setDmMode(username);
           _controller.clear();
         }
       }
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_onTextChanged);
-    _notificationSubscription = widget.provider.notifications.listen((
-      notification,
-    ) {
-      if (!mounted) return;
-
-      final id = 'notif_${_notificationCounter++}';
-      final item = _NotificationItem(id, notification);
-
-      _activeNotifications.add(item);
-      listKey.currentState?.insertItem(_activeNotifications.length - 1);
-
-      Timer(const Duration(seconds: 3), () {
-        _removeNotification(id);
-      });
-    });
-
-    _searchFocusNode.addListener(() {
-      if (!_searchFocusNode.hasFocus &&
-          _searchController.text.isEmpty &&
-          _isSearchVisible) {
-        if (mounted) {
-          setState(() {
-            _isSearchVisible = false;
-          });
-        }
-      }
-    });
   }
 
   @override
@@ -167,11 +165,11 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.typedText.trimRight();
     if (text.isNotEmpty) {
       if (text == '/clear') {
-        widget.provider.clearMessages();
+        _provider.clearMessages();
       } else if (text == '/quit') {
         _quit();
       } else {
-        widget.provider.sendMessage(text);
+        _provider.sendMessage(text);
       }
       _controller.clear();
       _focusNode.requestFocus();
@@ -181,18 +179,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _openConfig() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ConfigurationsScreen(
-          configuration: widget.provider.configuration,
-          chatProvider: widget.provider,
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const ConfigurationsScreen()),
     );
   }
 
   void _quit() {
-    widget.provider.configuration.setAutoConnect(false);
-    widget.provider.disconnect();
+    _provider.configuration.setAutoConnect(false);
+    _provider.disconnect();
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -201,9 +194,10 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onSearchChanged(String query) {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-      widget.provider.search(query);
       if (mounted) {
-        setState(() {}); // Trigger rebuild to show/hide clear icon
+        setState(() {
+          _provider.search(query);
+        });
       }
     });
   }
@@ -213,7 +207,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _isSearchVisible = !_isSearchVisible;
       if (!_isSearchVisible) {
         _searchController.clear();
-        widget.provider.search('');
+        _provider.search('');
         _focusNode.requestFocus();
       } else {
         _searchFocusNode.requestFocus();
@@ -276,7 +270,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             children: [
                               if (!isDesktop)
                                 _HorizontalUserList(
-                                  provider: widget.provider,
+                                  provider: _provider,
                                   onUserMenuTap: _showUserContextMenu,
                                   onOpenConfig: _openConfig,
                                   onQuit: _quit,
@@ -285,7 +279,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 child: Stack(
                                   children: [
                                     _MessageList(
-                                      provider: widget.provider,
+                                      provider: _provider,
                                       controller: _scrollController,
                                       notifications: _activeNotifications,
                                       listKey: listKey,
@@ -298,7 +292,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       child: _InputArea(
                                         controller: _controller,
                                         focusNode: _focusNode,
-                                        provider: widget.provider,
+                                        provider: _provider,
                                         onSend: _sendMessage,
                                         isDesktop: isDesktop,
                                       ),
@@ -324,7 +318,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         if (isDesktop)
                           _VerticalUserList(
-                            provider: widget.provider,
+                            provider: _provider,
                             onUserTap: _onUserTap,
                             onUserMenuTap: _showUserContextMenu,
                             onOpenConfig: _openConfig,
@@ -344,11 +338,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onUserTap(String nickname) {
     final bool didChangeDmMode;
-    if (widget.provider.currentDmNickname == nickname) {
-      widget.provider.setDmMode(null);
+    if (_provider.currentDmNickname == nickname) {
+      _provider.setDmMode(null);
       didChangeDmMode = true;
-    } else if (nickname != widget.provider.configuration.nickname) {
-      widget.provider.setDmMode(nickname);
+    } else if (nickname != _provider.configuration.nickname) {
+      _provider.setDmMode(nickname);
       didChangeDmMode = true;
     } else {
       didChangeDmMode = false;
@@ -373,7 +367,7 @@ class _ChatScreenState extends State<ChatScreen> {
     Offset position,
     String user,
   ) async {
-    final isSelf = user == widget.provider.configuration.nickname;
+    final isSelf = user == _provider.configuration.nickname;
     final action = await showMenu<VoidCallback>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -402,7 +396,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         PopupMenuItem(
-          value: () => widget.provider.sendMessage('/whois $user'),
+          value: () => _provider.sendMessage('/whois $user'),
           child: isSelf
               ? const Text('Who am I?')
               : Text.rich(
@@ -578,9 +572,6 @@ class _MessageList extends StatelessWidget {
                     MessageBubble(
                       message: message,
                       searchQuery: provider.searchQuery,
-                      showSeconds: provider.configuration.showTimeSeconds,
-                      showImagePreviews:
-                          provider.configuration.showImagePreviews,
                     ),
                   ],
                 );

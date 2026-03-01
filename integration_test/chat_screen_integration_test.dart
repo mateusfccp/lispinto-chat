@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mockito/mockito.dart';
 
+import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 
@@ -72,14 +73,16 @@ void main() {
         localNotifications: mockNotifications,
         chatService: mockChatService,
       );
+
+      locator.reset();
+      locator.registerSingleton<UserConfiguration>(config);
+      locator.registerSingleton<ChatProvider>(provider);
     });
 
     testWidgets('preserves text selection when tapping a user to DM', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        MaterialApp(home: ChatScreen(provider: provider)),
-      );
+      await tester.pumpWidget(const MaterialApp(home: ChatScreen()));
       await tester.pumpAndSettle();
 
       final textFieldFinder = find.byWidgetPredicate(

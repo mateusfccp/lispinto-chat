@@ -1,9 +1,94 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:lispinto_chat/models/chat_message.dart';
-import 'package:lispinto_chat/widgets/message_bubble.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/widgets/message_bubble.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+
+import 'message_bubble_test.mocks.dart';
+
+class MockHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return MockHttpClient();
+  }
+}
+
+class MockHttpClient extends Mock implements HttpClient {
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) async {
+    final request = MockHttpClientRequest();
+    return request;
+  }
+}
+
+class MockHttpClientRequest extends Mock implements HttpClientRequest {
+  @override
+  final HttpHeaders headers = MockHttpHeaders();
+
+  @override
+  Future<HttpClientResponse> close() async {
+    return MockHttpClientResponse();
+  }
+}
+
+class MockHttpHeaders extends Mock implements HttpHeaders {}
+
+class MockHttpClientResponse extends Mock implements HttpClientResponse {
+  @override
+  int get statusCode => 200;
+
+  @override
+  int get contentLength => -1;
+
+  @override
+  final HttpHeaders headers = MockHttpHeaders();
+
+  @override
+  StreamSubscription<List<int>> listen(
+    void Function(List<int> event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    const svgString =
+        '<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="10" height="10" fill="red"/></svg>';
+    final bytes = utf8.encode(svgString);
+    return Stream<List<int>>.value(bytes).listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
+  }
+}
+
+@GenerateMocks([LinkImageDetector])
 void main() {
+  HttpOverrides.global = MockHttpOverrides();
+  late MockLinkImageDetector mockDetector;
+
+  void stubDetector(String url, ImageType? type) {
+    when(mockDetector.getCachedStatus(url)).thenReturn(type);
+    when(mockDetector.isKnown(url)).thenReturn(true);
+    when(mockDetector.isImage(url)).thenAnswer((_) async => type);
+  }
+
+  setUp(() {
+    if (locator.isRegistered<LinkImageDetector>()) {
+      locator.unregister<LinkImageDetector>();
+    }
+    mockDetector = MockLinkImageDetector();
+    locator.registerSingleton<LinkImageDetector>(mockDetector);
+  });
+
   group('MessageBubble', () {
     testWidgets('renders image pill for single image URL', (tester) async {
       final message = ChatMessage(
@@ -12,15 +97,21 @@ void main() {
         date: DateTime.now(),
       );
 
+      stubDetector(
+        'https://example.com/image.jpg',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MessageBubble(message: message, showImagePreviews: true),
+            body: MessageBubble(message: message, searchQuery: ''),
           ),
         ),
       );
 
-      // Link is replaced by a pill
+      await tester.pump(const Duration(milliseconds: 500));
+
       expect(find.text('image'), findsOneWidget);
       expect(find.text('https://example.com/image.jpg'), findsNothing);
       expect(find.byType(Image), findsOneWidget);
@@ -34,15 +125,25 @@ void main() {
         date: DateTime.now(),
       );
 
+      stubDetector(
+        'https://example.com/1.png',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+      stubDetector(
+        'https://example.com/2.webp',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MessageBubble(message: message, showImagePreviews: true),
+            body: MessageBubble(message: message, searchQuery: ''),
           ),
         ),
       );
 
-      // Now pills are not numbered
+      await tester.pump(const Duration(milliseconds: 500));
+
       expect(find.text('image'), findsNWidgets(2));
       expect(find.byType(Image), findsNWidgets(2));
     });
@@ -56,17 +157,26 @@ void main() {
         date: DateTime.now(),
       );
 
+      stubDetector(
+        'https://example.com/image.jpg',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MessageBubble(message: message, showImagePreviews: false),
+            body: MessageBubble(message: message, searchQuery: ''),
           ),
         ),
       );
 
+      await tester.pump(const Duration(milliseconds: 500));
+
       expect(find.text('image'), findsNothing);
-      // find.text should find it even if it's in a styled TextSpan child
-      expect(find.textContaining('https://example.com/image.jpg'), findsOneWidget);
+      expect(
+        find.textContaining('https://example.com/image.jpg'),
+        findsOneWidget,
+      );
       expect(find.byType(Image), findsNothing);
     });
 
@@ -77,16 +187,23 @@ void main() {
         date: DateTime.now(),
       );
 
+      stubDetector('https://example.com/page.html', null);
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MessageBubble(message: message, showImagePreviews: true),
+            body: MessageBubble(message: message, searchQuery: ''),
           ),
         ),
       );
 
+      await tester.pump(const Duration(milliseconds: 500));
+
       expect(find.text('image'), findsNothing);
-      expect(find.textContaining('https://example.com/page.html'), findsOneWidget);
+      expect(
+        find.textContaining('https://example.com/page.html'),
+        findsOneWidget,
+      );
       expect(find.byType(Image), findsNothing);
     });
 
@@ -100,17 +217,16 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MessageBubble(
-              message: message,
-              showImagePreviews: true,
-              searchQuery: 'bold',
-            ),
+            body: MessageBubble(message: message, searchQuery: 'bold'),
           ),
         ),
       );
 
-      // Verify "bold" is highlighted (background color set)
-      final selectableText = tester.widget<SelectableText>(find.byType(SelectableText));
+      await tester.pumpAndSettle();
+
+      final selectableText = tester.widget<SelectableText>(
+        find.byType(SelectableText),
+      );
       final textSpan = selectableText.textSpan!;
 
       bool foundHighlight = false;
@@ -132,6 +248,100 @@ void main() {
       }
 
       expect(foundHighlight, isTrue);
+    });
+
+    testWidgets('renders SvgPicture for SVG images', (tester) async {
+      final message = ChatMessage(
+        from: 'user',
+        content: 'Check this: https://example.com/logo.svg',
+        date: DateTime.now(),
+      );
+
+      stubDetector(
+        'https://example.com/logo.svg',
+        SvgImageType(url: 'https://example.com/logo.svg'),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MessageBubble(message: message, searchQuery: ''),
+          ),
+        ),
+      );
+
+      // Verify the SvgPicture widget is placed in the tree.
+      // Don't pump-and-settle since SVG loading would fail with mock data.
+      expect(find.text('image'), findsOneWidget);
+      expect(find.byType(SvgPicture), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('renders all images in gallery for multiple distinct links', (
+      tester,
+    ) async {
+      final message = ChatMessage(
+        from: 'user',
+        content:
+            'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.svg',
+        date: DateTime.now(),
+      );
+
+      stubDetector(
+        'https://example.com/a.jpg',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+      stubDetector(
+        'https://example.com/b.png',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+      stubDetector(
+        'https://example.com/c.svg',
+        SvgImageType(url: 'https://example.com/logo.svg'),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MessageBubble(message: message, searchQuery: ''),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('image'), findsNWidgets(3));
+      expect(find.byType(Image), findsNWidgets(2));
+      expect(find.byType(SvgPicture), findsNWidgets(1));
+    });
+
+    testWidgets('renders all images in gallery even for duplicate links', (
+      tester,
+    ) async {
+      final message = ChatMessage(
+        from: 'user',
+        content:
+            'Same: https://example.com/a.jpg and https://example.com/a.jpg',
+        date: DateTime.now(),
+      );
+
+      stubDetector(
+        'https://example.com/a.jpg',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MessageBubble(message: message, searchQuery: ''),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('image'), findsNWidgets(2));
+      expect(find.byType(Image), findsNWidgets(2));
     });
   });
 }

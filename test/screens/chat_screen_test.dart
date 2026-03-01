@@ -36,12 +36,10 @@ void main() {
         buildImagePills: false,
       );
 
-      // result:
       //  0: "Hello "
       //  1: Mention wrapper
-      //  2: " " (Manual space)
-      //  3: "world"
-      expect(spans, hasLength(4));
+      //  2: " world"
+      expect(spans, hasLength(3));
 
       expect((spans[0] as TextSpan).text, 'Hello ');
 
@@ -49,8 +47,7 @@ void main() {
       expect(mentionWrapper.style?.fontWeight, FontWeight.bold);
       expect((mentionWrapper.children![0] as TextSpan).text, '@user');
 
-      expect((spans[2] as TextSpan).text, ' ');
-      expect((spans[3] as TextSpan).text, 'world');
+      expect((spans[2] as TextSpan).text, ' world');
     });
 
     test('highlights bold text in input area', () {
@@ -63,7 +60,7 @@ void main() {
 
       expect(spans, hasLength(2));
       expect((spans[0] as TextSpan).text, 'Hello ');
-      
+
       final boldWrapper = spans[1] as TextSpan;
       expect(boldWrapper.style?.fontWeight, FontWeight.bold);
       expect(boldWrapper.children![0].toPlainText(), 'bold');

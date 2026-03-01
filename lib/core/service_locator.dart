@@ -1,0 +1,25 @@
+import 'package:get_it/get_it.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+import '../providers/chat_provider.dart';
+import '../services/link_image_detector.dart';
+import 'user_configuration.dart';
+
+/// The global service locator instance.
+final locator = GetIt.instance;
+
+/// Sets up the service locator with all necessary dependencies.
+Future<void> setupServiceLocator() async {
+  final packageInfo = await PackageInfo.fromPlatform();
+  final appVersion = packageInfo.version;
+
+  final config = await UserConfiguration.load();
+  locator.registerSingleton<UserConfiguration>(config);
+
+  final detector = LinkImageDetector();
+  locator.registerSingleton<LinkImageDetector>(detector);
+
+  locator.registerSingleton<ChatProvider>(
+    ChatProvider(config, appVersion: appVersion),
+  );
+}

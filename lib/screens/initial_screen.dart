@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 
@@ -8,17 +9,7 @@ import 'chat_screen.dart';
 /// The initial screen shown when the app starts.
 final class InitialScreen extends StatefulWidget {
   /// Creates an [InitialScreen].
-  const InitialScreen({
-    super.key,
-    required this.configuration,
-    required this.chatProvider,
-  });
-
-  /// The user configuration to edit.
-  final UserConfiguration configuration;
-
-  /// The chat provider to use for connecting.
-  final ChatProvider chatProvider;
+  const InitialScreen({super.key});
 
   @override
   State<InitialScreen> createState() => _InitialScreenState();
@@ -30,21 +21,23 @@ final class _InitialScreenState extends State<InitialScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isConnecting = false;
 
+  late final UserConfiguration _configuration;
+  late final ChatProvider _chatProvider;
+
   @override
   void initState() {
     super.initState();
-    _nicknameController = TextEditingController(
-      text: widget.configuration.nickname,
-    );
+    _configuration = locator<UserConfiguration>();
+    _chatProvider = locator<ChatProvider>();
+
+    _nicknameController = TextEditingController(text: _configuration.nickname);
     _serverUrlController = TextEditingController(
-      text: widget.configuration.serverUrl,
+      text: _configuration.serverUrl,
     );
 
     // If autoConnect is set and we have a nickname, navigate directly to ChatScreen.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.configuration.autoConnect &&
-          widget.configuration.hasNickname &&
-          mounted) {
+      if (_configuration.autoConnect && _configuration.hasNickname && mounted) {
         _connectAndNavigate();
       }
     });
@@ -61,15 +54,13 @@ final class _InitialScreenState extends State<InitialScreen> {
     setState(() => _isConnecting = true);
 
     // Connect explicitly now
-    widget.chatProvider.connect();
+    _chatProvider.connect();
 
     if (mounted) {
       setState(() => _isConnecting = false);
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(provider: widget.chatProvider),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const ChatScreen()));
     }
   }
 
@@ -78,8 +69,8 @@ final class _InitialScreenState extends State<InitialScreen> {
       final newNickname = _nicknameController.text.trim();
       final newServerUrl = _serverUrlController.text.trim();
 
-      await widget.configuration.setAutoConnect(true);
-      await widget.chatProvider.updateConfiguration(newNickname, newServerUrl);
+      await _configuration.setAutoConnect(true);
+      await _chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       _connectAndNavigate();
     }

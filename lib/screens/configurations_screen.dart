@@ -1,29 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 
 /// A screen that allows the user to configure their settings.
 final class ConfigurationsScreen extends StatefulWidget {
   /// Creates a [ConfigurationsScreen].
-  const ConfigurationsScreen({
-    super.key,
-    required this.configuration,
-    required this.chatProvider,
-  });
-
-  /// The user configuration to edit.
-  final UserConfiguration configuration;
-
-  /// The chat provider to use for connecting after saving the configuration.
-  final ChatProvider chatProvider;
+  const ConfigurationsScreen({super.key});
 
   @override
   State<ConfigurationsScreen> createState() => _ConfigurationsScreenState();
 }
 
 final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
+  late final UserConfiguration _configuration;
+  late final ChatProvider _chatProvider;
   late final TextEditingController _nicknameController;
   late final TextEditingController _serverUrlController;
   late bool _pushNotificationsEnabled;
@@ -35,17 +28,16 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   @override
   void initState() {
     super.initState();
-    _nicknameController = TextEditingController(
-      text: widget.configuration.nickname,
-    );
+    _configuration = locator<UserConfiguration>();
+    _chatProvider = locator<ChatProvider>();
+    _nicknameController = TextEditingController(text: _configuration.nickname);
     _serverUrlController = TextEditingController(
-      text: widget.configuration.serverUrl,
+      text: _configuration.serverUrl,
     );
-    _pushNotificationsEnabled = widget.configuration.pushNotificationsEnabled;
-    _mentionNotificationsEnabled =
-        widget.configuration.mentionNotificationsEnabled;
-    _showTimeSeconds = widget.configuration.showTimeSeconds;
-    _showImagePreviews = widget.configuration.showImagePreviews;
+    _pushNotificationsEnabled = _configuration.pushNotificationsEnabled;
+    _mentionNotificationsEnabled = _configuration.mentionNotificationsEnabled;
+    _showTimeSeconds = _configuration.showTimeSeconds;
+    _showImagePreviews = _configuration.showImagePreviews;
   }
 
   @override
@@ -60,15 +52,15 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       final newNickname = _nicknameController.text.trim();
       final newServerUrl = _serverUrlController.text.trim();
 
-      await widget.configuration.setPushNotificationsEnabled(
+      await _configuration.setPushNotificationsEnabled(
         _pushNotificationsEnabled,
       );
-      await widget.configuration.setMentionNotificationsEnabled(
+      await _configuration.setMentionNotificationsEnabled(
         _mentionNotificationsEnabled,
       );
-      await widget.configuration.setShowTimeSeconds(_showTimeSeconds);
-      await widget.configuration.setShowImagePreviews(_showImagePreviews);
-      await widget.chatProvider.updateConfiguration(newNickname, newServerUrl);
+      await _configuration.setShowTimeSeconds(_showTimeSeconds);
+      await _configuration.setShowImagePreviews(_showImagePreviews);
+      await _chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -149,7 +141,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                   value: _pushNotificationsEnabled,
                                   onChanged: (value) async {
                                     if (value) {
-                                      final granted = await widget.chatProvider
+                                      final granted = await _chatProvider
                                           .requestPermissions();
                                       if (granted) {
                                         setState(() {
@@ -182,7 +174,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                   value: _mentionNotificationsEnabled,
                                   onChanged: (value) async {
                                     if (value) {
-                                      final granted = await widget.chatProvider
+                                      final granted = await _chatProvider
                                           .requestPermissions();
                                       if (granted) {
                                         setState(() {

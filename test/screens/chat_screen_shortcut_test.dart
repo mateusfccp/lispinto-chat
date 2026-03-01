@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
@@ -75,6 +76,17 @@ void main() {
         ),
       ),
     ).thenAnswer((_) async => true);
+
+    // Setup locator
+    locator.reset();
+    locator.registerSingleton<UserConfiguration>(config);
+    locator.registerSingleton<ChatProvider>(
+      FakeChatProvider(
+        config,
+        appVersion: '1.0.0',
+        localNotifications: mockNotifications,
+      ),
+    );
   });
 
   testWidgets('CTRL+S should toggle search even if chat input is not focused', (
@@ -84,15 +96,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1920, 1080));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final fakeProvider = FakeChatProvider(
-      config,
-      appVersion: '1.0.0',
-      localNotifications: mockNotifications,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: ChatScreen(provider: fakeProvider)),
-    );
+    await tester.pumpWidget(const MaterialApp(home: ChatScreen()));
 
     // Initial pump to let autofocus happen
     await tester.pumpAndSettle();
@@ -140,15 +144,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final fakeProvider = FakeChatProvider(
-      config,
-      appVersion: '1.0.0',
-      localNotifications: mockNotifications,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: ChatScreen(provider: fakeProvider)),
-    );
+    await tester.pumpWidget(const MaterialApp(home: ChatScreen()));
 
     await tester.pumpAndSettle();
 

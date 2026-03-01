@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/service_locator.dart';
+import 'package:lispinto_chat/services/link_image_detector.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Builds a [TextSpan] for a mention.
@@ -74,20 +76,21 @@ Paint getMonospaceBackgroundPaint(BuildContext context) {
 /// Builds a [TextSpan] for a hyperlink.
 @pragma('vm:prefer-inline')
 @pragma('dart2js:tryInline')
-TextSpan buildLinkText(TextSpan text, String url) {
+TextSpan buildLinkText({
+  required String url,
+  TextStyle? style,
+  GestureRecognizer? recognizer,
+}) {
   return TextSpan(
-    style: const TextStyle(
-      color: Colors.blueAccent,
-      decoration: TextDecoration.underline,
-    ),
-    recognizer: TapGestureRecognizer()
-      ..onTap = () async {
-        final uri = Uri.tryParse(url);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri);
-        }
-      },
-    children: [text],
+    text: url,
+    style:
+        style ??
+        const TextStyle(
+          color: Colors.blueAccent,
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.blueAccent,
+        ),
+    recognizer: recognizer,
   );
 }
 
@@ -116,7 +119,13 @@ List<InlineSpan> buildHighlightedSearchText(
     for (final child in inlineSpan.children!) {
       highlightedChildren.addAll(buildHighlightedSearchText(child, query));
     }
-    return [TextSpan(children: highlightedChildren, style: baseStyle)];
+    return [
+      TextSpan(
+        children: highlightedChildren,
+        style: baseStyle,
+        recognizer: inlineSpan.recognizer,
+      ),
+    ];
   }
 
   // Case 2: Span with text
@@ -134,21 +143,36 @@ List<InlineSpan> buildHighlightedSearchText(
     final index = lowerText.indexOf(lowerQuery, start);
     if (index == -1) {
       if (start < text.length) {
-        spans.add(TextSpan(text: text.substring(start), style: baseStyle));
+        spans.add(
+          TextSpan(
+            text: text.substring(start),
+            style: baseStyle,
+            recognizer: inlineSpan.recognizer,
+          ),
+        );
       }
       break;
     }
 
     if (index > start) {
-      spans.add(TextSpan(text: text.substring(start, index), style: baseStyle));
+      spans.add(
+        TextSpan(
+          text: text.substring(start, index),
+          style: baseStyle,
+          recognizer: inlineSpan.recognizer,
+        ),
+      );
     }
 
     spans.add(
       TextSpan(
         text: text.substring(index, index + query.length),
-        style: baseStyle?.copyWith(
-          backgroundColor: Colors.yellow.withValues(alpha: 0.3),
-        ) ?? const TextStyle(backgroundColor: Color(0x4DFFFF00)),
+        style:
+            baseStyle?.copyWith(
+              backgroundColor: Colors.yellow.withValues(alpha: 0.3),
+            ) ??
+            const TextStyle(backgroundColor: Color(0x4DFFFF00)),
+        recognizer: inlineSpan.recognizer,
       ),
     );
 
@@ -160,11 +184,11 @@ List<InlineSpan> buildHighlightedSearchText(
 
 final _stylingPattern = RegExp(
   r'(?<url>https?://[^\s]+)'
-  r'|(?<mention>@[^\s]+)\s'
-  r'|(?<bold>(\*\*|__)(?<boldContent>.+)\4)'
-  r'|(?<italic>(\*|_)(?<italicContent>.+)\7)'
-  r'|(?<strike>~~(?<strikeContent>.+)~~)'
-  r'|(?<code>`(?<codeContent>.+)`)',
+  r'|(?<mention>@[^\s]+)(?=\s|$)'
+  r'|(?<bold>(\*\*|__)(?<boldContent>.+?)\4)'
+  r'|(?<italic>(\*|_)(?<italicContent>.+?)\7)'
+  r'|(?<strike>~~(?<strikeContent>.+?)~~)'
+  r'|(?<code>`(?<codeContent>.+?)`)',
 );
 
 /// Builds a [TextSpan] with multiple styles applied to the input text.
@@ -175,6 +199,7 @@ List<InlineSpan> buildStylizedText({
   required BuildContext context,
   required String text,
   bool buildImagePills = false,
+  GestureRecognizer? Function(String url)? linkRecognizerFactory,
 }) {
   final spans = <InlineSpan>[];
   int lastMatchEnd = 0;
@@ -187,7 +212,8 @@ List<InlineSpan> buildStylizedText({
 
     if (match.namedGroup('url') != null) {
       final url = match.group(0)!;
-      if (buildImagePills && _isImageUrl(url)) {
+      final getImageType = locator.get<LinkImageDetector>().getCachedStatus;
+      if (buildImagePills && getImageType.call(url) != null) {
         spans.add(
           WidgetSpan(
             child: _ImagePill(
@@ -202,13 +228,14 @@ List<InlineSpan> buildStylizedText({
           ),
         );
       } else {
-        spans.add(buildLinkText(TextSpan(text: url), url));
+        spans.add(
+          buildLinkText(url: url, recognizer: linkRecognizerFactory?.call(url)),
+        );
       }
     } else if (match.namedGroup('mention') case final mention?) {
-      spans.addAll([
+      spans.add(
         buildMentionText(TextSpan(text: mention), mention.substring(1)),
-        const TextSpan(text: ' '),
-      ]);
+      );
     } else if (match.namedGroup('bold') != null) {
       final content = match.namedGroup('boldContent')!;
       spans.add(
@@ -218,6 +245,7 @@ List<InlineSpan> buildStylizedText({
               context: context,
               text: content,
               buildImagePills: false,
+              linkRecognizerFactory: linkRecognizerFactory,
             ),
           ),
         ),
@@ -231,6 +259,7 @@ List<InlineSpan> buildStylizedText({
               context: context,
               text: content,
               buildImagePills: false,
+              linkRecognizerFactory: linkRecognizerFactory,
             ),
           ),
         ),
@@ -244,6 +273,7 @@ List<InlineSpan> buildStylizedText({
               context: context,
               text: content,
               buildImagePills: false,
+              linkRecognizerFactory: linkRecognizerFactory,
             ),
           ),
         ),
@@ -262,15 +292,6 @@ List<InlineSpan> buildStylizedText({
   }
 
   return spans;
-}
-
-bool _isImageUrl(String url) {
-  final lowerUrl = url.toLowerCase();
-  return lowerUrl.endsWith('.jpg') ||
-      lowerUrl.endsWith('.jpeg') ||
-      lowerUrl.endsWith('.png') ||
-      lowerUrl.endsWith('.gif') ||
-      lowerUrl.endsWith('.webp');
 }
 
 final class _ImagePill extends StatelessWidget {

@@ -23,6 +23,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late bool _mentionNotificationsEnabled;
   late bool _showTimeSeconds;
   late bool _showImagePreviews;
+  late bool _showEmptyChannels;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -38,6 +39,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _mentionNotificationsEnabled = _configuration.mentionNotificationsEnabled;
     _showTimeSeconds = _configuration.showTimeSeconds;
     _showImagePreviews = _configuration.showImagePreviews;
+    _showEmptyChannels = _configuration.showEmptyChannels;
   }
 
   @override
@@ -60,6 +62,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       );
       await _configuration.setShowTimeSeconds(_showTimeSeconds);
       await _configuration.setShowImagePreviews(_showImagePreviews);
+      await _configuration.setShowEmptyChannels(_showEmptyChannels);
       await _chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       if (mounted) {
@@ -227,6 +230,24 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                 onChanged: (value) {
                                   setState(() {
                                     _showImagePreviews = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          const Gap(16.0),
+                          _ConfigurationSection(
+                            title: const Text('Channels'),
+                            children: [
+                              SwitchListTile(
+                                title: const Text('Show empty channels'),
+                                subtitle: const Text(
+                                  'Include channels with no active users in the list',
+                                ),
+                                value: _showEmptyChannels,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _showEmptyChannels = value;
                                   });
                                 },
                               ),

@@ -65,6 +65,9 @@ interface class ChatService {
   final Map<String, _ChannelPingData> _currentChannels = {};
   int _channelPingId = 0;
 
+  /// Whether to show empty channels in the channel list.
+  bool showEmptyChannels = false;
+
   /// Connects to the chat server and starts listening for messages.
   ///
   /// If already connected, it will first disconnect and then reconnect.
@@ -289,10 +292,15 @@ interface class ChatService {
     }
   }
 
-  void _requestChannelsList() {
+  /// Requests the list of channels from the server.
+  void requestChannelsList() {
     if (_loggedIn && _channel != null) {
       _channelPingId++;
-      sendMessage('/channels');
+      if (showEmptyChannels) {
+        sendMessage('/channels :all t');
+      } else {
+        sendMessage('/channels');
+      }
 
       // Give the server up to 1 second to send all individual channel messages,
       // and purge whatever channels were not seen.
@@ -310,10 +318,10 @@ interface class ChatService {
   void _startKeepAlive() {
     _keepAliveTimer?.cancel();
     _keepAliveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _requestChannelsList();
+      requestChannelsList();
     });
     _requestUserList(); // Initial fetch for users
-    _requestChannelsList(); // Initial fetch for channels
+    requestChannelsList(); // Initial fetch for channels
   }
 
   void _handleDisconnect() {

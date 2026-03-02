@@ -147,6 +147,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   void _initializeService() {
+    _chatService.showEmptyChannels = configuration.showEmptyChannels;
     _subscriptions.add(
       _chatService.messages.listen((message) {
         _messages.add(message);
@@ -289,9 +290,15 @@ class ChatProvider with ChangeNotifier {
 
       _initializeService();
     }
-    // If only the nickname changed, just whisper the command to the existing connection.
-    else if (newNickname != oldNickname && _isConnected) {
-      _chatService.sendMessage('/nick $newNickname');
+    // If only the nickname or settings changed, sync them.
+    else {
+      _chatService.showEmptyChannels = configuration.showEmptyChannels;
+      if (_isConnected) {
+        _chatService.requestChannelsList();
+      }
+      if (newNickname != oldNickname && _isConnected) {
+        _chatService.sendMessage('/nick $newNickname');
+      }
     }
 
     notifyListeners();

@@ -204,7 +204,7 @@ interface class ChatService {
         isJoin || isExit || isNickChange || isNickChangeBroadcast;
     final isUsersListResponse = content.startsWith('users: ');
 
-    if (message.from == 'unknown') {
+    if (message.isServerMessage) {
       final channelCountMatch = RegExp(
         r'^#([A-Za-z0-9_\-]+): (\d+) users?$',
       ).firstMatch(content);

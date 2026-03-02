@@ -1284,15 +1284,13 @@ final class _VerticalUserListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        onSecondaryTapDown: onSecondaryTapDown,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: user,
-        ),
+    return InkWell(
+      mouseCursor: SystemMouseCursors.click,
+      onTap: onTap,
+      onSecondaryTapDown: onSecondaryTapDown,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: user,
       ),
     );
   }
@@ -1320,12 +1318,12 @@ final class _VerticalChannelListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
+    return Material(
+      color: isActive ? Colors.white24 : Colors.transparent,
+      child: InkWell(
+        mouseCursor: SystemMouseCursors.click,
         onTap: onTap,
-        child: Container(
-          color: isActive ? Colors.white24 : Colors.transparent,
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
             '$channel ($userCount)',

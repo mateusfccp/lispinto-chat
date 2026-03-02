@@ -19,6 +19,7 @@ final class UserConfiguration {
   static const String _keyShowTimeSeconds = 'show_time_seconds';
   static const String _keyShowImagePreviews = 'show_image_previews';
   static const String _keyShowEmptyChannels = 'show_empty_channels';
+  static const String _keyLastChannel = 'last_channel';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
 
   final SharedPreferences _preferences;
@@ -110,5 +111,13 @@ final class UserConfiguration {
   /// Saves the show-empty-channels preference.
   Future<void> setShowEmptyChannels(bool value) async {
     await _preferences.setBool(_keyShowEmptyChannels, value);
+  }
+
+  /// Gets the last joined channel.
+  String get lastChannel => _preferences.getString(_keyLastChannel) ?? '#general';
+
+  /// Saves the last joined channel.
+  Future<void> setLastChannel(String value) async {
+    await _preferences.setString(_keyLastChannel, value);
   }
 }

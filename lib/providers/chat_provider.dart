@@ -29,6 +29,7 @@ class ChatProvider with ChangeNotifier {
              serverUrl: Uri.parse(configuration.serverUrl),
              nickname: configuration.nickname,
              appVersion: appVersion,
+             initialChannel: configuration.lastChannel,
            ) {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
@@ -79,7 +80,7 @@ class ChatProvider with ChangeNotifier {
 
   /// The currently active channel.
   String get activeChannel => _activeChannel;
-  String _activeChannel = '#general';
+  late String _activeChannel = configuration.lastChannel;
 
   /// Whether the current channel is private.
   bool get isCurrentChannelPrivate => _isCurrentChannelPrivate;
@@ -278,6 +279,7 @@ class ChatProvider with ChangeNotifier {
         serverUrl: Uri.parse(newServerUrl),
         nickname: newNickname,
         appVersion: appVersion,
+        initialChannel: _activeChannel,
       );
 
       _messages.clear();
@@ -368,6 +370,7 @@ class ChatProvider with ChangeNotifier {
     _isCurrentChannelPrivate = false;
     _messages.clear();
 
+    configuration.setLastChannel(formattedChannel);
     notifyListeners();
 
     _chatService.sendMessage('/join $formattedChannel');

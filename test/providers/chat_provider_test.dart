@@ -43,6 +43,12 @@ class FakeChatService extends Fake implements ChatService {
   Stream<String> get nickChanges => const Stream.empty();
 
   @override
+  bool showEmptyChannels = false;
+
+  @override
+  void requestChannelsList() {}
+
+  @override
   void sendMessage(String message) {
     sentMessages.add(message);
   }

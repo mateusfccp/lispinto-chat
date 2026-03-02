@@ -13,6 +13,7 @@ interface class ChatService {
     required this.serverUrl,
     required this.nickname,
     required this.appVersion,
+    this.initialChannel,
   });
 
   /// The WebSocket server URL to connect to.
@@ -23,6 +24,9 @@ interface class ChatService {
 
   /// The version of the app, used for the User-Agent header.
   final String appVersion;
+
+  /// The initial channel to join on connection.
+  final String? initialChannel;
 
   /// A stream of incoming chat messages to be displayed in the UI.
   Stream<ChatMessage> get messages => _messageController.stream;
@@ -76,8 +80,18 @@ interface class ChatService {
     disconnect();
 
     try {
+      var connectionUri = serverUrl;
+      if (initialChannel != null) {
+        final channelName = initialChannel!.startsWith('#')
+            ? initialChannel!.substring(1)
+            : initialChannel!;
+        connectionUri = connectionUri.replace(
+          queryParameters: {...connectionUri.queryParameters, 'channel': channelName},
+        );
+      }
+
       final channel = _channel =
-          mockChannel ?? createWebSocketChannel(serverUrl, appVersion);
+          mockChannel ?? createWebSocketChannel(connectionUri, appVersion);
 
       channel.ready.catchError((_) {
         _handleDisconnect();

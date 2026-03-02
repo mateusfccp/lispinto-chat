@@ -14,7 +14,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
     bool showEmptyChannels = false,
     bool showMarkdown = true,
     String lastChannel = '#general',
-    String imgbbApiKey = 'e3d8d59ada48272d3f3b3fc5e710f837',
+    String imgbbApiKey = '',
   }) : _nickname = nickname,
        _serverUrl = serverUrl,
        _pushNotificationsEnabled = pushNotificationsEnabled,

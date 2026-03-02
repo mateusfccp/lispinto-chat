@@ -9,6 +9,7 @@ import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/image_upload_service.dart';
 import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
@@ -642,6 +643,35 @@ class _InputAreaState extends State<_InputArea> {
   bool _isUploading = false;
 
   Future<void> _uploadImage(Uint8List imageBytes) async {
+    final imgbbApiKey = locator<UserConfiguration>().imgbbApiKey.trim();
+    if (imgbbApiKey.isEmpty) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('ImgBB API Key Required'),
+            content: const Text(
+              'To upload images, please configure your ImgBB API Key in the settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  const ConfigurationsRoute().push(context);
+                },
+                child: const Text('Go to Settings'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isUploading = true;
     });
@@ -684,10 +714,13 @@ class _InputAreaState extends State<_InputArea> {
     bool uploaded = false;
 
     if (clipboard != null) {
+      final imgbbApiKey = locator<UserConfiguration>().imgbbApiKey.trim();
+      final canUpload = imgbbApiKey.isNotEmpty;
+
       final reader = await clipboard.read();
 
       for (final item in reader.items) {
-        if (item.canProvide(Formats.fileUri)) {
+        if (canUpload && item.canProvide(Formats.fileUri)) {
           final uri = await item.readValue(Formats.fileUri);
           if (uri != null) {
             final path = uri.toFilePath().toLowerCase();
@@ -705,13 +738,13 @@ class _InputAreaState extends State<_InputArea> {
         }
 
         // Try raw image data
-        if (item.canProvide(Formats.png)) {
+        if (canUpload && item.canProvide(Formats.png)) {
           item.getFile(Formats.png, (file) async {
             final bytes = await file.readAll();
             if (mounted) _uploadImage(bytes);
           });
           uploaded = true;
-        } else if (item.canProvide(Formats.jpeg)) {
+        } else if (canUpload && item.canProvide(Formats.jpeg)) {
           item.getFile(Formats.jpeg, (file) async {
             final bytes = await file.readAll();
             if (mounted) _uploadImage(bytes);
@@ -781,7 +814,35 @@ class _InputAreaState extends State<_InputArea> {
                     icon: const Icon(Icons.add),
                     onSelected: (value) {
                       if (value == .uploadPhoto) {
-                        _pickImage();
+                        final imgbbApiKey = locator<UserConfiguration>()
+                            .imgbbApiKey
+                            .trim();
+                        if (imgbbApiKey.isEmpty) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('ImgBB API Key Required'),
+                              content: const Text(
+                                'To upload images, please configure your ImgBB API Key in the settings.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    const ConfigurationsRoute().push(context);
+                                  },
+                                  child: const Text('Go to Settings'),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          _pickImage();
+                        }
                       }
                     },
                     itemBuilder: (context) {

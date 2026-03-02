@@ -93,7 +93,6 @@ final class PersistentUserConfiguration implements UserConfiguration {
   static const String _keyLastChannel = 'last_channel';
   static const String _keyImgbbApiKey = 'imgbb_api_key';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
-  static const String _defaultImgbbApiKey = 'e3d8d59ada48272d3f3b3fc5e710f837';
 
   final SharedPreferences _preferences;
 
@@ -123,7 +122,7 @@ final class PersistentUserConfiguration implements UserConfiguration {
 
   @override
   String get imgbbApiKey {
-    return _preferences.getString(_keyImgbbApiKey) ?? _defaultImgbbApiKey;
+    return _preferences.getString(_keyImgbbApiKey) ?? '';
   }
 
   @override

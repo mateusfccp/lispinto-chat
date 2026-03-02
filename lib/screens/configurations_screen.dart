@@ -8,6 +8,7 @@ import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/service_locator_scope.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 /// A screen that allows the user to configure their settings.
 final class ConfigurationsScreen extends StatefulWidget {
@@ -148,18 +149,45 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                           const Gap(16.0),
                           TextFormField(
                             controller: _imgbbApiKeyController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'ImgBB API Key',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.key),
-                              // suffixIcon: IconButton(
-                              //   icon: Icon(Icons.info_outline),
-                              //   onPressed: null,
-                              //   tooltip:
-                              //       'Image uploading required an ImgBB API key. '
-                              //       'You can get one for free at https://api.imgbb.com. '
-                              //       'If you don\'t provide a key, image uploading will be disabled.',
-                              // ),
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.key),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.info_outline),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: const Text('ImgBB API Key'),
+                                        content: const Text(
+                                          'Image uploading requires an ImgBB API key. '
+                                          'You can get one for free at the ImgBB website. '
+                                          'If you don\'t provide a key, image uploading will be disabled.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              launchUrlString(
+                                                'https://api.imgbb.com/',
+                                              );
+                                            },
+                                            child: const Text('Get API Key'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                tooltip: 'Learn about ImgBB API key',
+                              ),
                             ),
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (value) => _saveAndPop(),

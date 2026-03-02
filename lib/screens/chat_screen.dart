@@ -919,7 +919,7 @@ final class _HorizontalUserList extends StatelessWidget {
   }
 }
 
-final class _VerticalUserList extends StatelessWidget {
+final class _VerticalUserList extends StatefulWidget {
   const _VerticalUserList({
     required this.provider,
     required this.onUserTap,
@@ -935,15 +935,64 @@ final class _VerticalUserList extends StatelessWidget {
   final VoidCallback onQuit;
 
   @override
+  State<_VerticalUserList> createState() => _VerticalUserListState();
+}
+
+class _VerticalUserListState extends State<_VerticalUserList> {
+  final ScrollController _channelsScrollController = ScrollController();
+  String? _lastActiveChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastActiveChannel = widget.provider.activeChannel;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scrollToActiveChannel(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _VerticalUserList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.provider.activeChannel != _lastActiveChannel) {
+      _lastActiveChannel = widget.provider.activeChannel;
+      _scrollToActiveChannel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _channelsScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToActiveChannel() {
+    // We add a small delay to ensure the widget is fully built and laid out.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = GlobalObjectKey(widget.provider.activeChannel);
+      final context = key.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.5, // Center the active channel in the viewport
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 250),
       child: Card(
         child: ListenableBuilder(
-          listenable: provider,
+          listenable: widget.provider,
           builder: (context, _) {
-            final users = provider.onlineUsers;
-            final channels = provider.channels;
+            final users = widget.provider.onlineUsers;
+            final channels = widget.provider.channels;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -966,9 +1015,9 @@ final class _VerticalUserList extends StatelessWidget {
                             color: getNicknameColor(users[index]),
                           ),
                         ),
-                        onTap: () => onUserTap(users[index]),
+                        onTap: () => widget.onUserTap(users[index]),
                         onSecondaryTapDown: (details) {
-                          onUserMenuTap(
+                          widget.onUserMenuTap(
                             context,
                             details.globalPosition,
                             users[index],
@@ -987,20 +1036,21 @@ final class _VerticalUserList extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: channels.length,
-                    itemBuilder: (context, index) {
-                      final channelEntry = channels.entries.elementAt(index);
-                      return _VerticalChannelListItem(
-                        channel: channelEntry.key,
-                        userCount: channelEntry.value,
-                        isActive: channelEntry.key == provider.activeChannel,
-                        onTap: () => provider.joinChannel(channelEntry.key),
-                      );
-                    },
+                  child: ListView(
+                    children: [
+                      for (final channelEntry in channels.entries)
+                        _VerticalChannelListItem(
+                          channel: channelEntry.key,
+                          userCount: channelEntry.value,
+                          isActive:
+                              channelEntry.key == widget.provider.activeChannel,
+                          onTap: () =>
+                              widget.provider.joinChannel(channelEntry.key),
+                        ),
+                    ],
                   ),
                 ),
-                if (provider.activeChannel != '#general')
+                if (widget.provider.activeChannel != '#general')
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(
@@ -1008,8 +1058,8 @@ final class _VerticalUserList extends StatelessWidget {
                         const Text('Private Channel'),
                         const Spacer(),
                         Switch(
-                          value: provider.isCurrentChannelPrivate,
-                          onChanged: provider.setPrivateChannel,
+                          value: widget.provider.isCurrentChannelPrivate,
+                          onChanged: widget.provider.setPrivateChannel,
                         ),
                       ],
                     ),
@@ -1022,7 +1072,7 @@ final class _VerticalUserList extends StatelessWidget {
                     runSpacing: 4.0,
                     children: [
                       TextButton.icon(
-                        onPressed: onOpenConfig,
+                        onPressed: widget.onOpenConfig,
                         icon: const Icon(Icons.settings, size: 18),
                         label: const Text(
                           'Settings',
@@ -1033,7 +1083,7 @@ final class _VerticalUserList extends StatelessWidget {
                         ),
                       ),
                       TextButton.icon(
-                        onPressed: onQuit,
+                        onPressed: widget.onQuit,
                         icon: const Icon(Icons.exit_to_app, size: 18),
                         label: const Text(
                           'Quit',

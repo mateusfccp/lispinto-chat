@@ -109,16 +109,21 @@ class _ChatScreenState extends State<ChatScreen> {
     if (index == -1) return;
 
     final removedItem = _activeNotifications.removeAt(index);
-    listKey.currentState?.removeItem(index, (context, animation) {
+    if (listKey.currentState == null) return;
+
+    listKey.currentState!.removeItem(index, (context, animation) {
       return FadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
         child: SizeTransition(
           sizeFactor: CurvedAnimation(parent: animation, curve: Curves.easeOut),
           axisAlignment: 0.0,
-          child: Center(
-            child: _NotificationPill(
-              text: Text(removedItem.text),
-              onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Center(
+              child: _NotificationPill(
+                text: Text(removedItem.text),
+                onTap: () {},
+              ),
             ),
           ),
         ),
@@ -916,24 +921,31 @@ class _NotificationsAreaState extends State<_NotificationsArea> {
   Widget build(BuildContext context) {
     return IgnorePointer(
       ignoring: widget.notifications.isEmpty,
-      child: AnimatedList.separated(
+      child: AnimatedList(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.all(8.0),
         key: widget.listKey,
         initialItemCount: widget.notifications.length,
-        removedSeparatorBuilder: (context, index, animation) {
-          return const Gap(8.0);
-        },
-        separatorBuilder: (context, index, animation) {
-          return const Gap(8.0);
-        },
         itemBuilder: (context, index, animation) {
           final notification = widget.notifications[index];
-          return Center(
-            child: _NotificationPill(
-              text: Text(notification.text),
-              onTap: () => widget.onRemoveNotification(notification.id),
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            child: SizeTransition(
+              sizeFactor: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
+              axisAlignment: 0.0,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Center(
+                  child: _NotificationPill(
+                    text: Text(notification.text),
+                    onTap: () => widget.onRemoveNotification(notification.id),
+                  ),
+                ),
+              ),
             ),
           );
         },

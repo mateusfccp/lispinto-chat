@@ -18,10 +18,10 @@ dependencies:
   http: ^1.6.0
   image_picker: ^1.2.1
   package_info_plus: ^9.0.0
-  pasteboard: ^0.5.0
   prototype_constrained_box: ^2.0.3+1
   shared_preferences: ^2.5.4
   shared_preferences_platform_interface: ^2.4.1
+  super_clipboard: ^0.9.1
   url_launcher: ^6.3.2
   web_socket_channel: ^3.0.3
 

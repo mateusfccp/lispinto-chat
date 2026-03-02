@@ -74,8 +74,8 @@ void main() {
     test('Parses /channels response correctly', () async {
       final channelsFuture = service.channels.skip(1).first;
 
-      serverStream.add('#general: 5 users');
-      serverStream.add('#random: 2 users');
+      serverStream.add('|12:00:00| [@server]: #general: 5 users');
+      serverStream.add('|12:00:00| [@server]: #random: 2 users');
 
       final channels = await channelsFuture;
       expect(channels, equals({'#general': 5, '#random': 2}));
@@ -84,7 +84,7 @@ void main() {
     test('Parses /users response correctly', () async {
       final usersFuture = service.users.first;
 
-      serverStream.add('users: Alice, Bob');
+      serverStream.add('|12:00:00| [@server]: users: Alice, Bob');
 
       final users = await usersFuture;
       expect(users, containsAll(['Alice', 'Bob']));
@@ -92,27 +92,33 @@ void main() {
 
     test('Maintains online users properly on join/exit/nick', () async {
       // Setup initial users
-      serverStream.add('users: Alice, Bob');
+      serverStream.add('|12:00:00| [@server]: users: Alice, Bob');
 
       // Wait a tick for processing
       await Future.delayed(const Duration(milliseconds: 10));
 
       // Test someone joining
       var usersFuture = service.users.first;
-      serverStream.add('The user @Charlie joined to the party!');
+      serverStream.add(
+        '|12:00:00| [@server]: The user @Charlie joined to the party!',
+      );
       var users = await usersFuture;
       expect(users, containsAll(['Alice', 'Bob', 'Charlie']));
 
       // Test someone exiting
       usersFuture = service.users.first;
-      serverStream.add('The user @Alice exited from the party :(');
+      serverStream.add(
+        '|12:00:00| [@server]: The user @Alice exited from the party :(',
+      );
       users = await usersFuture;
       expect(users, containsAll(['Bob', 'Charlie']));
       expect(users.contains('Alice'), isFalse);
 
       // Test nick change (Broadcast)
       usersFuture = service.users.first;
-      serverStream.add('User @Bob is now known as @Robert');
+      serverStream.add(
+        '|12:00:00| [@server]: User @Bob is now known as @Robert',
+      );
       users = await usersFuture;
       expect(users, containsAll(['Robert', 'Charlie']));
       expect(users.contains('Bob'), isFalse);

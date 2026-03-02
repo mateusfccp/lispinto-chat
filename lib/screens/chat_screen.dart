@@ -17,8 +17,8 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
-import 'package:pasteboard/pasteboard.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 import 'configurations_screen.dart';
 
@@ -677,6 +677,76 @@ class _InputAreaState extends State<_InputArea> {
     }
   }
 
+  Future<void> _handleSuperClipboardPaste() async {
+    final clipboard = SystemClipboard.instance;
+    bool uploaded = false;
+
+    if (clipboard != null) {
+      final reader = await clipboard.read();
+
+      for (final item in reader.items) {
+        if (item.canProvide(Formats.fileUri)) {
+          final uri = await item.readValue(Formats.fileUri);
+          if (uri != null) {
+            final path = uri.toFilePath().toLowerCase();
+            if (path.endsWith('.png') ||
+                path.endsWith('.jpg') ||
+                path.endsWith('.jpeg') ||
+                path.endsWith('.gif') ||
+                path.endsWith('.webp')) {
+              final bytes = await File.fromUri(uri).readAsBytes();
+              await _uploadImage(bytes);
+              uploaded = true;
+              continue; // Handled this item
+            }
+          }
+        }
+
+        // Try raw image data
+        if (item.canProvide(Formats.png)) {
+          item.getFile(Formats.png, (file) async {
+            final bytes = await file.readAll();
+            if (mounted) _uploadImage(bytes);
+          });
+          uploaded = true;
+        } else if (item.canProvide(Formats.jpeg)) {
+          item.getFile(Formats.jpeg, (file) async {
+            final bytes = await file.readAll();
+            if (mounted) _uploadImage(bytes);
+          });
+          uploaded = true;
+        }
+      }
+    }
+
+    if (!uploaded && mounted) {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (data?.text != null && data!.text!.isNotEmpty) {
+        final text = data.text!;
+        final selection = widget.controller.selection;
+        if (selection.isValid && selection.start >= 0) {
+          final newText = widget.controller.text.replaceRange(
+            selection.start,
+            selection.end,
+            text,
+          );
+          widget.controller.value = TextEditingValue(
+            text: newText,
+            selection: TextSelection.collapsed(
+              offset: selection.start + text.length,
+            ),
+          );
+        } else {
+          final newText = widget.controller.text + text;
+          widget.controller.value = TextEditingValue(
+            text: newText,
+            selection: TextSelection.collapsed(offset: newText.length),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -745,71 +815,7 @@ class _InputAreaState extends State<_InputArea> {
                             event.logicalKey == LogicalKeyboardKey.keyV &&
                             (HardwareKeyboard.instance.isMetaPressed ||
                                 HardwareKeyboard.instance.isControlPressed)) {
-                          () async {
-                            bool uploaded = false;
-
-                            // 1. Try to read files from the clipboard (e.g. copied from Finder)
-                            final files = await Pasteboard.files();
-                            if (files.isNotEmpty) {
-                              for (final path in files) {
-                                final lower = path.toLowerCase();
-                                if (lower.endsWith('.png') ||
-                                    lower.endsWith('.jpg') ||
-                                    lower.endsWith('.jpeg') ||
-                                    lower.endsWith('.gif') ||
-                                    lower.endsWith('.webp')) {
-                                  final bytes = await File(path).readAsBytes();
-                                  await _uploadImage(bytes);
-                                  uploaded = true;
-                                }
-                              }
-                            }
-
-                            // 2. Try raw image data (e.g. screenshot data)
-                            if (!uploaded) {
-                              final bytes = await Pasteboard.image;
-                              if (bytes != null && bytes.isNotEmpty) {
-                                await _uploadImage(bytes);
-                                uploaded = true;
-                              }
-                            }
-
-                            // 3. Fallback to standard text paste if no images
-                            if (!uploaded && mounted) {
-                              final data = await Clipboard.getData(
-                                Clipboard.kTextPlain,
-                              );
-                              if (data?.text != null &&
-                                  data!.text!.isNotEmpty) {
-                                final text = data.text!;
-                                final selection = widget.controller.selection;
-                                if (selection.isValid && selection.start >= 0) {
-                                  final newText = widget.controller.text
-                                      .replaceRange(
-                                        selection.start,
-                                        selection.end,
-                                        text,
-                                      );
-                                  widget.controller.value = TextEditingValue(
-                                    text: newText,
-                                    selection: TextSelection.collapsed(
-                                      offset: selection.start + text.length,
-                                    ),
-                                  );
-                                } else {
-                                  final newText = widget.controller.text + text;
-                                  widget.controller.value = TextEditingValue(
-                                    text: newText,
-                                    selection: TextSelection.collapsed(
-                                      offset: newText.length,
-                                    ),
-                                  );
-                                }
-                              }
-                            }
-                          }();
-
-                          // Handle event synchronously to prevent text field from pasting generic file paths or icon text
+                          _handleSuperClipboardPaste();
                           return KeyEventResult.handled;
                         }
                         return KeyEventResult.ignored;
@@ -818,21 +824,29 @@ class _InputAreaState extends State<_InputArea> {
                         controller: widget.controller,
                         focusNode: widget.focusNode,
                         enabled: widget.provider.isConnected && !_isUploading,
-                        contentInsertionConfiguration:
-                            ContentInsertionConfiguration(
-                              onContentInserted: (content) async {
-                                if (content.hasData) {
-                                  final bytes = content.data!;
-                                  await _uploadImage(bytes);
-                                }
-                              },
-                              allowedMimeTypes: const [
-                                'image/png',
-                                'image/jpeg',
-                                'image/gif',
-                                'image/webp',
-                              ],
-                            ),
+                        contextMenuBuilder: (context, editableTextState) {
+                          final buttonItems =
+                              editableTextState.contextMenuButtonItems;
+                          final pasteButton = ContextMenuButtonItem(
+                            type: ContextMenuButtonType.paste,
+                            onPressed: () {
+                              _handleSuperClipboardPaste();
+                              editableTextState.hideToolbar();
+                            },
+                          );
+                          final index = buttonItems.indexWhere(
+                            (item) => item.type == ContextMenuButtonType.paste,
+                          );
+                          if (index >= 0) {
+                            buttonItems[index] = pasteButton;
+                          } else {
+                            buttonItems.add(pasteButton);
+                          }
+                          return AdaptiveTextSelectionToolbar.buttonItems(
+                            anchors: editableTextState.contextMenuAnchors,
+                            buttonItems: buttonItems,
+                          );
+                        },
                         decoration: InputDecoration(
                           prefixIcon: widget.provider.currentDmNickname != null
                               ? _DmIndicator(

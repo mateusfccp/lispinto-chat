@@ -304,7 +304,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       right: 8.0,
                                       child: _SearchInput(
                                         isDesktop: isDesktop,
-                                        isSearchVisible: _isSearchVisible,
+                                        isSearchActive: _isSearchVisible,
                                         searchController: _searchController,
                                         searchFocusNode: _searchFocusNode,
                                         onToggleSearch: _toggleSearch,
@@ -426,7 +426,7 @@ class _ChatScreenState extends State<ChatScreen> {
 final class _SearchInput extends StatelessWidget {
   const _SearchInput({
     required this.isDesktop,
-    required this.isSearchVisible,
+    required this.isSearchActive,
     required this.searchController,
     required this.searchFocusNode,
     required this.onToggleSearch,
@@ -434,66 +434,69 @@ final class _SearchInput extends StatelessWidget {
   });
 
   final bool isDesktop;
-  final bool isSearchVisible;
+  final bool isSearchActive;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final VoidCallback onToggleSearch;
   final ValueChanged<String> onSearchChanged;
 
+  static final _borderWidth = 1.0;
+
   @override
   Widget build(BuildContext context) {
+    final iconButton = IconButton(
+      icon: const Icon(Icons.search),
+      onPressed: onToggleSearch,
+    );
+
     return Align(
       alignment: Alignment.centerRight,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = isSearchVisible ? constraints.maxWidth : 44.0;
+      child: PrototypeConstrainedBox(
+        constrainMaxHeight: false,
+        constrainMaxWidth: false,
+        constrainMinHeight: true,
+        constrainMinWidth: true,
+        prototype: iconButton,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = isSearchActive
+                ? constraints.maxWidth
+                : constraints.minWidth + (_borderWidth * 2.0);
 
-          return AnimatedContainer(
-            curve: Curves.easeInOut,
-            duration: const Duration(milliseconds: 150),
-            width: width,
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              border: Border.all(color: Colors.white24, width: 2.0),
-              borderRadius: BorderRadius.circular(32.0),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4.0,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AbsorbPointer(
-                  absorbing: isSearchVisible,
-                  child: IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: onToggleSearch,
-                  ),
-                ),
-                if (isSearchVisible)
-                  Expanded(
-                    child: TextField(
-                      controller: searchController,
-                      focusNode: searchFocusNode,
-                      onChanged: onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search messages...',
-                        isDense: isDesktop,
-                        border: InputBorder.none,
-                        fillColor: Colors.transparent,
-                        filled: true,
+            return AnimatedContainer(
+              curve: Curves.easeInOut,
+              duration: const Duration(milliseconds: 150),
+              width: width,
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                border: Border.all(color: Colors.white24, width: _borderWidth),
+                borderRadius: BorderRadius.circular(32.0),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AbsorbPointer(absorbing: isSearchActive, child: iconButton),
+                  if (isSearchActive)
+                    Expanded(
+                      child: TextField(
+                        controller: searchController,
+                        focusNode: searchFocusNode,
+                        onChanged: onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search messages...',
+                          isDense: isDesktop,
+                          border: InputBorder.none,
+                          fillColor: Colors.transparent,
+                          filled: true,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

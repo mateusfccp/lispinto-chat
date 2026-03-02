@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/widgets/message_bubble.dart';
+import 'package:lispinto_chat/widgets/service_locator_scope.dart';
 
 /// A screen that allows the user to configure their settings.
 final class ConfigurationsScreen extends StatefulWidget {
@@ -206,8 +210,13 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                           ],
                           const Gap(16.0),
                           _ConfigurationSection(
-                            title: Text('Visual Aspects'),
+                            title: const Text('Messages appearance'),
                             children: [
+                              _MessagePreview(
+                                showTimeSeconds: _showTimeSeconds,
+                                showImagePreviews: _showImagePreviews,
+                              ),
+                              const Divider(),
                               SwitchListTile(
                                 title: const Text('Show time seconds'),
                                 subtitle: const Text(
@@ -313,6 +322,56 @@ final class _ConfigurationSection extends StatelessWidget {
               ),
             ),
             ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final class _MessagePreview extends StatelessWidget {
+  const _MessagePreview({
+    required this.showTimeSeconds,
+    required this.showImagePreviews,
+  });
+
+  final bool showTimeSeconds;
+  final bool showImagePreviews;
+
+  @override
+  Widget build(BuildContext context) {
+    return ServiceLocatorScope(
+      key: ValueKey((showTimeSeconds, showImagePreviews)),
+      overrides: (locator) {
+        locator.registerSingleton<UserConfiguration>(
+          InMemoryUserConfiguration(
+            showTimeSeconds: showTimeSeconds,
+            showImagePreviews: showImagePreviews,
+            nickname: 'PreviewUser',
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            MessageBubble(
+              message: ChatMessage(
+                from: 'User 1',
+                content: 'This is how your messages will look like!',
+                date: DateTime.now(),
+              ),
+              searchQuery: '',
+            ),
+            MessageBubble(
+              message: ChatMessage(
+                from: 'User 2',
+                content:
+                    'Check this image: https://picsum.photos/seed/lispinto/200',
+                date: DateTime.now(),
+              ),
+              searchQuery: '',
+            ),
           ],
         ),
       ),

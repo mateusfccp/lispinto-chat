@@ -36,6 +36,10 @@ interface class ChatService {
   Stream<List<String>> get users => _usersController.stream;
   final _usersController = StreamController<List<String>>.broadcast();
 
+  /// A stream of the current active channels list to be displayed in the UI.
+  Stream<Map<String, int>> get channels => _channelsController.stream;
+  final _channelsController = StreamController<Map<String, int>>.broadcast();
+
   /// A stream of the current connection state.
   ///
   /// True if connected, false if disconnected. The UI can listen to this stream
@@ -54,17 +58,23 @@ interface class ChatService {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   Timer? _keepAliveTimer;
-  int _backgroundRequestsPending = 0;
   bool _loggedIn = false;
+
+  final List<String> _currentUsers = [];
+
+  final Map<String, _ChannelPingData> _currentChannels = {};
+  int _channelPingId = 0;
 
   /// Connects to the chat server and starts listening for messages.
   ///
   /// If already connected, it will first disconnect and then reconnect.
-  void connect() {
+  /// [mockChannel] can be provided for testing purposes.
+  void connect({WebSocketChannel? mockChannel}) {
     disconnect();
 
     try {
-      final channel = _channel = createWebSocketChannel(serverUrl, appVersion);
+      final channel = _channel =
+          mockChannel ?? createWebSocketChannel(serverUrl, appVersion);
 
       channel.ready.catchError((_) {
         _handleDisconnect();
@@ -171,9 +181,37 @@ interface class ChatService {
 
     final isJoin = content.contains('joined to the party');
     final isExit = content.contains('exited from the party');
-    final isNickChange = content.contains('Your new nick is');
-    final isSystemMessage = isJoin || isExit || isNickChange;
+    final isNickChange = content.contains('Your new nick is: @');
+    final isNickChangeBroadcast = content.contains('is now known as @');
+    final isSystemMessage =
+        isJoin || isExit || isNickChange || isNickChangeBroadcast;
     final isUsersListResponse = content.startsWith('users: ');
+
+    if (message.from == 'unknown') {
+      final channelCountMatch = RegExp(
+        r'^#([A-Za-z0-9_\-]+): (\d+) users?$',
+      ).firstMatch(content);
+      if (channelCountMatch != null) {
+        final channel = '#${channelCountMatch.group(1)}';
+        final count = int.parse(channelCountMatch.group(2)!);
+        _currentChannels[channel] = _ChannelPingData(count, _channelPingId);
+
+        final currentMap = {
+          for (final entry in _currentChannels.entries)
+            entry.key: entry.value.userCount,
+        };
+        _channelsController.add(currentMap);
+
+        return false; // Swallow channel list pings
+      }
+    }
+
+    if (content == 'channels:' &&
+        (message.from == 'server' ||
+            message.from == '@server' ||
+            message.from == 'unknown')) {
+      return false;
+    }
 
     if (isSystemMessage) {
       if (isNickChange) {
@@ -190,10 +228,43 @@ interface class ChatService {
             );
           }
         }
+      } else if (isNickChangeBroadcast) {
+        final match = RegExp(
+          r'User @(.*) is now known as @(.*)',
+        ).firstMatch(content);
+        if (match != null) {
+          final oldNick = match.group(1)!;
+          final newNick = match.group(2)!;
+          _currentUsers.remove(oldNick);
+          if (!_currentUsers.contains(newNick)) {
+            _currentUsers.add(newNick);
+          }
+          _usersController.add(_currentUsers.toList());
+        }
       }
 
-      _requestUserList(isBackground: true);
-      if (isJoin || isExit) {
+      if (isJoin) {
+        final match = RegExp(
+          r'The user @(.*) joined to the party!',
+        ).firstMatch(content);
+        if (match != null) {
+          final joinedUser = match.group(1)!;
+          if (!_currentUsers.contains(joinedUser)) {
+            _currentUsers.add(joinedUser);
+            _usersController.add(_currentUsers.toList());
+          }
+        }
+        _notificationsController.add(message);
+        return false;
+      } else if (isExit) {
+        final match = RegExp(
+          r'The user @(.*) exited from the party :\(',
+        ).firstMatch(content);
+        if (match != null) {
+          final exitedUser = match.group(1)!;
+          _currentUsers.remove(exitedUser);
+          _usersController.add(_currentUsers.toList());
+        }
         _notificationsController.add(message);
         return false;
       }
@@ -204,35 +275,50 @@ interface class ChatService {
           if (user.isNotEmpty) user.trim(),
       ];
 
-      _usersController.add(usersList);
-
-      if (_backgroundRequestsPending > 0) {
-        _backgroundRequestsPending--;
-        return false; // Swallow background updates
-      }
+      _currentUsers.clear();
+      _currentUsers.addAll(usersList);
+      _usersController.add(_currentUsers.toList());
+      return false;
     }
     return true;
   }
 
-  void _requestUserList({bool isBackground = false}) {
+  void _requestUserList() {
     if (_loggedIn && _channel != null) {
-      if (isBackground) {
-        _backgroundRequestsPending++;
-      }
       sendMessage('/users');
+    }
+  }
+
+  void _requestChannelsList() {
+    if (_loggedIn && _channel != null) {
+      _channelPingId++;
+      sendMessage('/channels');
+
+      // Give the server up to 1 second to send all individual channel messages,
+      // and purge whatever channels were not seen.
+      Timer(const Duration(seconds: 1), () {
+        _currentChannels.removeWhere((k, v) => v.pingId != _channelPingId);
+        final currentMap = {
+          for (final entry in _currentChannels.entries)
+            entry.key: entry.value.userCount,
+        };
+        _channelsController.add(currentMap);
+      });
     }
   }
 
   void _startKeepAlive() {
     _keepAliveTimer?.cancel();
     _keepAliveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _requestUserList(isBackground: true);
+      _requestChannelsList();
     });
-    _requestUserList(isBackground: true); // Initial fetch
+    _requestUserList(); // Initial fetch for users
+    _requestChannelsList(); // Initial fetch for channels
   }
 
   void _handleDisconnect() {
     _loggedIn = false;
+    _currentChannels.clear();
     _keepAliveTimer?.cancel();
     _subscription?.cancel();
     try {
@@ -265,5 +351,13 @@ interface class ChatService {
     _usersController.close();
     _connectionStateController.close();
     _nickChangeController.close();
+    _channelsController.close();
   }
+}
+
+class _ChannelPingData {
+  final int userCount;
+  final int pingId;
+
+  _ChannelPingData(this.userCount, this.pingId);
 }

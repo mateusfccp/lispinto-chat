@@ -21,7 +21,9 @@ class MockFlutterLocalNotificationsPlugin extends Mock
   }
 }
 
-class MockChatService extends Mock implements ChatService {
+class FakeChatService extends Fake implements ChatService {
+  final List<String> sentMessages = [];
+
   @override
   Stream<ChatMessage> get messages => const Stream.empty();
 
@@ -32,16 +34,29 @@ class MockChatService extends Mock implements ChatService {
   Stream<List<String>> get users => const Stream.empty();
 
   @override
+  Stream<Map<String, int>> get channels => const Stream.empty();
+
+  @override
   Stream<bool> get connectionState => Stream.value(true);
 
   @override
   Stream<String> get nickChanges => const Stream.empty();
+
+  @override
+  void sendMessage(String message) {
+    sentMessages.add(message);
+  }
+
+  @override
+  void dispose() {}
 }
 
 void main() {
   group('ChatProvider', () {
     late UserConfiguration config;
     late ChatProvider provider;
+
+    late FakeChatService fakeChatService;
 
     setUp(() async {
       TestWidgetsFlutterBinding.ensureInitialized();
@@ -51,13 +66,13 @@ void main() {
       await config.setServerUrl('ws://localhost:8080');
 
       final mockNotifications = MockFlutterLocalNotificationsPlugin();
-      final mockChatService = MockChatService();
+      fakeChatService = FakeChatService();
 
       provider = ChatProvider(
         config,
         appVersion: "test",
         localNotifications: mockNotifications,
-        chatService: mockChatService,
+        chatService: fakeChatService,
       );
     });
 
@@ -83,6 +98,40 @@ void main() {
     test('clearMessages empties the message list', () {
       provider.clearMessages();
       expect(provider.messages, isEmpty);
+    });
+
+    test('joinChannel resets channel state and sends appropriate commands', () {
+      provider.joinChannel('#testchannel');
+      expect(provider.activeChannel, '#testchannel');
+      expect(provider.isCurrentChannelPrivate, isFalse);
+
+      expect(
+        fakeChatService.sentMessages,
+        containsAll([
+          '/join #testchannel',
+          '/log :depth 100 :date-format date',
+          '/private status',
+        ]),
+      );
+
+      expect(fakeChatService.sentMessages, contains('/join #testchannel'));
+      expect(
+        fakeChatService.sentMessages,
+        contains('/log :depth 100 :date-format date'),
+      );
+      expect(fakeChatService.sentMessages, contains('/private status'));
+    });
+
+    test('setPrivateChannel sends appropriate commands and updates state', () {
+      provider.setPrivateChannel(true);
+      expect(provider.isCurrentChannelPrivate, isTrue);
+      expect(fakeChatService.sentMessages, contains('/private on'));
+
+      fakeChatService.sentMessages.clear();
+
+      provider.setPrivateChannel(false);
+      expect(provider.isCurrentChannelPrivate, isFalse);
+      expect(fakeChatService.sentMessages, contains('/private off'));
     });
   });
 

@@ -3,10 +3,16 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i4;
+import 'dart:collection' as _i2;
+import 'dart:ui' as _i9;
 
-import 'package:lispinto_chat/services/link_image_detector.dart' as _i2;
+import 'package:lispinto_chat/core/user_configuration.dart' as _i6;
+import 'package:lispinto_chat/models/chat_message.dart' as _i8;
+import 'package:lispinto_chat/providers/chat_provider.dart' as _i5;
+import 'package:lispinto_chat/services/link_image_detector.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:mockito/src/dummies.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -23,21 +29,33 @@ import 'package:mockito/mockito.dart' as _i1;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+class _FakeUnmodifiableListView_0<E> extends _i1.SmartFake
+    implements _i2.UnmodifiableListView<E> {
+  _FakeUnmodifiableListView_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeUnmodifiableMapView_1<K, V> extends _i1.SmartFake
+    implements _i2.UnmodifiableMapView<K, V> {
+  _FakeUnmodifiableMapView_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [LinkImageDetector].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLinkImageDetector extends _i1.Mock implements _i2.LinkImageDetector {
+class MockLinkImageDetector extends _i1.Mock implements _i3.LinkImageDetector {
   MockLinkImageDetector() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<_i2.ImageType?> isImage(String? url) =>
+  _i4.Future<_i3.ImageType?> isImage(String? url) =>
       (super.noSuchMethod(
             Invocation.method(#isImage, [url]),
-            returnValue: _i3.Future<_i2.ImageType?>.value(),
+            returnValue: _i4.Future<_i3.ImageType?>.value(),
           )
-          as _i3.Future<_i2.ImageType?>);
+          as _i4.Future<_i3.ImageType?>);
 
   @override
   bool isKnown(String? url) =>
@@ -48,7 +66,214 @@ class MockLinkImageDetector extends _i1.Mock implements _i2.LinkImageDetector {
           as bool);
 
   @override
-  _i2.ImageType? getCachedStatus(String? url) =>
+  _i3.ImageType? getCachedStatus(String? url) =>
       (super.noSuchMethod(Invocation.method(#getCachedStatus, [url]))
-          as _i2.ImageType?);
+          as _i3.ImageType?);
+}
+
+/// A class which mocks [ChatProvider].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockChatProvider extends _i1.Mock implements _i5.ChatProvider {
+  MockChatProvider() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i6.UserConfiguration get configuration =>
+      (super.noSuchMethod(
+            Invocation.getter(#configuration),
+            returnValue: _i7.dummyValue<_i6.UserConfiguration>(
+              this,
+              Invocation.getter(#configuration),
+            ),
+          )
+          as _i6.UserConfiguration);
+
+  @override
+  String get appVersion =>
+      (super.noSuchMethod(
+            Invocation.getter(#appVersion),
+            returnValue: _i7.dummyValue<String>(
+              this,
+              Invocation.getter(#appVersion),
+            ),
+          )
+          as String);
+
+  @override
+  _i2.UnmodifiableListView<_i8.ChatMessage> get messages =>
+      (super.noSuchMethod(
+            Invocation.getter(#messages),
+            returnValue: _FakeUnmodifiableListView_0<_i8.ChatMessage>(
+              this,
+              Invocation.getter(#messages),
+            ),
+          )
+          as _i2.UnmodifiableListView<_i8.ChatMessage>);
+
+  @override
+  _i2.UnmodifiableListView<String> get onlineUsers =>
+      (super.noSuchMethod(
+            Invocation.getter(#onlineUsers),
+            returnValue: _FakeUnmodifiableListView_0<String>(
+              this,
+              Invocation.getter(#onlineUsers),
+            ),
+          )
+          as _i2.UnmodifiableListView<String>);
+
+  @override
+  _i2.UnmodifiableMapView<String, int> get channels =>
+      (super.noSuchMethod(
+            Invocation.getter(#channels),
+            returnValue: _FakeUnmodifiableMapView_1<String, int>(
+              this,
+              Invocation.getter(#channels),
+            ),
+          )
+          as _i2.UnmodifiableMapView<String, int>);
+
+  @override
+  bool get isConnected =>
+      (super.noSuchMethod(Invocation.getter(#isConnected), returnValue: false)
+          as bool);
+
+  @override
+  String get activeChannel =>
+      (super.noSuchMethod(
+            Invocation.getter(#activeChannel),
+            returnValue: _i7.dummyValue<String>(
+              this,
+              Invocation.getter(#activeChannel),
+            ),
+          )
+          as String);
+
+  @override
+  bool get isCurrentChannelPrivate =>
+      (super.noSuchMethod(
+            Invocation.getter(#isCurrentChannelPrivate),
+            returnValue: false,
+          )
+          as bool);
+
+  @override
+  String get searchQuery =>
+      (super.noSuchMethod(
+            Invocation.getter(#searchQuery),
+            returnValue: _i7.dummyValue<String>(
+              this,
+              Invocation.getter(#searchQuery),
+            ),
+          )
+          as String);
+
+  @override
+  _i4.Stream<String> get notifications =>
+      (super.noSuchMethod(
+            Invocation.getter(#notifications),
+            returnValue: _i4.Stream<String>.empty(),
+          )
+          as _i4.Stream<String>);
+
+  @override
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
+
+  @override
+  _i4.Future<bool> requestPermissions() =>
+      (super.noSuchMethod(
+            Invocation.method(#requestPermissions, []),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
+
+  @override
+  _i4.Future<void> updateConfiguration(
+    String? newNickname,
+    String? newServerUrl,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateConfiguration, [
+              newNickname,
+              newServerUrl,
+            ]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  void sendMessage(String? message) => super.noSuchMethod(
+    Invocation.method(#sendMessage, [message]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setDmMode(String? user) => super.noSuchMethod(
+    Invocation.method(#setDmMode, [user]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void joinChannel(String? channel) => super.noSuchMethod(
+    Invocation.method(#joinChannel, [channel]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setPrivateChannel(bool? isPrivate) => super.noSuchMethod(
+    Invocation.method(#setPrivateChannel, [isPrivate]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void search(String? query) => super.noSuchMethod(
+    Invocation.method(#search, [query]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void clearMessages() => super.noSuchMethod(
+    Invocation.method(#clearMessages, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void connect() => super.noSuchMethod(
+    Invocation.method(#connect, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void disconnect() => super.noSuchMethod(
+    Invocation.method(#disconnect, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }

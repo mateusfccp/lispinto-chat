@@ -5,6 +5,7 @@ import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/link_image_detector.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,6 +32,7 @@ final class MessageBubble extends StatefulWidget {
 class _MessageBubbleState extends State<MessageBubble> {
   List<ImageType> _imageTypes = [];
   final Map<String, TapGestureRecognizer> _linkRecognizers = {};
+  final Map<String, TapGestureRecognizer> _channelRecognizers = {};
 
   @override
   void dispose() {
@@ -38,6 +40,10 @@ class _MessageBubbleState extends State<MessageBubble> {
       recognizer.dispose();
     }
     _linkRecognizers.clear();
+    for (final recognizer in _channelRecognizers.values) {
+      recognizer.dispose();
+    }
+    _channelRecognizers.clear();
     super.dispose();
   }
 
@@ -45,6 +51,15 @@ class _MessageBubbleState extends State<MessageBubble> {
     return _linkRecognizers.putIfAbsent(
       url,
       () => TapGestureRecognizer()..onTap = () => _launchUrl(url),
+    );
+  }
+
+  TapGestureRecognizer _getChannelRecognizer(String channel) {
+    return _channelRecognizers.putIfAbsent(
+      channel,
+      () =>
+          TapGestureRecognizer()
+            ..onTap = () => locator<ChatProvider>().joinChannel(channel),
     );
   }
 
@@ -62,6 +77,10 @@ class _MessageBubbleState extends State<MessageBubble> {
         recognizer.dispose();
       }
       _linkRecognizers.clear();
+      for (final recognizer in _channelRecognizers.values) {
+        recognizer.dispose();
+      }
+      _channelRecognizers.clear();
       _detectImages();
     }
   }
@@ -134,10 +153,16 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _buildContent(BuildContext context) {
+    final showImagePreviews = locator
+        .get<UserConfiguration>()
+        .showImagePreviews;
+
     final stylizedSpans = buildStylizedText(
       context: context,
       text: widget.message.content,
+      buildImagePills: showImagePreviews,
       linkRecognizerFactory: _getRecognizer,
+      channelRecognizerFactory: _getChannelRecognizer,
     );
 
     return SelectableText.rich(

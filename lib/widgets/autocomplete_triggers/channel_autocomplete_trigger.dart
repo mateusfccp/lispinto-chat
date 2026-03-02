@@ -1,16 +1,16 @@
 import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 
-/// An autocomplete trigger for tagging users with '@'.
-final class TagAutocompleteTrigger implements AutocompleteTrigger {
-  /// Creates a [TagAutocompleteTrigger].
-  const TagAutocompleteTrigger({required this.suggestions});
+/// An autocomplete trigger for tagging channels with '#'.
+final class ChannelAutocompleteTrigger implements AutocompleteTrigger {
+  /// Creates a [ChannelAutocompleteTrigger].
+  const ChannelAutocompleteTrigger({required this.suggestions});
 
   @override
   String? triggerDetector(String textBeforeCursor) {
     final lastSpaceIndex = textBeforeCursor.lastIndexOf(RegExp(r'[\s]'));
     final startIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
     final currentWord = textBeforeCursor.substring(startIndex);
-    if (currentWord.startsWith('@')) {
+    if (currentWord.startsWith('#')) {
       return currentWord.substring(1);
     } else {
       return null;
@@ -18,7 +18,7 @@ final class TagAutocompleteTrigger implements AutocompleteTrigger {
   }
 
   @override
-  String formatSelection(String selection) => '@$selection';
+  String formatSelection(String selection) => selection;
 
   @override
   final List<String> suggestions;

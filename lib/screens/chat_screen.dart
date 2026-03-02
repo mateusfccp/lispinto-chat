@@ -8,9 +8,10 @@ import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
-import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
@@ -465,6 +466,7 @@ final class _SearchInput extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 AbsorbPointer(
                   absorbing: isSearchVisible,
@@ -632,6 +634,13 @@ final class _InputArea extends StatelessWidget {
             onPressed: provider.isConnected ? onSend : null,
           );
 
+          final users = [
+            for (final user in provider.onlineUsers)
+              if (user != provider.configuration.nickname) user,
+          ];
+
+          final channels = [...provider.channels.keys];
+
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -665,17 +674,20 @@ final class _InputArea extends StatelessWidget {
                   const Gap(8.0),
                 ],
                 Expanded(
-                  child: MentionsAutocomplete(
+                  child: AutocompleteDropdown(
                     controller: controller,
                     focusNode: focusNode,
-                    users: [
-                      for (final user in provider.onlineUsers)
-                        if (user != provider.configuration.nickname) user,
-                    ],
                     triggers: [
-                      const TagAutocompleteTrigger(),
-                      const CommandAutocompleteTrigger(command: 'dm'),
-                      const CommandAutocompleteTrigger(command: 'whois'),
+                      TagAutocompleteTrigger(suggestions: users),
+                      ChannelAutocompleteTrigger(suggestions: channels),
+                      CommandAutocompleteTrigger(
+                        command: 'dm',
+                        suggestions: users,
+                      ),
+                      CommandAutocompleteTrigger(
+                        command: 'whois',
+                        suggestions: users,
+                      ),
                     ],
                     child: TextField(
                       controller: controller,
@@ -867,7 +879,7 @@ final class _HorizontalUserList extends StatelessWidget {
               builder: (buttonContext) {
                 return TextButton(
                   child: Text(
-                    ' $user ',
+                    user,
                     style: TextStyle(color: getNicknameColor(user)),
                   ),
                   onPressed: () {
@@ -880,6 +892,24 @@ final class _HorizontalUserList extends StatelessWidget {
                 );
               },
             ),
+          const Text('| Channels:', style: TextStyle(color: Colors.grey)),
+          for (final channel in provider.channels.entries)
+            TextButton(
+              onPressed: () => provider.joinChannel(channel.key),
+              style: TextButton.styleFrom(
+                backgroundColor: channel.key == provider.activeChannel
+                    ? Colors.white24
+                    : null,
+              ),
+              child: Text('${channel.key} (${channel.value})'),
+            ),
+          if (provider.activeChannel != '#general') ...[
+            const Text('| Private: ', style: TextStyle(color: Colors.grey)),
+            Switch(
+              value: provider.isCurrentChannelPrivate,
+              onChanged: provider.setPrivateChannel,
+            ),
+          ],
         ],
       ),
     );
@@ -910,6 +940,7 @@ final class _VerticalUserList extends StatelessWidget {
           listenable: provider,
           builder: (context, _) {
             final users = provider.onlineUsers;
+            final channels = provider.channels;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -944,6 +975,42 @@ final class _VerticalUserList extends StatelessWidget {
                     },
                   ),
                 ),
+                Container(
+                  padding: const EdgeInsets.all(8.0),
+                  color: Colors.black12,
+                  child: Text(
+                    'Channels (${channels.length})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: channels.length,
+                    itemBuilder: (context, index) {
+                      final channelEntry = channels.entries.elementAt(index);
+                      return _VerticalChannelListItem(
+                        channel: channelEntry.key,
+                        userCount: channelEntry.value,
+                        isActive: channelEntry.key == provider.activeChannel,
+                        onTap: () => provider.joinChannel(channelEntry.key),
+                      );
+                    },
+                  ),
+                ),
+                if (provider.activeChannel != '#general')
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: [
+                        const Text('Private Channel'),
+                        const Spacer(),
+                        Switch(
+                          value: provider.isCurrentChannelPrivate,
+                          onChanged: provider.setPrivateChannel,
+                        ),
+                      ],
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Wrap(
@@ -1017,4 +1084,38 @@ class _NotificationItem {
   final String text;
 
   _NotificationItem(this.id, this.text);
+}
+
+final class _VerticalChannelListItem extends StatelessWidget {
+  const _VerticalChannelListItem({
+    required this.channel,
+    required this.userCount,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String channel;
+  final int userCount;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          color: isActive ? Colors.white24 : Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            '$channel ($userCount)',
+            style: TextStyle(
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

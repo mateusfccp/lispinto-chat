@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
-import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 
@@ -20,16 +19,21 @@ abstract interface class AutocompleteTrigger {
   ///
   /// Should return the raw 'query' string if detected, or null if unrelated.
   String? triggerDetector(String textBeforeCursor);
+
+  /// Defines how the selected item should be formatted before being injected into the text field.
+  String formatSelection(String selection);
+
+  /// The suggestions that can be shown when this trigger is active.
+  List<String> get suggestions;
 }
 
 /// A widget that and provides a popout overlay for autocompleting.
-final class MentionsAutocomplete extends StatefulWidget {
-  /// Creates a [MentionsAutocomplete].
-  const MentionsAutocomplete({
+final class AutocompleteDropdown extends StatefulWidget {
+  /// Creates a [AutocompleteDropdown].
+  const AutocompleteDropdown({
     super.key,
     required this.controller,
     required this.focusNode,
-    required this.users,
     required this.triggers,
     required this.child,
   });
@@ -40,9 +44,6 @@ final class MentionsAutocomplete extends StatefulWidget {
   /// The focus node of the wrapped input field.
   final FocusNode focusNode;
 
-  /// The list of users available for autocomplete.
-  final List<String> users;
-
   /// The list of triggers that can activate the autocomplete.
   final List<AutocompleteTrigger> triggers;
 
@@ -50,13 +51,13 @@ final class MentionsAutocomplete extends StatefulWidget {
   final Widget child;
 
   @override
-  State<MentionsAutocomplete> createState() => _MentionsAutocompleteState();
+  State<AutocompleteDropdown> createState() => _AutocompleteDropdownState();
 }
 
-final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
-  String? _mentionQuery;
-  int _mentionSelectedIndex = 0;
-  List<String> _filteredUsers = [];
+final class _AutocompleteDropdownState extends State<AutocompleteDropdown> {
+  String? _query;
+  int _selectedIndex = 0;
+  List<String> _filteredOptions = [];
   AutocompleteTrigger? _activeTrigger;
 
   @override
@@ -66,15 +67,15 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
   }
 
   @override
-  void didUpdateWidget(MentionsAutocomplete oldWidget) {
+  void didUpdateWidget(AutocompleteDropdown oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller.removeListener(_onTextChanged);
       widget.controller.addListener(_onTextChanged);
     }
 
-    if (_mentionQuery != null && widget.users != oldWidget.users) {
-      _filterUsers(_mentionQuery!);
+    if (_query != null && !listEquals(widget.triggers, oldWidget.triggers)) {
+      _onTextChanged();
     }
   }
 
@@ -112,7 +113,7 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
       final query = trigger.triggerDetector(cleanTextBeforeCursor);
       if (query != null) {
         _activeTrigger = trigger;
-        _filterUsers(query);
+        _filterOptions(query);
         return;
       }
     }
@@ -120,42 +121,50 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
     _hideDropdown();
   }
 
-  void _filterUsers(String query) {
+  void _filterOptions(String query) {
+    final source = _activeTrigger?.suggestions;
+    if (source == null) {
+      _hideDropdown();
+      return;
+    }
+
     final lowerQuery = query.toLowerCase();
 
     final matches = [
-      for (final user in widget.users)
-        if (user.toLowerCase().startsWith(lowerQuery)) user,
+      for (final item in source)
+        if (item.toLowerCase().startsWith(lowerQuery)) item,
     ];
 
     matches.sort(); // Sort alphabetically
 
     setState(() {
-      _mentionQuery = query;
-      _filteredUsers = matches;
+      _query = query;
+      _filteredOptions = matches;
 
       // Clamp the selected index to not exceed the new filtered list length
-      if (_filteredUsers.isEmpty) {
-        _mentionSelectedIndex = 0;
-      } else if (_mentionSelectedIndex >= _filteredUsers.length) {
-        _mentionSelectedIndex = _filteredUsers.length - 1;
+      if (_filteredOptions.isEmpty) {
+        _selectedIndex = 0;
+      } else if (_selectedIndex >= _filteredOptions.length) {
+        _selectedIndex = _filteredOptions.length - 1;
       }
     });
   }
 
   void _hideDropdown() {
-    if (_mentionQuery != null) {
+    if (_query != null) {
       setState(() {
-        _mentionQuery = null;
-        _filteredUsers = [];
-        _mentionSelectedIndex = 0;
+        _query = null;
         _activeTrigger = null;
+        _filteredOptions = [];
+        _selectedIndex = 0;
       });
     }
   }
 
-  void _onUserSelected(String username) {
-    if (_activeTrigger == null) return;
+  void _onItemSelected(String item) {
+    final trigger = _activeTrigger;
+
+    if (trigger == null) return;
 
     final hasZeroWidthPrefix = widget.controller.text.startsWith(
       DeleteAwareEditingController.zeroWidthSpace,
@@ -190,14 +199,11 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
     final lastSpaceIndex = textBeforeCursor.lastIndexOf(RegExp(r'[\s]'));
     final startIndex = lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1;
 
-    final textBeforeMention = textBeforeCursor.substring(0, startIndex);
-    final triggerPrefix = _activeTrigger is TagAutocompleteTrigger
-        ? '@'
-        : ''; // Keep @ for tags
-    final injectedMention = '$triggerPrefix$username ';
+    final textBeforeItem = textBeforeCursor.substring(0, startIndex);
+    final injectedItem = '${trigger.formatSelection(item)} ';
 
-    final newText = textBeforeMention + injectedMention + textAfterCursor;
-    final newCursorPosition = textBeforeMention.length + injectedMention.length;
+    final newText = textBeforeItem + injectedItem + textAfterCursor;
+    final newCursorPosition = textBeforeItem.length + injectedItem.length;
 
     final newCleanValue = TextEditingValue(
       text: newText,
@@ -223,7 +229,7 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (_mentionQuery == null || _filteredUsers.isEmpty) {
+    if (_query == null || _filteredOptions.isEmpty) {
       return KeyEventResult.ignored;
     }
 
@@ -232,20 +238,19 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
 
       if (key == LogicalKeyboardKey.arrowUp) {
         setState(() {
-          _mentionSelectedIndex =
-              (_mentionSelectedIndex - 1 + _filteredUsers.length) %
-              _filteredUsers.length;
+          _selectedIndex =
+              (_selectedIndex - 1 + _filteredOptions.length) %
+              _filteredOptions.length;
         });
         return KeyEventResult.handled;
       } else if (key == LogicalKeyboardKey.arrowDown) {
         setState(() {
-          _mentionSelectedIndex =
-              (_mentionSelectedIndex + 1) % _filteredUsers.length;
+          _selectedIndex = (_selectedIndex + 1) % _filteredOptions.length;
         });
         return KeyEventResult.handled;
       } else if (key == LogicalKeyboardKey.enter ||
           key == LogicalKeyboardKey.tab) {
-        _onUserSelected(_filteredUsers[_mentionSelectedIndex]);
+        _onItemSelected(_filteredOptions[_selectedIndex]);
         return KeyEventResult.handled;
       } else if (key == LogicalKeyboardKey.escape) {
         _hideDropdown();
@@ -276,17 +281,17 @@ final class _MentionsAutocompleteState extends State<MentionsAutocomplete> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_mentionQuery != null && _filteredUsers.isNotEmpty)
+          if (_query != null && _filteredOptions.isNotEmpty)
             if (isDesktop)
               _DesktopDropdown(
-                filteredUsers: _filteredUsers,
-                selectedIndex: _mentionSelectedIndex,
-                onUserSelected: _onUserSelected,
+                filteredUsers: _filteredOptions,
+                selectedIndex: _selectedIndex,
+                onUserSelected: _onItemSelected,
               )
             else
               _MobileDropdown(
-                filteredUsers: _filteredUsers,
-                onUserSelected: _onUserSelected,
+                filteredUsers: _filteredOptions,
+                onUserSelected: _onItemSelected,
               ),
           widget.child,
         ],

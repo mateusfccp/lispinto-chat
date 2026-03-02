@@ -1,9 +1,12 @@
-import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
+import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 
 /// An autocomplete trigger for the '/dm' command.
 final class CommandAutocompleteTrigger implements AutocompleteTrigger {
   /// Creates a [CommandAutocompleteTrigger].
-  const CommandAutocompleteTrigger({required this.command});
+  const CommandAutocompleteTrigger({
+    required this.command,
+    required this.suggestions,
+  });
 
   final String command;
 
@@ -20,4 +23,10 @@ final class CommandAutocompleteTrigger implements AutocompleteTrigger {
 
     return null;
   }
+
+  @override
+  String formatSelection(String selection) => selection;
+
+  @override
+  final List<String> suggestions;
 }

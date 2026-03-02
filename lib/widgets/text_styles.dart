@@ -19,6 +19,21 @@ TextSpan buildMentionText(TextSpan text, String nickname) {
   );
 }
 
+/// Builds a [TextSpan] for a channel mention.
+@pragma('vm:prefer-inline')
+@pragma('dart2js:tryInline')
+TextSpan buildChannelText(TextSpan text, {GestureRecognizer? recognizer}) {
+  return TextSpan(
+    style: const TextStyle(
+      color: Colors.blueAccent,
+      fontWeight: FontWeight.bold,
+    ),
+    recognizer: recognizer,
+    text: text.text,
+    children: text.children,
+  );
+}
+
 /// Builds a [TextSpan] for bold text.
 @pragma('vm:prefer-inline')
 @pragma('dart2js:tryInline')
@@ -185,8 +200,9 @@ List<InlineSpan> buildHighlightedSearchText(
 final _stylingPattern = RegExp(
   r'(?<url>https?://[^\s]+)'
   r'|(?<mention>@[^\s]+)(?=\s|$)'
-  r'|(?<bold>(\*\*|__)(?<boldContent>.+?)\4)'
-  r'|(?<italic>(\*|_)(?<italicContent>.+?)\7)'
+  r'|(?<channel>#[a-zA-Z0-9_\-]+)(?=\s|$)'
+  r'|(?<bold>(\*\*|__)(?<boldContent>.+?)\5)'
+  r'|(?<italic>(\*|_)(?<italicContent>.+?)\8)'
   r'|(?<strike>~~(?<strikeContent>.+?)~~)'
   r'|(?<code>`(?<codeContent>.+?)`)',
 );
@@ -200,6 +216,7 @@ List<InlineSpan> buildStylizedText({
   required String text,
   bool buildImagePills = false,
   GestureRecognizer? Function(String url)? linkRecognizerFactory,
+  GestureRecognizer? Function(String channel)? channelRecognizerFactory,
 }) {
   final spans = <InlineSpan>[];
   int lastMatchEnd = 0;
@@ -236,6 +253,13 @@ List<InlineSpan> buildStylizedText({
       spans.add(
         buildMentionText(TextSpan(text: mention), mention.substring(1)),
       );
+    } else if (match.namedGroup('channel') case final channel?) {
+      spans.add(
+        buildChannelText(
+          TextSpan(text: channel),
+          recognizer: channelRecognizerFactory?.call(channel),
+        ),
+      );
     } else if (match.namedGroup('bold') != null) {
       final content = match.namedGroup('boldContent')!;
       spans.add(
@@ -246,6 +270,7 @@ List<InlineSpan> buildStylizedText({
               text: content,
               buildImagePills: false,
               linkRecognizerFactory: linkRecognizerFactory,
+              channelRecognizerFactory: channelRecognizerFactory,
             ),
           ),
         ),
@@ -260,6 +285,7 @@ List<InlineSpan> buildStylizedText({
               text: content,
               buildImagePills: false,
               linkRecognizerFactory: linkRecognizerFactory,
+              channelRecognizerFactory: channelRecognizerFactory,
             ),
           ),
         ),
@@ -274,6 +300,7 @@ List<InlineSpan> buildStylizedText({
               text: content,
               buildImagePills: false,
               linkRecognizerFactory: linkRecognizerFactory,
+              channelRecognizerFactory: channelRecognizerFactory,
             ),
           ),
         ),

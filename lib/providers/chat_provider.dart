@@ -66,9 +66,24 @@ class ChatProvider with ChangeNotifier {
 
   List<String> _onlineUsers = [];
 
+  /// The list of channels to display in the UI.
+  UnmodifiableMapView<String, int> get channels {
+    return UnmodifiableMapView(_channels);
+  }
+
+  Map<String, int> _channels = {};
+
   /// Whether the client is currently connected to the chat server.
   bool get isConnected => _isConnected;
   bool _isConnected = false;
+
+  /// The currently active channel.
+  String get activeChannel => _activeChannel;
+  String _activeChannel = '#general';
+
+  /// Whether the current channel is private.
+  bool get isCurrentChannelPrivate => _isCurrentChannelPrivate;
+  bool _isCurrentChannelPrivate = false;
 
   /// The nickname of the current DM target, or null if not in DM mode.
   String? get currentDmNickname => _currentDmUser;
@@ -135,6 +150,28 @@ class ChatProvider with ChangeNotifier {
     _subscriptions.add(
       _chatService.messages.listen((message) {
         _messages.add(message);
+
+        if (message.from == '@server') {
+          final privateStatus = RegExp(
+            r'Private mode for (#.+) is currently (ON|OFF)',
+          ).firstMatch(message.content);
+          if (privateStatus != null) {
+            final targetChannel = privateStatus.group(1);
+            final status = privateStatus.group(2);
+            if (targetChannel == _activeChannel) {
+              _isCurrentChannelPrivate = status == 'ON';
+            }
+          }
+
+          final privateActivated = RegExp(
+            r'Private mode was (de|)activated by @',
+          ).firstMatch(message.content);
+          if (privateActivated != null) {
+            final isDeactivated = privateActivated.group(1) == 'de';
+            _isCurrentChannelPrivate = !isDeactivated;
+          }
+        }
+
         notifyListeners();
 
         if (configuration.mentionNotificationsEnabled &&
@@ -162,6 +199,20 @@ class ChatProvider with ChangeNotifier {
         _isConnected = connected;
         // On reconnect, we might get a flood of history. We could clear messages here
         // but it's better to just let the server send the recent history if the connection drops.
+
+        if (connected) {
+          // Send /join to ensure the connection gets associated with the currently
+          // expected channel on reconnect (or login defaults).
+          _chatService.sendMessage('/join $_activeChannel');
+        }
+
+        notifyListeners();
+      }),
+    );
+
+    _subscriptions.add(
+      _chatService.channels.listen((channels) {
+        _channels = channels;
         notifyListeners();
       }),
     );
@@ -230,8 +281,11 @@ class ChatProvider with ChangeNotifier {
 
       _messages.clear();
       _onlineUsers.clear();
+      _channels.clear();
       _isConnected = false;
       _currentDmUser = null;
+      _activeChannel = '#general';
+      _isCurrentChannelPrivate = false;
 
       _initializeService();
     }
@@ -259,6 +313,27 @@ class ChatProvider with ChangeNotifier {
             setDmMode(targetUser);
           }
         }
+      } else if (message.startsWith('/join ')) {
+        if (message.split(' ') case final split when split.length > 1) {
+          final targetChannel = split[1].trim();
+          joinChannel(targetChannel);
+          return;
+        }
+      } else if (message.startsWith('/private')) {
+        final split = message.split(' ');
+        if (split.length > 1) {
+          final arg = split[1].trim();
+          if (arg == 'on') {
+            setPrivateChannel(true);
+            return;
+          } else if (arg == 'off') {
+            setPrivateChannel(false);
+            return;
+          }
+        } else {
+          setPrivateChannel(!_isCurrentChannelPrivate);
+          return;
+        }
       }
 
       _chatService.sendMessage(message);
@@ -271,6 +346,37 @@ class ChatProvider with ChangeNotifier {
   /// public chat.
   void setDmMode(String? user) {
     _currentDmUser = user;
+    notifyListeners();
+  }
+
+  /// Joins a specific channel, clearing the message history.
+  void joinChannel(String channel) {
+    if (_activeChannel == channel) return;
+
+    final formattedChannel = channel.startsWith('#') ? channel : '#$channel';
+
+    _activeChannel = formattedChannel;
+    _currentDmUser = null;
+    _searchQuery = '';
+    _isCurrentChannelPrivate = false;
+    _messages.clear();
+
+    notifyListeners();
+
+    _chatService.sendMessage('/join $formattedChannel');
+    _chatService.sendMessage('/private status');
+    _chatService.sendMessage('/log :depth 100 :date-format date');
+  }
+
+  /// Sets whether the current channel is private.
+  void setPrivateChannel(bool isPrivate) {
+    if (isPrivate) {
+      _chatService.sendMessage('/private on');
+      _isCurrentChannelPrivate = true;
+    } else {
+      _chatService.sendMessage('/private off');
+      _isCurrentChannelPrivate = false;
+    }
     notifyListeners();
   }
 

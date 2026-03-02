@@ -5,7 +5,9 @@ import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/services/link_image_detector.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:mockito/mockito.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'widgets/message_bubble_test.mocks.dart';
 
@@ -13,7 +15,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late MockLinkImageDetector mockDetector;
 
-  setUp(() {
+  setUp(() async {
     if (locator.isRegistered<LinkImageDetector>()) {
       locator.unregister<LinkImageDetector>();
     }
@@ -23,6 +25,14 @@ void main() {
     // Stub detector to return null for repro link
     when(mockDetector.getCachedStatus(any)).thenReturn(null);
     when(mockDetector.isImage(any)).thenAnswer((_) async => null);
+
+    SharedPreferences.setMockInitialValues({
+      'nickname': 'testuser',
+      'show_image_previews': true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final mockConfig = UserConfiguration(preferences: prefs);
+    locator.registerSingleton<UserConfiguration>(mockConfig);
   });
 
   testWidgets('Link in MessageBubble should be clickable', (tester) async {

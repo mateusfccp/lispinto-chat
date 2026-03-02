@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
+import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
-import 'package:lispinto_chat/widgets/mentions_autocomplete.dart';
-import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 
 void main() {
   group('MentionsAutocomplete', () {
@@ -26,17 +26,16 @@ void main() {
       FocusNode? customFocusNode,
     }) {
       final defaultTriggers = [
-        const TagAutocompleteTrigger(),
-        const CommandAutocompleteTrigger(command: 'dm'),
-        const CommandAutocompleteTrigger(command: 'whois'),
+        TagAutocompleteTrigger(suggestions: onlineUsers),
+        CommandAutocompleteTrigger(command: 'dm', suggestions: onlineUsers),
+        CommandAutocompleteTrigger(command: 'whois', suggestions: onlineUsers),
       ];
 
       return MaterialApp(
         home: Scaffold(
-          body: MentionsAutocomplete(
+          body: AutocompleteDropdown(
             controller: customController ?? controller,
             focusNode: customFocusNode ?? focusNode,
-            users: onlineUsers,
             triggers: defaultTriggers,
             child: TextField(
               controller: customController ?? controller,

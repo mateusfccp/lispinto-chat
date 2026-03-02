@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
-
-import 'chat_screen.dart';
 
 /// The initial screen shown when the app starts.
 final class InitialScreen extends StatefulWidget {
@@ -34,13 +33,6 @@ final class _InitialScreenState extends State<InitialScreen> {
     _serverUrlController = TextEditingController(
       text: _configuration.serverUrl,
     );
-
-    // If autoConnect is set and we have a nickname, navigate directly to ChatScreen.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_configuration.autoConnect && _configuration.hasNickname && mounted) {
-        _connectAndNavigate();
-      }
-    });
   }
 
   @override
@@ -58,13 +50,11 @@ final class _InitialScreenState extends State<InitialScreen> {
 
     if (mounted) {
       setState(() => _isConnecting = false);
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (context) => const ChatScreen()));
+      const ChatRoute().go(context);
     }
   }
 
-  Future<void> _handleConnectPresed() async {
+  Future<void> _handleConnectPressed() async {
     if (_formKey.currentState?.validate() ?? false) {
       final newNickname = _nicknameController.text.trim();
       final newServerUrl = _serverUrlController.text.trim();
@@ -129,13 +119,14 @@ final class _InitialScreenState extends State<InitialScreen> {
                               return null;
                             },
                             textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (value) => _handleConnectPresed(),
+                            onFieldSubmitted: (value) =>
+                                _handleConnectPressed(),
                           ),
                           const Gap(32.0),
                           ElevatedButton(
                             onPressed: _isConnecting
                                 ? null
-                                : _handleConnectPresed,
+                                : _handleConnectPressed,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 16.0,

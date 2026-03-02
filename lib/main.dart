@@ -1,10 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'screens/initial_screen.dart';
+import 'package:flutter/services.dart';
+
+import 'core/router.dart';
 import 'core/service_locator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setupServiceLocator();
+
+  if (kIsWeb) {
+    BrowserContextMenu.disableContextMenu();
+  }
+
   runApp(const App());
 }
 
@@ -13,11 +21,11 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Lispinto Chat',
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.dark,
-      home: const InitialScreen(),
+      routerConfig: router,
     );
   }
 }

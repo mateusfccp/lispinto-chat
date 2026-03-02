@@ -16,11 +16,10 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
+import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'package:super_clipboard/super_clipboard.dart';
-
-import 'configurations_screen.dart';
 
 /// Intent to trigger the search bar from keyboard shortcuts.
 class SearchIntent extends Intent {
@@ -183,16 +182,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _openConfig() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const ConfigurationsScreen()),
-    );
+    const ConfigurationsRoute().push(context);
   }
 
   void _quit() {
     _provider.configuration.setAutoConnect(false);
     _provider.disconnect();
     if (mounted) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      const InitialRoute().go(context);
     }
   }
 

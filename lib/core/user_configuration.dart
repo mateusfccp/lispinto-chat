@@ -53,6 +53,12 @@ abstract interface class UserConfiguration {
   /// Saves the show-empty-channels preference.
   Future<void> setShowEmptyChannels(bool value);
 
+  /// Whether to enable markdown-like styling.
+  bool get showMarkdown;
+
+  /// Saves the show-markdown preference.
+  Future<void> setShowMarkdown(bool value);
+
   /// Gets the last joined channel.
   String get lastChannel;
 
@@ -77,6 +83,7 @@ final class PersistentUserConfiguration implements UserConfiguration {
   static const String _keyShowTimeSeconds = 'show_time_seconds';
   static const String _keyShowImagePreviews = 'show_image_previews';
   static const String _keyShowEmptyChannels = 'show_empty_channels';
+  static const String _keyShowMarkdown = 'show_markdown';
   static const String _keyLastChannel = 'last_channel';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
 
@@ -167,6 +174,16 @@ final class PersistentUserConfiguration implements UserConfiguration {
   @override
   Future<void> setShowEmptyChannels(bool value) async {
     await _preferences.setBool(_keyShowEmptyChannels, value);
+  }
+
+  @override
+  bool get showMarkdown {
+    return _preferences.getBool(_keyShowMarkdown) ?? true;
+  }
+
+  @override
+  Future<void> setShowMarkdown(bool value) async {
+    await _preferences.setBool(_keyShowMarkdown, value);
   }
 
   @override

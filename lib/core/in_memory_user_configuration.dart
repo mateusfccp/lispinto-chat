@@ -12,6 +12,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
     bool showTimeSeconds = false,
     bool showImagePreviews = true,
     bool showEmptyChannels = false,
+    bool showMarkdown = true,
     String lastChannel = '#general',
   }) : _nickname = nickname,
        _serverUrl = serverUrl,
@@ -21,6 +22,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
        _showTimeSeconds = showTimeSeconds,
        _showImagePreviews = showImagePreviews,
        _showEmptyChannels = showEmptyChannels,
+       _showMarkdown = showMarkdown,
        _lastChannel = lastChannel;
 
   String _nickname;
@@ -31,6 +33,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
   bool _showTimeSeconds;
   bool _showImagePreviews;
   bool _showEmptyChannels;
+  bool _showMarkdown;
   String _lastChannel;
 
   @override
@@ -87,6 +90,12 @@ final class InMemoryUserConfiguration implements UserConfiguration {
   @override
   Future<void> setShowEmptyChannels(bool value) async =>
       _showEmptyChannels = value;
+
+  @override
+  bool get showMarkdown => _showMarkdown;
+
+  @override
+  Future<void> setShowMarkdown(bool value) async => _showMarkdown = value;
 
   @override
   String get lastChannel => _lastChannel;

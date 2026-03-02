@@ -27,6 +27,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late bool _mentionNotificationsEnabled;
   late bool _showTimeSeconds;
   late bool _showImagePreviews;
+  late bool _showMarkdown;
   late bool _showEmptyChannels;
   final _formKey = GlobalKey<FormState>();
 
@@ -43,6 +44,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _mentionNotificationsEnabled = _configuration.mentionNotificationsEnabled;
     _showTimeSeconds = _configuration.showTimeSeconds;
     _showImagePreviews = _configuration.showImagePreviews;
+    _showMarkdown = _configuration.showMarkdown;
     _showEmptyChannels = _configuration.showEmptyChannels;
   }
 
@@ -66,6 +68,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       );
       await _configuration.setShowTimeSeconds(_showTimeSeconds);
       await _configuration.setShowImagePreviews(_showImagePreviews);
+      await _configuration.setShowMarkdown(_showMarkdown);
       await _configuration.setShowEmptyChannels(_showEmptyChannels);
       await _chatProvider.updateConfiguration(newNickname, newServerUrl);
 
@@ -215,6 +218,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               _MessagePreview(
                                 showTimeSeconds: _showTimeSeconds,
                                 showImagePreviews: _showImagePreviews,
+                                showMarkdown: _showMarkdown,
                               ),
                               const Divider(),
                               SwitchListTile(
@@ -239,6 +243,19 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                 onChanged: (value) {
                                   setState(() {
                                     _showImagePreviews = value;
+                                  });
+                                },
+                              ),
+                              const Divider(),
+                              SwitchListTile(
+                                title: const Text('Enable Markdown'),
+                                subtitle: const Text(
+                                  'Support bold, italic, strike and code formatting',
+                                ),
+                                value: _showMarkdown,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _showMarkdown = value;
                                   });
                                 },
                               ),
@@ -333,21 +350,24 @@ final class _MessagePreview extends StatelessWidget {
   const _MessagePreview({
     required this.showTimeSeconds,
     required this.showImagePreviews,
+    required this.showMarkdown,
   });
 
   final bool showTimeSeconds;
   final bool showImagePreviews;
+  final bool showMarkdown;
 
   @override
   Widget build(BuildContext context) {
     return ServiceLocatorScope(
-      key: ValueKey((showTimeSeconds, showImagePreviews)),
+      key: ValueKey((showTimeSeconds, showImagePreviews, showMarkdown)),
       overrides: (locator) {
         locator.registerSingleton<UserConfiguration>(
           InMemoryUserConfiguration(
             showTimeSeconds: showTimeSeconds,
             showImagePreviews: showImagePreviews,
-            nickname: 'PreviewUser',
+            showMarkdown: showMarkdown,
+            nickname: 'User 1',
           ),
         );
       },
@@ -358,7 +378,8 @@ final class _MessagePreview extends StatelessWidget {
             MessageBubble(
               message: ChatMessage(
                 from: 'User 1',
-                content: 'This is how your messages will look like!',
+                content:
+                    '**Markdown** is `cool`! _Italic_ and ~~strike~~ work too.',
                 date: DateTime.now(),
               ),
               searchQuery: '',

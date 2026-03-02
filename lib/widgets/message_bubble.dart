@@ -153,14 +153,14 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final showImagePreviews = locator
-        .get<UserConfiguration>()
-        .showImagePreviews;
+    final showImagePreviews = locator.get<UserConfiguration>().showImagePreviews;
+    final showMarkdown = locator.get<UserConfiguration>().showMarkdown;
 
     final stylizedSpans = buildStylizedText(
       context: context,
       text: widget.message.content,
       buildImagePills: showImagePreviews,
+      showMarkdown: showMarkdown,
       linkRecognizerFactory: _getRecognizer,
       channelRecognizerFactory: _getChannelRecognizer,
     );

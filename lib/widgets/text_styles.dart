@@ -215,6 +215,7 @@ List<InlineSpan> buildStylizedText({
   required BuildContext context,
   required String text,
   bool buildImagePills = false,
+  bool showMarkdown = true,
   GestureRecognizer? Function(String url)? linkRecognizerFactory,
   GestureRecognizer? Function(String channel)? channelRecognizerFactory,
 }) {
@@ -260,7 +261,7 @@ List<InlineSpan> buildStylizedText({
           recognizer: channelRecognizerFactory?.call(channel),
         ),
       );
-    } else if (match.namedGroup('bold') != null) {
+    } else if (showMarkdown && match.namedGroup('bold') != null) {
       final content = match.namedGroup('boldContent')!;
       spans.add(
         buildBoldText(
@@ -269,13 +270,14 @@ List<InlineSpan> buildStylizedText({
               context: context,
               text: content,
               buildImagePills: false,
+              showMarkdown: showMarkdown,
               linkRecognizerFactory: linkRecognizerFactory,
               channelRecognizerFactory: channelRecognizerFactory,
             ),
           ),
         ),
       );
-    } else if (match.namedGroup('italic') != null) {
+    } else if (showMarkdown && match.namedGroup('italic') != null) {
       final content = match.namedGroup('italicContent')!;
       spans.add(
         buildItalicText(
@@ -284,13 +286,14 @@ List<InlineSpan> buildStylizedText({
               context: context,
               text: content,
               buildImagePills: false,
+              showMarkdown: showMarkdown,
               linkRecognizerFactory: linkRecognizerFactory,
               channelRecognizerFactory: channelRecognizerFactory,
             ),
           ),
         ),
       );
-    } else if (match.namedGroup('strike') != null) {
+    } else if (showMarkdown && match.namedGroup('strike') != null) {
       final content = match.namedGroup('strikeContent')!;
       spans.add(
         buildStrikethroughText(
@@ -299,15 +302,20 @@ List<InlineSpan> buildStylizedText({
               context: context,
               text: content,
               buildImagePills: false,
+              showMarkdown: showMarkdown,
               linkRecognizerFactory: linkRecognizerFactory,
               channelRecognizerFactory: channelRecognizerFactory,
             ),
           ),
         ),
       );
-    } else if (match.namedGroup('code') != null) {
+    } else if (showMarkdown && match.namedGroup('code') != null) {
       final content = match.namedGroup('codeContent')!;
       spans.add(buildMonospaceText(context, TextSpan(text: content)));
+    } else {
+      // If markdown is disabled and we matched a markdown group, or it's an unmatched part,
+      // we need to add the matched text as plain text.
+      spans.add(TextSpan(text: match.group(0)));
     }
 
     lastMatchEnd = match.end;

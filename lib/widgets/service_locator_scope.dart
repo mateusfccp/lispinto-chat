@@ -13,11 +13,7 @@ typedef ServiceLocatorOverrides = void Function(GetIt locator);
 /// within this new scope.
 final class ServiceLocatorScope extends StatefulWidget {
   /// Creates a [ServiceLocatorScope].
-  const ServiceLocatorScope({
-    super.key,
-    required this.child,
-    this.overrides,
-  });
+  const ServiceLocatorScope({super.key, required this.child, this.overrides});
 
   /// The widget below this widget in the tree.
   final Widget child;

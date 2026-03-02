@@ -31,7 +31,7 @@ void main() {
       'show_image_previews': true,
     });
     final prefs = await SharedPreferences.getInstance();
-    final mockConfig = UserConfiguration(preferences: prefs);
+    final mockConfig = PersistentUserConfiguration(preferences: prefs);
     locator.registerSingleton<UserConfiguration>(mockConfig);
   });
 

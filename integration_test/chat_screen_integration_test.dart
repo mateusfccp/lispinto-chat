@@ -63,7 +63,7 @@ void main() {
         'server_url': 'ws://localhost',
       });
       final prefs = await SharedPreferences.getInstance();
-      final config = UserConfiguration(preferences: prefs);
+      final config = PersistentUserConfiguration(preferences: prefs);
       final mockNotifications = MockFlutterLocalNotificationsPlugin();
       final mockChatService = MockChatService();
 

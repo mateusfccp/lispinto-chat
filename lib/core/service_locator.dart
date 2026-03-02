@@ -2,6 +2,8 @@ import 'package:get_it/get_it.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../providers/chat_provider.dart';
+import '../services/image_upload_service.dart';
+import '../services/imgbb_upload_service.dart';
 import '../services/link_image_detector.dart';
 import 'user_configuration.dart';
 
@@ -21,5 +23,9 @@ Future<void> setupServiceLocator() async {
 
   locator.registerSingleton<ChatProvider>(
     ChatProvider(config, appVersion: appVersion),
+  );
+
+  locator.registerSingleton<ImageUploadService>(
+    ImgBBImageUploadService(apiKey: config.imgbbApiKey),
   );
 }

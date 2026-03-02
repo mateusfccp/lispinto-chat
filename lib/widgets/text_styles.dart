@@ -230,7 +230,7 @@ List<InlineSpan> buildStylizedText({
 
     if (match.namedGroup('url') != null) {
       final url = match.group(0)!;
-      final getImageType = locator.get<LinkImageDetector>().getCachedStatus;
+      final getImageType = locator<LinkImageDetector>().getCachedStatus;
       if (buildImagePills && getImageType.call(url) != null) {
         spans.add(
           WidgetSpan(

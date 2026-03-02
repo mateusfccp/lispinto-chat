@@ -16,7 +16,9 @@ dependencies:
   get_it: ^9.2.1
   google_fonts: ^8.0.2
   http: ^1.6.0
+  image_picker: ^1.2.1
   package_info_plus: ^9.0.0
+  pasteboard: ^0.5.0
   prototype_constrained_box: ^2.0.3+1
   shared_preferences: ^2.5.4
   shared_preferences_platform_interface: ^2.4.1

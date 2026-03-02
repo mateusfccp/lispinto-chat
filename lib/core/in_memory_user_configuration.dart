@@ -14,6 +14,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
     bool showEmptyChannels = false,
     bool showMarkdown = true,
     String lastChannel = '#general',
+    String imgbbApiKey = 'e3d8d59ada48272d3f3b3fc5e710f837',
   }) : _nickname = nickname,
        _serverUrl = serverUrl,
        _pushNotificationsEnabled = pushNotificationsEnabled,
@@ -23,7 +24,8 @@ final class InMemoryUserConfiguration implements UserConfiguration {
        _showImagePreviews = showImagePreviews,
        _showEmptyChannels = showEmptyChannels,
        _showMarkdown = showMarkdown,
-       _lastChannel = lastChannel;
+       _lastChannel = lastChannel,
+       _imgbbApiKey = imgbbApiKey;
 
   String _nickname;
   String _serverUrl;
@@ -35,6 +37,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
   bool _showEmptyChannels;
   bool _showMarkdown;
   String _lastChannel;
+  String _imgbbApiKey;
 
   @override
   String get nickname => _nickname;
@@ -47,6 +50,12 @@ final class InMemoryUserConfiguration implements UserConfiguration {
 
   @override
   Future<void> setServerUrl(String value) async => _serverUrl = value;
+
+  @override
+  String get imgbbApiKey => _imgbbApiKey;
+
+  @override
+  Future<void> setImgbbApiKey(String value) async => _imgbbApiKey = value;
 
   @override
   bool get hasNickname => _nickname.trim().isNotEmpty;

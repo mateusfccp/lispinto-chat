@@ -214,10 +214,7 @@ class ChatProvider with ChangeNotifier {
 
     _subscriptions.add(
       _chatService.channels.listen((channels) {
-        _channels = {
-          _activeChannel: _onlineUsers.length,
-          ...channels,
-        };
+        _channels = {_activeChannel: _onlineUsers.length, ...channels};
         notifyListeners();
       }),
     );

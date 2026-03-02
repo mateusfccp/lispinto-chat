@@ -14,6 +14,12 @@ abstract interface class UserConfiguration {
   /// Saves the server URL to shared preferences.
   Future<void> setServerUrl(String value);
 
+  /// Gets the ImgBB API key from shared preferences.
+  String get imgbbApiKey;
+
+  /// Saves the ImgBB API key to shared preferences.
+  Future<void> setImgbbApiKey(String value);
+
   /// Returns true if the user has set a non-empty nickname.
   bool get hasNickname;
 
@@ -85,7 +91,9 @@ final class PersistentUserConfiguration implements UserConfiguration {
   static const String _keyShowEmptyChannels = 'show_empty_channels';
   static const String _keyShowMarkdown = 'show_markdown';
   static const String _keyLastChannel = 'last_channel';
+  static const String _keyImgbbApiKey = 'imgbb_api_key';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
+  static const String _defaultImgbbApiKey = 'e3d8d59ada48272d3f3b3fc5e710f837';
 
   final SharedPreferences _preferences;
 
@@ -111,6 +119,16 @@ final class PersistentUserConfiguration implements UserConfiguration {
   @override
   Future<void> setServerUrl(String value) async {
     await _preferences.setString(_keyServerUrl, value);
+  }
+
+  @override
+  String get imgbbApiKey {
+    return _preferences.getString(_keyImgbbApiKey) ?? _defaultImgbbApiKey;
+  }
+
+  @override
+  Future<void> setImgbbApiKey(String value) async {
+    await _preferences.setString(_keyImgbbApiKey, value);
   }
 
   @override

@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/widgets/service_locator_scope.dart';
 

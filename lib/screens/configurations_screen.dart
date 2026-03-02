@@ -23,6 +23,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late final ChatProvider _chatProvider;
   late final TextEditingController _nicknameController;
   late final TextEditingController _serverUrlController;
+  late final TextEditingController _imgbbApiKeyController;
   late bool _pushNotificationsEnabled;
   late bool _mentionNotificationsEnabled;
   late bool _showTimeSeconds;
@@ -40,6 +41,9 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _serverUrlController = TextEditingController(
       text: _configuration.serverUrl,
     );
+    _imgbbApiKeyController = TextEditingController(
+      text: _configuration.imgbbApiKey,
+    );
     _pushNotificationsEnabled = _configuration.pushNotificationsEnabled;
     _mentionNotificationsEnabled = _configuration.mentionNotificationsEnabled;
     _showTimeSeconds = _configuration.showTimeSeconds;
@@ -52,6 +56,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   void dispose() {
     _nicknameController.dispose();
     _serverUrlController.dispose();
+    _imgbbApiKeyController.dispose();
     super.dispose();
   }
 
@@ -59,6 +64,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       final newNickname = _nicknameController.text.trim();
       final newServerUrl = _serverUrlController.text.trim();
+      final newImgbbApiKey = _imgbbApiKeyController.text.trim();
 
       await _configuration.setPushNotificationsEnabled(
         _pushNotificationsEnabled,
@@ -70,6 +76,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       await _configuration.setShowImagePreviews(_showImagePreviews);
       await _configuration.setShowMarkdown(_showMarkdown);
       await _configuration.setShowEmptyChannels(_showEmptyChannels);
+      await _configuration.setImgbbApiKey(newImgbbApiKey);
+
       await _chatProvider.updateConfiguration(newNickname, newServerUrl);
 
       if (mounted) {
@@ -135,6 +143,24 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               }
                               return null;
                             },
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const Gap(16.0),
+                          TextFormField(
+                            controller: _imgbbApiKeyController,
+                            decoration: const InputDecoration(
+                              labelText: 'ImgBB API Key',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.key),
+                              // suffixIcon: IconButton(
+                              //   icon: Icon(Icons.info_outline),
+                              //   onPressed: null,
+                              //   tooltip:
+                              //       'Image uploading required an ImgBB API key. '
+                              //       'You can get one for free at https://api.imgbb.com. '
+                              //       'If you don\'t provide a key, image uploading will be disabled.',
+                              // ),
+                            ),
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (value) => _saveAndPop(),
                           ),

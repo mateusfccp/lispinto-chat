@@ -119,9 +119,7 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final showImagePreviews = locator
-        .get<UserConfiguration>()
-        .showImagePreviews;
+    final showImagePreviews = locator<UserConfiguration>().showImagePreviews;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -153,8 +151,8 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final showImagePreviews = locator.get<UserConfiguration>().showImagePreviews;
-    final showMarkdown = locator.get<UserConfiguration>().showMarkdown;
+    final showImagePreviews = locator<UserConfiguration>().showImagePreviews;
+    final showMarkdown = locator<UserConfiguration>().showMarkdown;
 
     final stylizedSpans = buildStylizedText(
       context: context,
@@ -195,7 +193,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   String _getTimestampText(DateTime date) {
-    final showSeconds = locator.get<UserConfiguration>().showTimeSeconds;
+    final showSeconds = locator<UserConfiguration>().showTimeSeconds;
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     if (showSeconds) {

@@ -1,19 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/services/image_upload_service.dart';
 import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 
 import 'configurations_screen.dart';
@@ -611,7 +615,9 @@ class _MessageList extends StatelessWidget {
   }
 }
 
-final class _InputArea extends StatelessWidget {
+enum _AttachmentOption { uploadPhoto }
+
+final class _InputArea extends StatefulWidget {
   const _InputArea({
     required this.controller,
     required this.focusNode,
@@ -627,59 +633,100 @@ final class _InputArea extends StatelessWidget {
   final bool isDesktop;
 
   @override
+  State<_InputArea> createState() => _InputAreaState();
+}
+
+class _InputAreaState extends State<_InputArea> {
+  bool _isUploading = false;
+
+  Future<void> _uploadImage(Uint8List imageBytes) async {
+    setState(() {
+      _isUploading = true;
+    });
+    try {
+      final uploadService = locator<ImageUploadService>();
+      final url = await uploadService.uploadImage(imageBytes);
+      final currentText = widget.controller.text;
+      if (currentText.isEmpty) {
+        widget.controller.text = url;
+      } else {
+        widget.controller.text = '$currentText $url';
+      }
+      widget.focusNode.requestFocus();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      final bytes = await file.readAsBytes();
+      await _uploadImage(bytes);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: ListenableBuilder(
-        listenable: provider,
+        listenable: widget.provider,
         builder: (context, child) {
           final sendButton = IconButton(
-            icon: Icon(Icons.send),
-            onPressed: provider.isConnected ? onSend : null,
+            icon: const Icon(Icons.send),
+            onPressed: (widget.provider.isConnected && !_isUploading)
+                ? widget.onSend
+                : null,
           );
 
           final users = [
-            for (final user in provider.onlineUsers)
-              if (user != provider.configuration.nickname) user,
+            for (final user in widget.provider.onlineUsers)
+              if (user != widget.provider.configuration.nickname) user,
           ];
 
-          final channels = [...provider.channels.keys];
+          final channels = [...widget.provider.channels.keys];
 
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (isDesktop) ...[
-                  PrototypeConstrainedBox.tightFor(
-                    height: true,
-                    prototype: sendButton,
-                    child: Center(
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            const TextSpan(text: '['),
-                            TextSpan(
-                              text: provider.configuration.nickname,
-                              style: TextStyle(
-                                color: getNicknameColor(
-                                  provider.configuration.nickname,
-                                ),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const TextSpan(text: ']:'),
-                          ],
+                PrototypeConstrainedBox.tightFor(
+                  height: true,
+                  prototype: sendButton,
+                  child: PopupMenuButton<_AttachmentOption>(
+                    icon: const Icon(Icons.add),
+                    onSelected: (value) {
+                      if (value == .uploadPhoto) {
+                        _pickImage();
+                      }
+                    },
+                    itemBuilder: (context) {
+                      return [
+                        const PopupMenuItem(
+                          value: .uploadPhoto,
+                          child: Text('Upload photo'),
                         ),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                      ];
+                    },
                   ),
-                  const Gap(8.0),
-                ],
+                ),
+                const Gap(8.0),
                 Expanded(
                   child: AutocompleteDropdown(
-                    controller: controller,
-                    focusNode: focusNode,
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
                     triggers: [
                       TagAutocompleteTrigger(suggestions: users),
                       ChannelAutocompleteTrigger(suggestions: channels),
@@ -692,33 +739,138 @@ final class _InputArea extends StatelessWidget {
                         suggestions: users,
                       ),
                     ],
-                    child: TextField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      enabled: provider.isConnected,
-                      decoration: InputDecoration(
-                        prefixIcon: provider.currentDmNickname != null
-                            ? _DmIndicator(
-                                user: provider.currentDmNickname!,
-                                onTap: () {
-                                  provider.setDmMode(null);
-                                  focusNode.requestFocus();
-                                },
-                              )
-                            : null,
-                        prefixIconConstraints: const BoxConstraints(
-                          minWidth: 0,
-                          minHeight: 0,
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.keyV &&
+                            (HardwareKeyboard.instance.isMetaPressed ||
+                                HardwareKeyboard.instance.isControlPressed)) {
+                          () async {
+                            bool uploaded = false;
+
+                            // 1. Try to read files from the clipboard (e.g. copied from Finder)
+                            final files = await Pasteboard.files();
+                            if (files.isNotEmpty) {
+                              for (final path in files) {
+                                final lower = path.toLowerCase();
+                                if (lower.endsWith('.png') ||
+                                    lower.endsWith('.jpg') ||
+                                    lower.endsWith('.jpeg') ||
+                                    lower.endsWith('.gif') ||
+                                    lower.endsWith('.webp')) {
+                                  final bytes = await File(path).readAsBytes();
+                                  await _uploadImage(bytes);
+                                  uploaded = true;
+                                }
+                              }
+                            }
+
+                            // 2. Try raw image data (e.g. screenshot data)
+                            if (!uploaded) {
+                              final bytes = await Pasteboard.image;
+                              if (bytes != null && bytes.isNotEmpty) {
+                                await _uploadImage(bytes);
+                                uploaded = true;
+                              }
+                            }
+
+                            // 3. Fallback to standard text paste if no images
+                            if (!uploaded && mounted) {
+                              final data = await Clipboard.getData(
+                                Clipboard.kTextPlain,
+                              );
+                              if (data?.text != null &&
+                                  data!.text!.isNotEmpty) {
+                                final text = data.text!;
+                                final selection = widget.controller.selection;
+                                if (selection.isValid && selection.start >= 0) {
+                                  final newText = widget.controller.text
+                                      .replaceRange(
+                                        selection.start,
+                                        selection.end,
+                                        text,
+                                      );
+                                  widget.controller.value = TextEditingValue(
+                                    text: newText,
+                                    selection: TextSelection.collapsed(
+                                      offset: selection.start + text.length,
+                                    ),
+                                  );
+                                } else {
+                                  final newText = widget.controller.text + text;
+                                  widget.controller.value = TextEditingValue(
+                                    text: newText,
+                                    selection: TextSelection.collapsed(
+                                      offset: newText.length,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          }();
+
+                          // Handle event synchronously to prevent text field from pasting generic file paths or icon text
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: TextField(
+                        controller: widget.controller,
+                        focusNode: widget.focusNode,
+                        enabled: widget.provider.isConnected && !_isUploading,
+                        contentInsertionConfiguration:
+                            ContentInsertionConfiguration(
+                              onContentInserted: (content) async {
+                                if (content.hasData) {
+                                  final bytes = content.data!;
+                                  await _uploadImage(bytes);
+                                }
+                              },
+                              allowedMimeTypes: const [
+                                'image/png',
+                                'image/jpeg',
+                                'image/gif',
+                                'image/webp',
+                              ],
+                            ),
+                        decoration: InputDecoration(
+                          prefixIcon: widget.provider.currentDmNickname != null
+                              ? _DmIndicator(
+                                  user: widget.provider.currentDmNickname!,
+                                  onTap: () {
+                                    widget.provider.setDmMode(null);
+                                    widget.focusNode.requestFocus();
+                                  },
+                                )
+                              : null,
+                          suffixIcon: _isUploading
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12.0),
+                                  child: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                          prefixIconConstraints: const BoxConstraints(
+                            minWidth: 0,
+                            minHeight: 0,
+                          ),
+                          isDense: widget.isDesktop,
+                          hintText: 'Type a message...',
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(32.0),
+                            ),
+                          ),
+                          fillColor: Colors.black87,
+                          filled: true,
                         ),
-                        isDense: isDesktop,
-                        hintText: 'Type a message...',
-                        border: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(32.0)),
-                        ),
-                        fillColor: Colors.black87,
-                        filled: true,
+                        onSubmitted: (_) => widget.onSend(),
                       ),
-                      onSubmitted: (_) => onSend(),
                     ),
                   ),
                 ),

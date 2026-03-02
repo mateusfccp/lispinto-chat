@@ -69,5 +69,11 @@
 		<string>http</string>
 		<string>https</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to upload images to the chat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to your camera to upload images to the chat.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to your microphone to record audio messages and videos.</string>
 </dict>
 </plist>

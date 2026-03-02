@@ -86,7 +86,10 @@ interface class ChatService {
             ? initialChannel!.substring(1)
             : initialChannel!;
         connectionUri = connectionUri.replace(
-          queryParameters: {...connectionUri.queryParameters, 'channel': channelName},
+          queryParameters: {
+            ...connectionUri.queryParameters,
+            'channel': channelName,
+          },
         );
       }
 
@@ -184,11 +187,7 @@ interface class ChatService {
           _messageController.add(message);
         }
       } else {
-        final rawMessage = ChatMessage(from: 'unknown', content: line);
-        final shouldRender = _processServerMessage(rawMessage);
-        if (shouldRender) {
-          _messageController.add(rawMessage);
-        }
+        throw FormatException('Unexpected message format: $line');
       }
     }
   }
@@ -224,9 +223,7 @@ interface class ChatService {
     }
 
     if (content == 'channels:' &&
-        (message.from == 'server' ||
-            message.from == '@server' ||
-            message.from == 'unknown')) {
+        (message.from == 'server' || message.from == '@server')) {
       return false;
     }
 
@@ -285,7 +282,9 @@ interface class ChatService {
         _notificationsController.add(message);
         return false;
       }
-    } else if (isUsersListResponse) {
+    }
+
+    if (isUsersListResponse) {
       final usersString = content.replaceFirst('users: ', '');
       final usersList = [
         for (final user in usersString.split(','))

@@ -54,10 +54,14 @@ void main() {
   setUp(() {
     mockPrefs = MockSharedPreferences();
     mockNotifications = MockFlutterLocalNotificationsPlugin();
-    config = UserConfiguration(preferences: mockPrefs);
+    config = PersistentUserConfiguration(preferences: mockPrefs);
 
     when(mockPrefs.getString('nickname')).thenReturn('testuser');
     when(mockPrefs.getString('server_url')).thenReturn('ws://localhost');
+    when(mockPrefs.getString('last_channel')).thenReturn(null);
+    when(mockPrefs.getString('imgbb_api_key')).thenReturn(null);
+    when(mockPrefs.getString('last_channel')).thenReturn(null);
+    when(mockPrefs.getString('imgbb_api_key')).thenReturn(null);
     when(mockPrefs.getBool(any)).thenReturn(false);
 
     // Suppress overflow errors in tests

@@ -97,7 +97,7 @@ void main() {
       'show_time_seconds': false,
     });
     final prefs = await SharedPreferences.getInstance();
-    final realConfig = UserConfiguration(preferences: prefs);
+    final realConfig = PersistentUserConfiguration(preferences: prefs);
 
     mockDetector = MockLinkImageDetector();
 
@@ -189,7 +189,7 @@ void main() {
 
       locator.unregister<UserConfiguration>();
       locator.registerSingleton<UserConfiguration>(
-        UserConfiguration(preferences: prefs),
+        PersistentUserConfiguration(preferences: prefs),
       );
 
       await tester.pumpWidget(

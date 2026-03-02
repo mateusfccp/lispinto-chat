@@ -206,6 +206,7 @@ class ChatProvider with ChangeNotifier {
           // Send /join to ensure the connection gets associated with the currently
           // expected channel on reconnect (or login defaults).
           _chatService.sendMessage('/join $_activeChannel');
+          _chatService.sendMessage('/users');
         }
 
         notifyListeners();
@@ -376,6 +377,7 @@ class ChatProvider with ChangeNotifier {
     _chatService.sendMessage('/join $formattedChannel');
     _chatService.sendMessage('/private status');
     _chatService.sendMessage('/log :depth 100 :date-format date');
+    _chatService.sendMessage('/users');
   }
 
   /// Sets whether the current channel is private.

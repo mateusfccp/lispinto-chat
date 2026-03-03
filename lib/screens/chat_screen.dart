@@ -7,9 +7,10 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
-import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/image_upload_service.dart';
 import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
@@ -17,7 +18,6 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
-import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -41,6 +41,8 @@ final class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
+enum _MobileDrawerType { users, options }
+
 class _ChatScreenState extends State<ChatScreen> {
   late final ChatProvider _provider;
   late final DeleteAwareEditingController _controller;
@@ -56,6 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final List<_NotificationItem> _activeNotifications = [];
   int _notificationCounter = 0;
+  _MobileDrawerType _mobileDrawerType = .users;
 
   @override
   void initState() {
@@ -67,11 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (context, text, style, withComposing) {
         return TextSpan(
           style: style,
-          children: buildStylizedText(
-            context: context,
-            text: text,
-            buildImagePills: false,
-          ),
+          children: buildStylizedText(context: context, text: text),
         );
       },
     );
@@ -225,126 +224,77 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: FocusableActionDetector(
-        autofocus: true,
-        shortcuts: <ShortcutActivator, Intent>{
-          const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
-              const SearchIntent(),
-          const SingleActivator(LogicalKeyboardKey.keyS, control: true):
-              const SearchIntent(),
-          const SingleActivator(LogicalKeyboardKey.escape):
-              const CloseSearchIntent(),
-        },
-        actions: <Type, Action<Intent>>{
-          SearchIntent: CallbackAction<SearchIntent>(
-            onInvoke: (SearchIntent intent) {
-              if (!_isSearchVisible) {
-                _toggleSearch();
-              } else {
-                _searchFocusNode.requestFocus();
-              }
-              return null;
-            },
-          ),
-          CloseSearchIntent: CallbackAction<CloseSearchIntent>(
-            onInvoke: (CloseSearchIntent intent) {
-              if (_isSearchVisible) {
-                _searchController.clear();
-                _onSearchChanged('');
-                setState(() {
-                  _isSearchVisible = false;
-                  _focusNode.requestFocus();
-                });
-              }
-              return null;
-            },
-          ),
-        },
-        child: Scaffold(
-          body: SafeArea(
-            bottom: false,
-            child: Stack(
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isDesktop = constraints.maxWidth > 600;
-                    return Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            children: [
-                              if (!isDesktop)
-                                _HorizontalUserList(
-                                  provider: _provider,
-                                  onUserMenuTap: _showUserContextMenu,
-                                  onOpenConfig: _openConfig,
-                                  onQuit: _quit,
-                                ),
-                              Expanded(
-                                child: Stack(
-                                  children: [
-                                    _MessageList(
-                                      provider: _provider,
-                                      controller: _scrollController,
-                                      notifications: _activeNotifications,
-                                      listKey: listKey,
-                                      onRemoveNotification: _removeNotification,
-                                    ),
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      bottom: 0,
-                                      child: _InputArea(
-                                        controller: _controller,
-                                        focusNode: _focusNode,
-                                        provider: _provider,
-                                        onSend: _sendMessage,
-                                        isDesktop: isDesktop,
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8.0,
-                                      left: 8.0,
-                                      right: 8.0,
-                                      child: _SearchInput(
-                                        isDesktop: isDesktop,
-                                        isSearchActive: _isSearchVisible,
-                                        searchController: _searchController,
-                                        searchFocusNode: _searchFocusNode,
-                                        onToggleSearch: _toggleSearch,
-                                        onSearchChanged: _onSearchChanged,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isDesktop)
-                          _VerticalUserList(
-                            provider: _provider,
-                            onUserTap: _onUserTap,
-                            onUserMenuTap: _showUserContextMenu,
-                            onOpenConfig: _openConfig,
-                            onQuit: _quit,
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+
+    return FocusableActionDetector(
+      autofocus: true,
+      shortcuts: <ShortcutActivator, Intent>{
+        const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
+            const SearchIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true):
+            const SearchIntent(),
+        const SingleActivator(LogicalKeyboardKey.escape):
+            const CloseSearchIntent(),
+      },
+      actions: <Type, Action<Intent>>{
+        SearchIntent: CallbackAction<SearchIntent>(
+          onInvoke: (SearchIntent intent) {
+            if (!_isSearchVisible) {
+              _toggleSearch();
+            } else {
+              _searchFocusNode.requestFocus();
+            }
+            return null;
+          },
         ),
+        CloseSearchIntent: CallbackAction<CloseSearchIntent>(
+          onInvoke: (CloseSearchIntent intent) {
+            if (_isSearchVisible) {
+              _searchController.clear();
+              _onSearchChanged('');
+              setState(() {
+                _isSearchVisible = false;
+                _focusNode.requestFocus();
+              });
+            }
+            return null;
+          },
+        ),
+      },
+      child: Scaffold(
+        appBar: !isDesktop ? _buildMobileAppBar() : null,
+        endDrawer: !isDesktop
+            ? switch (_mobileDrawerType) {
+                .users => _buildMobileUserDrawer(),
+                .options => _buildMobileOptionsMenuDrawer(),
+              }
+            : null,
+        body: isDesktop
+            ? SafeArea(
+                bottom: false,
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: _buildChatArea(isDesktop: true)),
+                    _VerticalUserList(
+                      provider: _provider,
+                      onUserTap: _onUserTap,
+                      onUserMenuTap: _showUserContextMenu,
+                      onOpenConfig: _openConfig,
+                      onQuit: _quit,
+                    ),
+                  ],
+                ),
+              )
+            : SafeArea(bottom: false, child: _buildChatArea(isDesktop: false)),
       ),
     );
   }
 
   void _onUserTap(String nickname) {
+    if (MediaQuery.sizeOf(context).width <= 600) {
+      if (mounted) Navigator.maybePop(context);
+    }
+
     final bool didChangeDmMode;
     if (_provider.currentDmNickname == nickname) {
       _provider.setDmMode(null);
@@ -368,6 +318,51 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
     }
+  }
+
+  Widget _buildChatArea({required bool isDesktop}) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            children: [
+              _MessageList(
+                provider: _provider,
+                controller: _scrollController,
+                notifications: _activeNotifications,
+                listKey: listKey,
+                onRemoveNotification: _removeNotification,
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _InputArea(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  provider: _provider,
+                  onSend: _sendMessage,
+                  isDesktop: isDesktop,
+                ),
+              ),
+              Positioned(
+                top: 8.0,
+                left: 8.0,
+                right: 8.0,
+                child: _SearchInput(
+                  isDesktop: isDesktop,
+                  isSearchActive: _isSearchVisible,
+                  searchController: _searchController,
+                  searchFocusNode: _searchFocusNode,
+                  onToggleSearch: _toggleSearch,
+                  onSearchChanged: _onSearchChanged,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   void _showUserContextMenu(
@@ -427,6 +422,168 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     action?.call();
+  }
+
+  PreferredSizeWidget _buildMobileAppBar() {
+    return AppBar(
+      titleSpacing: 0.0,
+      title: InkWell(
+        mouseCursor: SystemMouseCursors.click,
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            builder: (context) => _MobileChannelSheet(
+              provider: _provider,
+              onChannelSelected: (channel) {
+                _provider.joinChannel(channel);
+                Navigator.pop(context);
+              },
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_provider.activeChannel),
+              const Icon(Icons.expand_more),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.people),
+              onPressed: () {
+                setState(() => _mobileDrawerType = .users);
+                Scaffold.of(context).openEndDrawer();
+              },
+              tooltip: 'Online Users',
+            );
+          },
+        ),
+        Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () {
+                setState(() => _mobileDrawerType = .options);
+                Scaffold.of(context).openEndDrawer();
+              },
+              tooltip: 'Options',
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileOptionsMenuDrawer() {
+    return Drawer(
+      shape: LinearBorder(),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              width: double.infinity,
+              child: Text(
+                'Options',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (_provider.activeChannel != '#general' &&
+                _provider.currentDmNickname == null)
+              ListenableBuilder(
+                listenable: _provider,
+                builder: (context, _) {
+                  return SwitchListTile(
+                    title: const Text('Private Channel'),
+                    value: _provider.isCurrentChannelPrivate,
+                    onChanged: (value) {
+                      _provider.setPrivateChannel(value);
+                    },
+                  );
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                _openConfig();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.exit_to_app),
+              title: const Text('Quit'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                _quit();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileUserDrawer() {
+    return Drawer(
+      shape: LinearBorder(),
+      child: SafeArea(
+        child: ListenableBuilder(
+          listenable: _provider,
+          builder: (context, child) {
+            final users = _provider.onlineUsers;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Text(
+                    'Online Users (${users.length})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      return _VerticalUserListItem(
+                        user: Text(
+                          users[index],
+                          style: TextStyle(
+                            color: getNicknameColor(users[index]),
+                          ),
+                        ),
+                        onTap: () => _onUserTap(users[index]),
+                        onSecondaryTapDown: (details) {
+                          _showUserContextMenu(
+                            context,
+                            details.globalPosition,
+                            users[index],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
@@ -1087,74 +1244,6 @@ final class _DmIndicator extends StatelessWidget {
   }
 }
 
-final class _HorizontalUserList extends StatelessWidget {
-  const _HorizontalUserList({
-    required this.provider,
-    required this.onUserMenuTap,
-    required this.onOpenConfig,
-    required this.onQuit,
-  });
-
-  final ChatProvider provider;
-  final void Function(BuildContext, Offset, String) onUserMenuTap;
-  final VoidCallback onOpenConfig;
-  final VoidCallback onQuit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      color: Colors.black12,
-      width: double.infinity,
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 8.0,
-        runSpacing: 8.0,
-        children: [
-          IconButton(onPressed: onQuit, icon: const Icon(Icons.exit_to_app)),
-          IconButton(onPressed: onOpenConfig, icon: const Icon(Icons.settings)),
-          for (final user in provider.onlineUsers)
-            Builder(
-              builder: (buttonContext) {
-                return TextButton(
-                  child: Text(
-                    user,
-                    style: TextStyle(color: getNicknameColor(user)),
-                  ),
-                  onPressed: () {
-                    final box = buttonContext.findRenderObject() as RenderBox;
-                    final position = box.localToGlobal(
-                      Offset(0, box.size.height),
-                    );
-                    onUserMenuTap(context, position, user);
-                  },
-                );
-              },
-            ),
-          const Text('| Channels:', style: TextStyle(color: Colors.grey)),
-          for (final channel in provider.channels.entries)
-            TextButton(
-              onPressed: () => provider.joinChannel(channel.key),
-              style: TextButton.styleFrom(
-                backgroundColor: channel.key == provider.activeChannel
-                    ? Colors.white24
-                    : null,
-              ),
-              child: Text('${channel.key} (${channel.value})'),
-            ),
-          if (provider.activeChannel != '#general') ...[
-            const Text('| Private: ', style: TextStyle(color: Colors.grey)),
-            Switch(
-              value: provider.isCurrentChannelPrivate,
-              onChanged: provider.setPrivateChannel,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 final class _VerticalUserList extends StatefulWidget {
   const _VerticalUserList({
     required this.provider,
@@ -1221,123 +1310,125 @@ class _VerticalUserListState extends State<_VerticalUserList> {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 250),
-      child: Card(
-        child: ListenableBuilder(
-          listenable: widget.provider,
-          builder: (context, _) {
-            final users = widget.provider.onlineUsers;
-            final channels = widget.provider.channels;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8.0),
-                  color: Colors.black12,
-                  child: Text(
-                    'Online Users (${users.length})',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+
+    final child = Card(
+      child: ListenableBuilder(
+        listenable: widget.provider,
+        builder: (context, _) {
+          final users = widget.provider.onlineUsers;
+          final channels = widget.provider.channels;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                color: Colors.black12,
+                child: Text(
+                  'Online Users (${users.length})',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: users.length,
-                    itemBuilder: (context, index) {
-                      return _VerticalUserListItem(
-                        user: Text(
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    return _VerticalUserListItem(
+                      user: Text(
+                        users[index],
+                        style: TextStyle(color: getNicknameColor(users[index])),
+                      ),
+                      onTap: () => widget.onUserTap(users[index]),
+                      onSecondaryTapDown: (details) {
+                        widget.onUserMenuTap(
+                          context,
+                          details.globalPosition,
                           users[index],
-                          style: TextStyle(
-                            color: getNicknameColor(users[index]),
-                          ),
-                        ),
-                        onTap: () => widget.onUserTap(users[index]),
-                        onSecondaryTapDown: (details) {
-                          widget.onUserMenuTap(
-                            context,
-                            details.globalPosition,
-                            users[index],
-                          );
-                        },
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    );
+                  },
                 ),
-                Container(
-                  padding: const EdgeInsets.all(8.0),
-                  color: Colors.black12,
-                  child: Text(
-                    'Channels (${channels.length})',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                color: Colors.black12,
+                child: Text(
+                  'Channels (${channels.length})',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      for (final channelEntry in channels.entries)
-                        _VerticalChannelListItem(
-                          channel: channelEntry.key,
-                          userCount: channelEntry.value,
-                          isActive:
-                              channelEntry.key == widget.provider.activeChannel,
-                          onTap: () =>
-                              widget.provider.joinChannel(channelEntry.key),
-                        ),
-                    ],
-                  ),
+              ),
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final channelEntry in channels.entries)
+                      _VerticalChannelListItem(
+                        channel: channelEntry.key,
+                        userCount: channelEntry.value,
+                        isActive:
+                            channelEntry.key == widget.provider.activeChannel,
+                        onTap: () =>
+                            widget.provider.joinChannel(channelEntry.key),
+                      ),
+                  ],
                 ),
-                if (widget.provider.activeChannel != '#general')
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      children: [
-                        const Text('Private Channel'),
-                        const Spacer(),
-                        Switch(
-                          value: widget.provider.isCurrentChannelPrivate,
-                          onChanged: widget.provider.setPrivateChannel,
-                        ),
-                      ],
-                    ),
-                  ),
+              ),
+              if (widget.provider.activeChannel != '#general')
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 4.0,
-                    runSpacing: 4.0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
                     children: [
-                      TextButton.icon(
-                        onPressed: widget.onOpenConfig,
-                        icon: const Icon(Icons.settings, size: 18),
-                        label: const Text(
-                          'Settings',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: widget.onQuit,
-                        icon: const Icon(Icons.exit_to_app, size: 18),
-                        label: const Text(
-                          'Quit',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        ),
+                      const Text('Private Channel'),
+                      const Spacer(),
+                      Switch(
+                        value: widget.provider.isCurrentChannelPrivate,
+                        onChanged: widget.provider.setPrivateChannel,
                       ),
                     ],
                   ),
                 ),
-              ],
-            );
-          },
-        ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 4.0,
+                  runSpacing: 4.0,
+                  children: [
+                    TextButton.icon(
+                      onPressed: widget.onOpenConfig,
+                      icon: const Icon(Icons.settings, size: 18),
+                      label: const Text(
+                        'Settings',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: widget.onQuit,
+                      icon: const Icon(Icons.exit_to_app, size: 18),
+                      label: const Text('Quit', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
+
+    if (isDesktop) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 250),
+        child: child,
+      );
+    }
+    return child;
   }
 }
 
@@ -1403,6 +1494,50 @@ final class _VerticalChannelListItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MobileChannelSheet extends StatelessWidget {
+  final ChatProvider provider;
+  final ValueChanged<String> onChannelSelected;
+
+  const _MobileChannelSheet({
+    required this.provider,
+    required this.onChannelSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: provider,
+      builder: (context, _) {
+        final channels = provider.channels;
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Channels',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final channelEntry in channels.entries)
+                    ListTile(
+                      title: Text(channelEntry.key),
+                      trailing: Text('${channelEntry.value} user(s)'),
+                      selected: channelEntry.key == provider.activeChannel,
+                      onTap: () => onChannelSelected(channelEntry.key),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

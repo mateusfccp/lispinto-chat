@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/responsive.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 
 /// Defines a generic text-based trigger to activate an autocomplete dropdown.
@@ -272,8 +272,7 @@ final class _AutocompleteDropdownState extends State<AutocompleteDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDesktop =
-        kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+    final bool isDesktop = context.isDesktop;
 
     return Focus(
       onKeyEvent: _handleKeyEvent,

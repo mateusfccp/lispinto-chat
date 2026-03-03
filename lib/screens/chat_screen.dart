@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/responsive.dart';
 import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
@@ -224,7 +225,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+    final isDesktop = context.isDesktop;
 
     return FocusableActionDetector(
       autofocus: true,
@@ -274,7 +275,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 bottom: false,
                 child: Row(
                   children: [
-                    Expanded(flex: 3, child: _buildChatArea(isDesktop: true)),
+                    Expanded(flex: 3, child: _buildChatArea()),
                     _VerticalUserList(
                       provider: _provider,
                       onUserTap: _onUserTap,
@@ -285,13 +286,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               )
-            : SafeArea(bottom: false, child: _buildChatArea(isDesktop: false)),
+            : SafeArea(bottom: false, child: _buildChatArea()),
       ),
     );
   }
 
   void _onUserTap(String nickname) {
-    if (MediaQuery.sizeOf(context).width <= 600) {
+    if (context.isMobile) {
       if (mounted) Navigator.maybePop(context);
     }
 
@@ -320,7 +321,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Widget _buildChatArea({required bool isDesktop}) {
+  Widget _buildChatArea() {
     return Column(
       children: [
         Expanded(
@@ -342,7 +343,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   focusNode: _focusNode,
                   provider: _provider,
                   onSend: _sendMessage,
-                  isDesktop: isDesktop,
                 ),
               ),
               Positioned(
@@ -350,7 +350,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 left: 8.0,
                 right: 8.0,
                 child: _SearchInput(
-                  isDesktop: isDesktop,
                   isSearchActive: _isSearchVisible,
                   searchController: _searchController,
                   searchFocusNode: _searchFocusNode,
@@ -589,7 +588,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
 final class _SearchInput extends StatelessWidget {
   const _SearchInput({
-    required this.isDesktop,
     required this.isSearchActive,
     required this.searchController,
     required this.searchFocusNode,
@@ -597,7 +595,6 @@ final class _SearchInput extends StatelessWidget {
     required this.onSearchChanged,
   });
 
-  final bool isDesktop;
   final bool isSearchActive;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
@@ -649,7 +646,7 @@ final class _SearchInput extends StatelessWidget {
                         onChanged: onSearchChanged,
                         decoration: InputDecoration(
                           hintText: 'Search messages...',
-                          isDense: isDesktop,
+                          isDense: context.isDesktop,
                           border: InputBorder.none,
                           fillColor: Colors.transparent,
                           filled: true,
@@ -783,14 +780,12 @@ final class _InputArea extends StatefulWidget {
     required this.focusNode,
     required this.provider,
     required this.onSend,
-    required this.isDesktop,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final ChatProvider provider;
   final VoidCallback onSend;
-  final bool isDesktop;
 
   @override
   State<_InputArea> createState() => _InputAreaState();
@@ -1093,7 +1088,7 @@ class _InputAreaState extends State<_InputArea> {
                             minWidth: 0,
                             minHeight: 0,
                           ),
-                          isDense: widget.isDesktop,
+                          isDense: context.isDesktop,
                           hintText: 'Type a message...',
                           border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(
@@ -1310,7 +1305,7 @@ class _VerticalUserListState extends State<_VerticalUserList> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+    final isDesktop = context.isDesktop;
 
     final child = Card(
       child: ListenableBuilder(

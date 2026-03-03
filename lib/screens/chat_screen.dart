@@ -425,7 +425,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   PreferredSizeWidget _buildMobileAppBar() {
     return AppBar(
-      titleSpacing: 0.0,
+      automaticallyImplyLeading: false,
       title: InkWell(
         mouseCursor: SystemMouseCursors.click,
         onTap: () {
@@ -441,11 +441,16 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(4.0),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_provider.activeChannel),
+              ListenableBuilder(
+                listenable: _provider,
+                builder: (context, child) {
+                  return Text(_provider.activeChannel);
+                },
+              ),
               const Icon(Icons.expand_more),
             ],
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
@@ -8,6 +10,7 @@ import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/link_image_detector.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that displays a single chat message bubble.
@@ -205,6 +208,141 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 }
 
+Future<void> _showImageContextMenu(
+  BuildContext context,
+  Offset position,
+  ImageType imageType,
+) async {
+  final action = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      position.dx,
+      position.dy,
+      position.dx,
+      position.dy,
+    ),
+    items: [
+      const PopupMenuItem(value: 'copy_image', child: Text('Copy image')),
+      const PopupMenuItem(
+        value: 'copy_address',
+        child: Text('Copy image address'),
+      ),
+    ],
+  );
+
+  if (!context.mounted || action == null) return;
+
+  if (action == 'copy_address') {
+    await Clipboard.setData(ClipboardData(text: imageType.url));
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Image address copied!')));
+    }
+  } else if (action == 'copy_image') {
+    try {
+      final response = await http.get(Uri.parse(imageType.url));
+      if (response.statusCode == 200) {
+        final clipboard = SystemClipboard.instance;
+        if (clipboard != null) {
+          final item = DataWriterItem();
+          if (imageType is SvgImageType) {
+            item.add(Formats.svg(response.bodyBytes));
+          } else {
+            item.add(Formats.png(response.bodyBytes));
+          }
+          await clipboard.write([item]);
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Image copied!')));
+          }
+        }
+      } else {
+        throw Exception('Failed to load image');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to copy image.')));
+      }
+    }
+  }
+}
+
+void _showExpandedImage(BuildContext context, ImageType imageType) {
+  showDialog(
+    context: context,
+    builder: (context) => _ExpandedImageDialog(imageType: imageType),
+  );
+}
+
+class _ExpandedImageDialog extends StatelessWidget {
+  const _ExpandedImageDialog({required this.imageType});
+
+  final ImageType imageType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.black87,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          InteractiveViewer(
+            panEnabled: false,
+            boundaryMargin: const EdgeInsets.all(200.0),
+            clipBehavior: Clip.none,
+            minScale: 0.5,
+            maxScale: 1.5,
+            child: Builder(
+              builder: (innerContext) {
+                return GestureDetector(
+                  onSecondaryTapDown: (details) {
+                    _showImageContextMenu(
+                      innerContext,
+                      details.globalPosition,
+                      imageType,
+                    );
+                  },
+                  onLongPressStart: (details) {
+                    _showImageContextMenu(
+                      innerContext,
+                      details.globalPosition,
+                      imageType,
+                    );
+                  },
+                  child: Center(
+                    child: switch (imageType) {
+                      SvgImageType(:final url) => SvgPicture.network(
+                        url,
+                        fit: BoxFit.contain,
+                      ),
+                      RasterImageType(:final url) => Image.network(
+                        url,
+                        fit: BoxFit.contain,
+                      ),
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            top: 16.0,
+            right: 16.0,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 32.0),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 final class _ImageGallery extends StatelessWidget {
   const _ImageGallery({required this.imageTypes, this.onImageTap});
 
@@ -230,40 +368,59 @@ final class _ImageGallery extends StatelessWidget {
               cursor: onImageTap == null
                   ? MouseCursor.defer
                   : SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: onImageTap == null
-                    ? null
-                    : () => onImageTap(imageType.url),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: switch (imageType) {
-                    SvgImageType(:final url) => SvgPicture.network(
-                      url,
-                      height: _imageSize,
-                      width: _imageSize,
-                      fit: BoxFit.cover,
-                      placeholderBuilder: (context) => Container(
-                        width: _imageSize,
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                    ),
-                    RasterImageType(:final url) => Image.network(
-                      url,
-                      height: _imageSize,
-                      width: _imageSize,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: _imageSize,
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        child: const Icon(
-                          Icons.broken_image,
-                          color: Colors.grey,
+              child: Builder(
+                builder: (innerContext) {
+                  return GestureDetector(
+                    onTap: () => _showExpandedImage(context, imageType),
+                    onSecondaryTapDown: (details) {
+                      _showImageContextMenu(
+                        innerContext,
+                        details.globalPosition,
+                        imageType,
+                      );
+                    },
+                    onLongPressStart: (details) {
+                      _showImageContextMenu(
+                        innerContext,
+                        details.globalPosition,
+                        imageType,
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: switch (imageType) {
+                        SvgImageType(:final url) => SvgPicture.network(
+                          url,
+                          height: _imageSize,
+                          width: _imageSize,
+                          fit: BoxFit.cover,
+                          placeholderBuilder: (context) => Container(
+                            width: _imageSize,
+                            color: Colors.grey.withValues(alpha: 0.2),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
                         ),
-                      ),
+                        RasterImageType(:final url) => Image.network(
+                          url,
+                          height: _imageSize,
+                          width: _imageSize,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                width: _imageSize,
+                                color: Colors.grey.withValues(alpha: 0.2),
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                        ),
+                      },
                     ),
-                  },
-                ),
+                  );
+                },
               ),
             );
           },

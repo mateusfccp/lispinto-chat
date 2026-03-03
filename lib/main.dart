@@ -23,7 +23,13 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Lispinto Chat',
-      darkTheme: ThemeData.dark(),
+      darkTheme: ThemeData.dark().copyWith(
+        iconButtonTheme: IconButtonThemeData(
+          style: ButtonStyle(
+            mouseCursor: WidgetStateProperty.all(SystemMouseCursors.click),
+          ),
+        ),
+      ),
       themeMode: ThemeMode.dark,
       routerConfig: router,
     );

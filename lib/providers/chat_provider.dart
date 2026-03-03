@@ -378,6 +378,7 @@ class ChatProvider with ChangeNotifier {
     _chatService.sendMessage('/private status');
     _chatService.sendMessage('/log :depth 100 :date-format date');
     _chatService.sendMessage('/users');
+    _chatService.requestChannelsList();
   }
 
   /// Sets whether the current channel is private.

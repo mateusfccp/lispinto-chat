@@ -269,6 +269,7 @@ interface class ChatService {
           }
         }
         _notificationsController.add(message);
+        requestChannelsList();
         return false;
       } else if (isExit) {
         final match = RegExp(
@@ -280,6 +281,7 @@ interface class ChatService {
           _usersController.add(_currentUsers.toList());
         }
         _notificationsController.add(message);
+        requestChannelsList();
         return false;
       }
     }

@@ -9,6 +9,7 @@ void main(List<String> arguments) async {
     ..addFlag('macos', help: 'Build for macOS', defaultsTo: true)
     ..addFlag('web', help: 'Build for Web', defaultsTo: true)
     ..addFlag('ios', help: 'Build for iOS', defaultsTo: true)
+    ..addFlag('linux', help: 'Build for Linux (AppImage)', defaultsTo: true)
     ..addOption(
       'output',
       abbr: 'o',
@@ -35,6 +36,7 @@ void main(List<String> arguments) async {
     'macos': results['macos'] as bool,
     'web': results['web'] as bool,
     'ios': results['ios'] as bool,
+    'linux': results['linux'] as bool,
   };
 
   if (platforms['android']!) {
@@ -51,6 +53,10 @@ void main(List<String> arguments) async {
 
   if (platforms['ios']!) {
     await buildIOS(outputDir);
+  }
+
+  if (platforms['linux']!) {
+    await buildLinux(outputDir);
   }
 
   stdout.writeln('\nBuild process completed! Files are in ${outputDir.path}');
@@ -108,7 +114,7 @@ Future<void> buildWeb(Directory outputDir) async {
 
 Future<void> buildIOS(Directory outputDir) async {
   stdout.writeln('Building iOS IPA...');
-  await _runFlutter(['build', 'ipa', '--release', '--no-codesign']);
+  await _runFlutter(['build', 'ipa', '--release', '--export-method', 'development']);
 
   final ipaDir = Directory('build/ios/ipa');
   if (ipaDir.existsSync()) {
@@ -121,6 +127,76 @@ Future<void> buildIOS(Directory outputDir) async {
       }
     }
   }
+}
+
+Future<void> buildLinux(Directory outputDir) async {
+  stdout.writeln('Building Linux...');
+  await _runFlutter(['build', 'linux', '--release']);
+
+  final bundleDir = Directory('build/linux/x64/release/bundle');
+  if (!bundleDir.existsSync()) {
+    stdout.writeln('Linux build output not found.');
+    return;
+  }
+
+  stdout.writeln('Packaging as AppImage...');
+  final appDir = Directory(join(outputDir.path, 'linux', 'AppDir'));
+  if (appDir.existsSync()) appDir.deleteSync(recursive: true);
+  appDir.createSync(recursive: true);
+
+  // Copy bundle into AppDir/usr/bin
+  final usrBin = Directory(join(appDir.path, 'usr', 'bin'));
+  usrBin.createSync(recursive: true);
+  await _copyDirectory(bundleDir, usrBin);
+
+  // Create .desktop file
+  final desktopFile = File(join(appDir.path, 'lispinto_chat.desktop'));
+  desktopFile.writeAsStringSync('''
+[Desktop Entry]
+Name=Lispinto Chat
+Exec=lispinto_chat
+Icon=lispinto_chat
+Type=Application
+Categories=Network;Chat;
+''');
+
+  // Copy icon
+  final iconSource = File('assets/icon/icon.png');
+  if (iconSource.existsSync()) {
+    iconSource.copySync(join(appDir.path, 'lispinto_chat.png'));
+  }
+
+  // Create AppRun script
+  final appRun = File(join(appDir.path, 'AppRun'));
+  appRun.writeAsStringSync('''
+#!/bin/bash
+HERE="\$(dirname "\$(readlink -f "\$0")")"
+export LD_LIBRARY_PATH="\$HERE/usr/bin/lib:\$LD_LIBRARY_PATH"
+exec "\$HERE/usr/bin/lispinto_chat" "\$@"
+''');
+  await Process.run('chmod', ['+x', appRun.path]);
+
+  // Run appimagetool
+  final destination = Directory(join(outputDir.path, 'linux'));
+  if (!destination.existsSync()) destination.createSync(recursive: true);
+
+  final appImagePath = join(destination.path, 'LispintoChat.AppImage');
+  final appImageResult = await Process.run(
+    'appimagetool',
+    [appDir.path, appImagePath],
+  );
+
+  if (appImageResult.exitCode != 0) {
+    stdout.writeln('Error creating AppImage:');
+    stdout.writeln(appImageResult.stderr);
+    exit(appImageResult.exitCode);
+  }
+
+  stdout.writeln(appImageResult.stdout);
+
+  // Clean up AppDir
+  appDir.deleteSync(recursive: true);
+  stdout.writeln('AppImage created at $appImagePath');
 }
 
 Future<void> _runFlutter(List<String> args) async {

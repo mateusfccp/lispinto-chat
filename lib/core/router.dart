@@ -6,6 +6,8 @@ import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:lispinto_chat/screens/configurations_screen.dart';
 import 'package:lispinto_chat/screens/initial_screen.dart';
+import 'package:lispinto_chat/screens/licenses_screen.dart';
+import 'package:lispinto_chat/screens/privacy_policy_screen.dart';
 
 part 'router.g.dart';
 
@@ -29,9 +31,14 @@ final router = GoRouter(
 @TypedGoRoute<InitialRoute>(
   path: '/',
   routes: [
+    TypedGoRoute<InitialPrivacyPolicyRoute>(path: 'privacy-policy'),
     TypedGoRoute<ChatRoute>(
       path: 'chat',
-      routes: [TypedGoRoute<ConfigurationsRoute>(path: 'config')],
+      routes: [
+        TypedGoRoute<ConfigurationsRoute>(path: 'config'),
+        TypedGoRoute<PrivacyPolicyRoute>(path: 'privacy-policy'),
+        TypedGoRoute<LicensesRoute>(path: 'licenses'),
+      ],
     ),
   ],
 )
@@ -39,8 +46,19 @@ final class InitialRoute extends GoRouteData with $InitialRoute {
   const InitialRoute();
 
   @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const InitialScreen();
+  }
+}
+
+/// The privacy policy route accessible from the initial screen.
+final class InitialPrivacyPolicyRoute extends GoRouteData
+    with $InitialPrivacyPolicyRoute {
+  const InitialPrivacyPolicyRoute();
+
+  @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const InitialScreen();
+      const PrivacyPolicyScreen();
 }
 
 /// The chat route, shown at the path '/chat'.
@@ -56,6 +74,27 @@ final class ConfigurationsRoute extends GoRouteData with $ConfigurationsRoute {
   const ConfigurationsRoute();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const ConfigurationsScreen();
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ConfigurationsScreen();
+  }
+}
+
+/// The privacy policy route, shown at the path '/chat/privacy-policy'.
+final class PrivacyPolicyRoute extends GoRouteData with $PrivacyPolicyRoute {
+  const PrivacyPolicyRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const PrivacyPolicyScreen();
+  }
+}
+
+/// The licenses route, shown at the path '/chat/licenses'.
+final class LicensesRoute extends GoRouteData with $LicensesRoute {
+  const LicensesRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const LicensesScreen();
+  }
 }

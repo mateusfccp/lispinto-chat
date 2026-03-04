@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/message_grouper.dart';
+import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -175,7 +176,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400.0),
+                      constraints: const BoxConstraints(maxWidth: 600.0),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -420,7 +421,28 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                 ),
                               ],
                             ),
-                            const Gap(32.0),
+                            const Gap(16.0),
+                            _ConfigurationSection(
+                              title: const Text('About'),
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.privacy_tip),
+                                  title: const Text('Privacy Policy'),
+                                  onTap: () {
+                                    const PrivacyPolicyRoute().push(context);
+                                  },
+                                ),
+                                const Divider(),
+                                ListTile(
+                                  leading: const Icon(Icons.description),
+                                  title: const Text('Licenses'),
+                                  onTap: () {
+                                    const LicensesRoute().push(context);
+                                  },
+                                ),
+                              ],
+                            ),
+                            const Gap(16.0),
                             ElevatedButton(
                               onPressed: _saveAndPop,
                               style: ElevatedButton.styleFrom(

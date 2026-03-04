@@ -526,6 +526,22 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.privacy_tip),
+              title: const Text('Privacy Policy'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                const PrivacyPolicyRoute().go(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.description),
+              title: const Text('Licenses'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                const LicensesRoute().go(context);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.exit_to_app),
               title: const Text('Quit'),
               onTap: () {

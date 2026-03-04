@@ -139,6 +139,16 @@ final class _InitialScreenState extends State<InitialScreen> {
                                     style: TextStyle(fontSize: 16.0),
                                   ),
                           ),
+                          const Gap(16.0),
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: () {
+                                const InitialPrivacyPolicyRoute().go(context);
+                              },
+                              icon: const Icon(Icons.privacy_tip_outlined),
+                              label: const Text('Privacy Policy'),
+                            ),
+                          ),
                         ],
                       ),
                     ),

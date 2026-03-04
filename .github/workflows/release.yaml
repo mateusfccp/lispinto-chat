@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Check if version already released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          LATEST_TAG=$(gh release view --json tagName -q '.tagName' 2>/dev/null || echo "")
+
+          if [ "v$VERSION" = "$LATEST_TAG" ]; then
+            echo "::error::Version $VERSION is the same as the latest release ($LATEST_TAG). Please bump the version in pubspec.yaml."
+            exit 1
+          fi
+
+          echo "Version $VERSION is new (latest release: ${LATEST_TAG:-none}). Proceeding."
+
+  build-macos:
+    name: Build macOS / iOS / Web / Android
+    runs-on: macos-latest
+    needs: check-version
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android, macOS, and Web
+        run: dart scripts/build.dart --no-ios --no-linux
+
+      - name: Zip macOS app
+        run: |
+          cd dist/macos
+          zip -r ../LispintoChat-macOS.zip *.app
+          cd ../..
+
+      - name: Zip Web build
+        run: |
+          cd dist
+          tar -czf LispintoChat-Web.tar.gz web/
+          cd ..
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: dist/android/*.apk
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifact
+          path: dist/LispintoChat-macOS.zip
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-artifact
+          path: dist/LispintoChat-Web.tar.gz
+
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    needs: check-version
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            ninja-build \
+            libblkid-dev \
+            liblzma-dev \
+            pkg-config \
+            cmake \
+            clang \
+            fuse \
+            libfuse2
+
+      - name: Install appimagetool
+        run: |
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O /usr/local/bin/appimagetool
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Linux AppImage
+        run: dart scripts/build.dart --no-android --no-macos --no-web --no-ios
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifact
+          path: dist/linux/LispintoChat.AppImage
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [check-version, build-macos, build-linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Tag version
+        run: |
+          VERSION="v${{ needs.check-version.outputs.version }}"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="v${{ needs.check-version.outputs.version }}"
+
+          gh release create "$VERSION" \
+            --title "Lispinto Chat $VERSION" \
+            --generate-notes \
+            artifacts/android-artifacts/*.apk \
+            artifacts/macos-artifact/LispintoChat-macOS.zip \
+            artifacts/web-artifact/LispintoChat-Web.tar.gz \
+            artifacts/linux-artifact/LispintoChat.AppImage

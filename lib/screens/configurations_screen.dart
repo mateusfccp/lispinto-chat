@@ -64,6 +64,20 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     super.dispose();
   }
 
+  bool get _isDirty {
+    return _nicknameController.text.trim() != _configuration.nickname ||
+        _serverUrlController.text.trim() != _configuration.serverUrl ||
+        _imgbbApiKeyController.text.trim() != _configuration.imgbbApiKey ||
+        _pushNotificationsEnabled != _configuration.pushNotificationsEnabled ||
+        _mentionNotificationsEnabled !=
+            _configuration.mentionNotificationsEnabled ||
+        _showTimeSeconds != _configuration.showTimeSeconds ||
+        _showImagePreviews != _configuration.showImagePreviews ||
+        _showMarkdown != _configuration.showMarkdown ||
+        _showEmptyChannels != _configuration.showEmptyChannels ||
+        _groupMessages != _configuration.groupMessages;
+  }
+
   Future<void> _saveAndPop() async {
     if (_formKey.currentState?.validate() ?? false) {
       final newNickname = _nicknameController.text.trim();
@@ -91,288 +105,344 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     }
   }
 
+  Future<bool?> _confirmDiscardChanges() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text(
+          'You have unsaved changes. What would you like to do?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(null),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final platform = Theme.of(context).platform;
     final shouldShowNotificationsArea =
         kIsWeb || platform == TargetPlatform.macOS;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Configuration')),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextFormField(
-                            controller: _nicknameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nickname',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.person),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a nickname';
-                              }
-                              return null;
-                            },
-                            textInputAction: TextInputAction.next,
-                          ),
-                          const Gap(16.0),
-                          TextFormField(
-                            controller: _serverUrlController,
-                            decoration: const InputDecoration(
-                              labelText: 'Server URL',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.link),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a server URL';
-                              }
-                              if (!value.startsWith('ws://') &&
-                                  !value.startsWith('wss://')) {
-                                return 'URL must start with ws:// or wss://';
-                              }
-                              return null;
-                            },
-                            textInputAction: TextInputAction.next,
-                          ),
-                          const Gap(16.0),
-                          TextFormField(
-                            controller: _imgbbApiKeyController,
-                            decoration: InputDecoration(
-                              labelText: 'ImgBB API Key',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.key),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.info_outline),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        title: const Text('ImgBB API Key'),
-                                        content: const Text(
-                                          'Image uploading requires an ImgBB API key. '
-                                          'You can get one for free at the ImgBB website. '
-                                          'If you don\'t provide a key, image uploading will be disabled.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              launchUrlString(
-                                                'https://api.imgbb.com/',
-                                              );
-                                            },
-                                            child: const Text('Get API Key'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: const Text('OK'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                                tooltip: 'Learn about ImgBB API key',
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!_isDirty) {
+          Navigator.of(context).pop();
+          return;
+        }
+
+        final result = await _confirmDiscardChanges();
+        if (result != null && context.mounted) {
+          if (result) {
+            _saveAndPop();
+          } else {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Configuration'),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.check),
+              tooltip: 'Save',
+              onPressed: _saveAndPop,
+            ),
+          ],
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _nicknameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Nickname',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.person),
                               ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a nickname';
+                                }
+                                return null;
+                              },
+                              textInputAction: TextInputAction.next,
                             ),
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (value) => _saveAndPop(),
-                          ),
-                          if (shouldShowNotificationsArea) ...[
+                            const Gap(16.0),
+                            TextFormField(
+                              controller: _serverUrlController,
+                              decoration: const InputDecoration(
+                                labelText: 'Server URL',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.link),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a server URL';
+                                }
+                                if (!value.startsWith('ws://') &&
+                                    !value.startsWith('wss://')) {
+                                  return 'URL must start with ws:// or wss://';
+                                }
+                                return null;
+                              },
+                              textInputAction: TextInputAction.next,
+                            ),
+                            const Gap(16.0),
+                            TextFormField(
+                              controller: _imgbbApiKeyController,
+                              decoration: InputDecoration(
+                                labelText: 'ImgBB API Key',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.key),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.info_outline),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: const Text('ImgBB API Key'),
+                                          content: const Text(
+                                            'Image uploading requires an ImgBB API key. '
+                                            'You can get one for free at the ImgBB website. '
+                                            'If you don\'t provide a key, image uploading will be disabled.',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                launchUrlString(
+                                                  'https://api.imgbb.com/',
+                                                );
+                                              },
+                                              child: const Text('Get API Key'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: const Text('OK'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                  tooltip: 'Learn about ImgBB API key',
+                                ),
+                              ),
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (value) => _saveAndPop(),
+                            ),
+                            if (shouldShowNotificationsArea) ...[
+                              const Gap(16.0),
+                              _ConfigurationSection(
+                                title: Text('Push Notifications'),
+                                children: [
+                                  SwitchListTile(
+                                    title: const Text('Server Messages'),
+                                    subtitle: const Text(
+                                      'Receive generic notifications pushed by the server',
+                                    ),
+                                    value: _pushNotificationsEnabled,
+                                    onChanged: (value) async {
+                                      if (value) {
+                                        final granted = await _chatProvider
+                                            .requestPermissions();
+                                        if (granted) {
+                                          setState(() {
+                                            _pushNotificationsEnabled = true;
+                                          });
+                                        } else if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Notification permissions disabled or denied.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        setState(() {
+                                          _pushNotificationsEnabled = false;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  const Divider(),
+                                  SwitchListTile(
+                                    title: const Text('Mentions (@nickname)'),
+                                    subtitle: const Text(
+                                      'Targeted notifications when someone tags you',
+                                    ),
+                                    value: _mentionNotificationsEnabled,
+                                    onChanged: (value) async {
+                                      if (value) {
+                                        final granted = await _chatProvider
+                                            .requestPermissions();
+                                        if (granted) {
+                                          setState(() {
+                                            _mentionNotificationsEnabled = true;
+                                          });
+                                        } else if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Notification permissions disabled or denied.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        setState(() {
+                                          _mentionNotificationsEnabled = false;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
                             const Gap(16.0),
                             _ConfigurationSection(
-                              title: Text('Push Notifications'),
+                              title: const Text('Messages appearance'),
                               children: [
+                                _MessagePreview(
+                                  showTimeSeconds: _showTimeSeconds,
+                                  showImagePreviews: _showImagePreviews,
+                                  showMarkdown: _showMarkdown,
+                                  groupMessages: _groupMessages,
+                                ),
+                                const Divider(),
                                 SwitchListTile(
-                                  title: const Text('Server Messages'),
+                                  title: const Text('Show time seconds'),
                                   subtitle: const Text(
-                                    'Receive generic notifications pushed by the server',
+                                    'Show seconds in message timestamps',
                                   ),
-                                  value: _pushNotificationsEnabled,
-                                  onChanged: (value) async {
-                                    if (value) {
-                                      final granted = await _chatProvider
-                                          .requestPermissions();
-                                      if (granted) {
-                                        setState(() {
-                                          _pushNotificationsEnabled = true;
-                                        });
-                                      } else if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Notification permissions disabled or denied.',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    } else {
-                                      setState(() {
-                                        _pushNotificationsEnabled = false;
-                                      });
-                                    }
+                                  value: _showTimeSeconds,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _showTimeSeconds = value;
+                                    });
                                   },
                                 ),
                                 const Divider(),
                                 SwitchListTile(
-                                  title: const Text('Mentions (@nickname)'),
+                                  title: const Text('In-line Image Previews'),
                                   subtitle: const Text(
-                                    'Targeted notifications when someone tags you',
+                                    'Automatically render images from URLs',
                                   ),
-                                  value: _mentionNotificationsEnabled,
-                                  onChanged: (value) async {
-                                    if (value) {
-                                      final granted = await _chatProvider
-                                          .requestPermissions();
-                                      if (granted) {
-                                        setState(() {
-                                          _mentionNotificationsEnabled = true;
-                                        });
-                                      } else if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Notification permissions disabled or denied.',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    } else {
-                                      setState(() {
-                                        _mentionNotificationsEnabled = false;
-                                      });
-                                    }
+                                  value: _showImagePreviews,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _showImagePreviews = value;
+                                    });
+                                  },
+                                ),
+                                const Divider(),
+                                SwitchListTile(
+                                  title: const Text('Enable Markdown'),
+                                  subtitle: const Text(
+                                    'Support bold, italic, strike and code formatting',
+                                  ),
+                                  value: _showMarkdown,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _showMarkdown = value;
+                                    });
+                                  },
+                                ),
+                                const Divider(),
+                                SwitchListTile(
+                                  title: const Text(
+                                    'Group sequential messages',
+                                  ),
+                                  subtitle: const Text(
+                                    'Join multiple messages from the same user at the same time',
+                                  ),
+                                  value: _groupMessages,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _groupMessages = value;
+                                    });
                                   },
                                 ),
                               ],
                             ),
+                            const Gap(16.0),
+                            _ConfigurationSection(
+                              title: const Text('Channels'),
+                              children: [
+                                SwitchListTile(
+                                  title: const Text('Show empty channels'),
+                                  subtitle: const Text(
+                                    'Include channels with no active users in the list',
+                                  ),
+                                  value: _showEmptyChannels,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _showEmptyChannels = value;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const Gap(32.0),
+                            ElevatedButton(
+                              onPressed: _saveAndPop,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16.0,
+                                ),
+                              ),
+                              child: const Text(
+                                'Save',
+                                style: TextStyle(fontSize: 16.0),
+                              ),
+                            ),
                           ],
-                          const Gap(16.0),
-                          _ConfigurationSection(
-                            title: const Text('Messages appearance'),
-                            children: [
-                              _MessagePreview(
-                                showTimeSeconds: _showTimeSeconds,
-                                showImagePreviews: _showImagePreviews,
-                                showMarkdown: _showMarkdown,
-                                groupMessages: _groupMessages,
-                              ),
-                              const Divider(),
-                              SwitchListTile(
-                                title: const Text('Show time seconds'),
-                                subtitle: const Text(
-                                  'Show seconds in message timestamps',
-                                ),
-                                value: _showTimeSeconds,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _showTimeSeconds = value;
-                                  });
-                                },
-                              ),
-                              const Divider(),
-                              SwitchListTile(
-                                title: const Text('In-line Image Previews'),
-                                subtitle: const Text(
-                                  'Automatically render images from URLs',
-                                ),
-                                value: _showImagePreviews,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _showImagePreviews = value;
-                                  });
-                                },
-                              ),
-                              const Divider(),
-                              SwitchListTile(
-                                title: const Text('Enable Markdown'),
-                                subtitle: const Text(
-                                  'Support bold, italic, strike and code formatting',
-                                ),
-                                value: _showMarkdown,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _showMarkdown = value;
-                                  });
-                                },
-                              ),
-                              const Divider(),
-                              SwitchListTile(
-                                title: const Text('Group sequential messages'),
-                                subtitle: const Text(
-                                  'Join multiple messages from the same user at the same time',
-                                ),
-                                value: _groupMessages,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _groupMessages = value;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                          const Gap(16.0),
-                          _ConfigurationSection(
-                            title: const Text('Channels'),
-                            children: [
-                              SwitchListTile(
-                                title: const Text('Show empty channels'),
-                                subtitle: const Text(
-                                  'Include channels with no active users in the list',
-                                ),
-                                value: _showEmptyChannels,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _showEmptyChannels = value;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                          const Gap(32.0),
-                          ElevatedButton(
-                            onPressed: _saveAndPop,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16.0,
-                              ),
-                            ),
-                            child: const Text(
-                              'Save',
-                              style: TextStyle(fontSize: 16.0),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

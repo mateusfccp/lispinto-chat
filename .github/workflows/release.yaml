@@ -52,7 +52,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Android, macOS, and Web
-        run: dart scripts/build.dart --no-ios --no-linux
+        run: dart scripts/build.dart --no-ios --no-linux --no-android-aab
 
       - name: Zip macOS app
         run: |
@@ -119,7 +119,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Linux AppImage
-        run: dart scripts/build.dart --no-android --no-macos --no-web --no-ios
+        run: dart scripts/build.dart --no-android-apks --no-android-aab --no-macos --no-web --no-ios
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4

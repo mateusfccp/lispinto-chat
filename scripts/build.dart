@@ -5,7 +5,8 @@ import 'package:path/path.dart';
 
 void main(List<String> arguments) async {
   final parser = ArgParser()
-    ..addFlag('android', help: 'Build for Android', defaultsTo: true)
+    ..addFlag('android-apks', help: 'Build Android APKs', defaultsTo: true)
+    ..addFlag('android-aab', help: 'Build Android AAB', defaultsTo: true)
     ..addFlag('macos', help: 'Build for macOS', defaultsTo: true)
     ..addFlag('web', help: 'Build for Web', defaultsTo: true)
     ..addFlag('ios', help: 'Build for iOS', defaultsTo: true)
@@ -32,15 +33,20 @@ void main(List<String> arguments) async {
   }
 
   final platforms = {
-    'android': results['android'] as bool,
+    'android-apks': results['android-apks'] as bool,
+    'android-aab': results['android-aab'] as bool,
     'macos': results['macos'] as bool,
     'web': results['web'] as bool,
     'ios': results['ios'] as bool,
     'linux': results['linux'] as bool,
   };
 
-  if (platforms['android']!) {
-    await buildAndroid(outputDir);
+  if (platforms['android-apks']!) {
+    await buildAndroidApks(outputDir);
+  }
+
+  if (platforms['android-aab']!) {
+    await buildAndroidAab(outputDir);
   }
 
   if (platforms['macos']!) {
@@ -62,8 +68,8 @@ void main(List<String> arguments) async {
   stdout.writeln('\nBuild process completed! Files are in ${outputDir.path}');
 }
 
-Future<void> buildAndroid(Directory outputDir) async {
-  stdout.writeln('Building Android APK (split-per-abi)...');
+Future<void> buildAndroidApks(Directory outputDir) async {
+  stdout.writeln('Building Android APKs (split-per-abi)...');
   await _runFlutter(['build', 'apk', '--release', '--split-per-abi']);
 
   final apkDir = Directory('build/app/outputs/flutter-apk');
@@ -75,6 +81,23 @@ Future<void> buildAndroid(Directory outputDir) async {
       if (file is File &&
           file.path.endsWith('.apk') &&
           !file.path.contains('output-metadata.json')) {
+        await file.copy(join(destination.path, basename(file.path)));
+      }
+    }
+  }
+}
+
+Future<void> buildAndroidAab(Directory outputDir) async {
+  stdout.writeln('Building Android AAB...');
+  await _runFlutter(['build', 'appbundle', '--release']);
+
+  final aabDir = Directory('build/app/outputs/bundle/release');
+  if (aabDir.existsSync()) {
+    final destination = Directory(join(outputDir.path, 'android'));
+    if (!destination.existsSync()) destination.createSync(recursive: true);
+
+    await for (final file in aabDir.list()) {
+      if (file is File && file.path.endsWith('.aab')) {
         await file.copy(join(destination.path, basename(file.path)));
       }
     }

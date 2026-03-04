@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
+import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/responsive.dart';
 import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
@@ -18,7 +19,6 @@ import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
-import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
@@ -1039,12 +1039,24 @@ class _InputAreaState extends State<_InputArea> {
                     ],
                     child: Focus(
                       onKeyEvent: (node, event) {
-                        if (event is KeyDownEvent &&
-                            event.logicalKey == LogicalKeyboardKey.keyV &&
-                            (HardwareKeyboard.instance.isMetaPressed ||
-                                HardwareKeyboard.instance.isControlPressed)) {
-                          _handleSuperClipboardPaste();
-                          return KeyEventResult.handled;
+                        if (event is KeyDownEvent) {
+                          final isEnter =
+                              event.logicalKey == LogicalKeyboardKey.enter ||
+                              event.logicalKey ==
+                                  LogicalKeyboardKey.numpadEnter;
+
+                          if (isEnter &&
+                              !HardwareKeyboard.instance.isShiftPressed) {
+                            widget.onSend();
+                            return KeyEventResult.handled;
+                          }
+
+                          if (event.logicalKey == LogicalKeyboardKey.keyV &&
+                              (HardwareKeyboard.instance.isMetaPressed ||
+                                  HardwareKeyboard.instance.isControlPressed)) {
+                            _handleSuperClipboardPaste();
+                            return KeyEventResult.handled;
+                          }
                         }
                         return KeyEventResult.ignored;
                       },
@@ -1052,6 +1064,9 @@ class _InputAreaState extends State<_InputArea> {
                         controller: widget.controller,
                         focusNode: widget.focusNode,
                         enabled: widget.provider.isConnected && !_isUploading,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
                         contextMenuBuilder: (context, editableTextState) {
                           final buttonItems =
                               editableTextState.contextMenuButtonItems;
@@ -1108,10 +1123,13 @@ class _InputAreaState extends State<_InputArea> {
                               Radius.circular(32.0),
                             ),
                           ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20.0,
+                            vertical: 12.0,
+                          ),
                           fillColor: Colors.black87,
                           filled: true,
                         ),
-                        onSubmitted: (_) => widget.onSend(),
                       ),
                     ),
                   ),

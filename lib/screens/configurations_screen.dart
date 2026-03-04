@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
+import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -31,6 +32,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   late bool _showImagePreviews;
   late bool _showMarkdown;
   late bool _showEmptyChannels;
+  late bool _groupMessages;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -51,6 +53,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     _showImagePreviews = _configuration.showImagePreviews;
     _showMarkdown = _configuration.showMarkdown;
     _showEmptyChannels = _configuration.showEmptyChannels;
+    _groupMessages = _configuration.groupMessages;
   }
 
   @override
@@ -77,6 +80,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       await _configuration.setShowImagePreviews(_showImagePreviews);
       await _configuration.setShowMarkdown(_showMarkdown);
       await _configuration.setShowEmptyChannels(_showEmptyChannels);
+      await _configuration.setGroupMessages(_groupMessages);
       await _configuration.setImgbbApiKey(newImgbbApiKey);
 
       await _chatProvider.updateConfiguration(newNickname, newServerUrl);
@@ -273,6 +277,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                 showTimeSeconds: _showTimeSeconds,
                                 showImagePreviews: _showImagePreviews,
                                 showMarkdown: _showMarkdown,
+                                groupMessages: _groupMessages,
                               ),
                               const Divider(),
                               SwitchListTile(
@@ -310,6 +315,19 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                 onChanged: (value) {
                                   setState(() {
                                     _showMarkdown = value;
+                                  });
+                                },
+                              ),
+                              const Divider(),
+                              SwitchListTile(
+                                title: const Text('Group sequential messages'),
+                                subtitle: const Text(
+                                  'Join multiple messages from the same user at the same time',
+                                ),
+                                value: _groupMessages,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _groupMessages = value;
                                   });
                                 },
                               ),
@@ -405,23 +423,51 @@ final class _MessagePreview extends StatelessWidget {
     required this.showTimeSeconds,
     required this.showImagePreviews,
     required this.showMarkdown,
+    required this.groupMessages,
   });
 
   final bool showTimeSeconds;
   final bool showImagePreviews;
   final bool showMarkdown;
+  final bool groupMessages;
 
   @override
   Widget build(BuildContext context) {
+    final messageGrouper = locator<MessageGrouper>();
+    final messageTime = DateTime.now();
+    final messages = [
+      ChatMessage(
+        from: 'User1',
+        content: '**Markdown** is `cool`! _Italic_ and ~~strike~~ work too.',
+        date: messageTime,
+      ),
+      ChatMessage(
+        from: 'User1',
+        content: 'Hey, @User2 ! What do you think about grouping message',
+        date: messageTime,
+      ),
+      ChatMessage(
+        from: 'User2',
+        content:
+            'Check this image, @User1 : https://picsum.photos/seed/lispinto/200',
+        date: DateTime.now().add(const Duration(seconds: 14)),
+      ),
+    ];
     return ServiceLocatorScope(
-      key: ValueKey((showTimeSeconds, showImagePreviews, showMarkdown)),
+      key: ValueKey((
+        showTimeSeconds,
+        showImagePreviews,
+        showMarkdown,
+        groupMessages,
+      )),
       overrides: (locator) {
         locator.registerSingleton<UserConfiguration>(
           InMemoryUserConfiguration(
             showTimeSeconds: showTimeSeconds,
             showImagePreviews: showImagePreviews,
             showMarkdown: showMarkdown,
-            nickname: 'User 1',
+            groupMessages: groupMessages,
+            nickname: 'User1',
           ),
         );
       },
@@ -429,24 +475,9 @@ final class _MessagePreview extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            MessageBubble(
-              message: ChatMessage(
-                from: 'User 1',
-                content:
-                    '**Markdown** is `cool`! _Italic_ and ~~strike~~ work too.',
-                date: DateTime.now(),
-              ),
-              searchQuery: '',
-            ),
-            MessageBubble(
-              message: ChatMessage(
-                from: 'User 2',
-                content:
-                    'Check this image: https://picsum.photos/seed/lispinto/200',
-                date: DateTime.now(),
-              ),
-              searchQuery: '',
-            ),
+            for (final message
+                in groupMessages ? messageGrouper.group(messages) : messages)
+              MessageBubble(message: message, searchQuery: ''),
           ],
         ),
       ),

@@ -13,6 +13,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
     bool showImagePreviews = true,
     bool showEmptyChannels = false,
     bool showMarkdown = true,
+    bool groupMessages = true,
     String lastChannel = '#general',
     String imgbbApiKey = '',
   }) : _nickname = nickname,
@@ -24,6 +25,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
        _showImagePreviews = showImagePreviews,
        _showEmptyChannels = showEmptyChannels,
        _showMarkdown = showMarkdown,
+       _groupMessages = groupMessages,
        _lastChannel = lastChannel,
        _imgbbApiKey = imgbbApiKey;
 
@@ -36,6 +38,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
   bool _showImagePreviews;
   bool _showEmptyChannels;
   bool _showMarkdown;
+  bool _groupMessages;
   String _lastChannel;
   String _imgbbApiKey;
 
@@ -105,6 +108,12 @@ final class InMemoryUserConfiguration implements UserConfiguration {
 
   @override
   Future<void> setShowMarkdown(bool value) async => _showMarkdown = value;
+
+  @override
+  bool get groupMessages => _groupMessages;
+
+  @override
+  Future<void> setGroupMessages(bool value) async => _groupMessages = value;
 
   @override
   String get lastChannel => _lastChannel;

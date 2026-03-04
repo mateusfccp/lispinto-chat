@@ -65,6 +65,12 @@ abstract interface class UserConfiguration {
   /// Saves the show-markdown preference.
   Future<void> setShowMarkdown(bool value);
 
+  /// Whether to group sequential messages from the same user at the same time.
+  bool get groupMessages;
+
+  /// Saves the group-messages preference.
+  Future<void> setGroupMessages(bool value);
+
   /// Gets the last joined channel.
   String get lastChannel;
 
@@ -90,6 +96,7 @@ final class PersistentUserConfiguration implements UserConfiguration {
   static const String _keyShowImagePreviews = 'show_image_previews';
   static const String _keyShowEmptyChannels = 'show_empty_channels';
   static const String _keyShowMarkdown = 'show_markdown';
+  static const String _keyGroupMessages = 'group_messages';
   static const String _keyLastChannel = 'last_channel';
   static const String _keyImgbbApiKey = 'imgbb_api_key';
   static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
@@ -201,6 +208,16 @@ final class PersistentUserConfiguration implements UserConfiguration {
   @override
   Future<void> setShowMarkdown(bool value) async {
     await _preferences.setBool(_keyShowMarkdown, value);
+  }
+
+  @override
+  bool get groupMessages {
+    return _preferences.getBool(_keyGroupMessages) ?? true;
+  }
+
+  @override
+  Future<void> setGroupMessages(bool value) async {
+    await _preferences.setBool(_keyGroupMessages, value);
   }
 
   @override

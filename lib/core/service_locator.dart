@@ -5,6 +5,7 @@ import '../providers/chat_provider.dart';
 import '../services/image_upload_service.dart';
 import '../services/imgbb_upload_service.dart';
 import '../services/link_image_detector.dart';
+import 'message_grouper.dart';
 import 'user_configuration.dart';
 
 /// The global service locator instance.
@@ -20,6 +21,8 @@ Future<void> setupServiceLocator() async {
 
   final detector = LinkImageDetector();
   locator.registerSingleton<LinkImageDetector>(detector);
+
+  locator.registerSingleton<MessageGrouper>(const MessageGrouper());
 
   locator.registerSingleton<ChatProvider>(
     ChatProvider(config, appVersion: appVersion),

@@ -18,6 +18,7 @@ import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
+import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
@@ -689,6 +690,11 @@ class _MessageList extends StatelessWidget {
       listenable: provider,
       builder: (context, child) {
         final messages = provider.messages;
+        final configuration = locator<UserConfiguration>();
+        final displayedMessages = configuration.groupMessages
+            ? locator<MessageGrouper>().group(messages)
+            : messages;
+
         return Stack(
           children: [
             ListView.builder(
@@ -700,7 +706,7 @@ class _MessageList extends StatelessWidget {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              itemCount: messages.length + 1,
+              itemCount: displayedMessages.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return const PrototypeConstrainedBox.tight(
@@ -712,12 +718,14 @@ class _MessageList extends StatelessWidget {
                   );
                 }
 
-                final message = messages[messages.length - index];
+                final message =
+                    displayedMessages[displayedMessages.length - index];
                 bool showDateDivider = false;
-                if (index == messages.length) {
+                if (index == displayedMessages.length) {
                   showDateDivider = message.date != null;
                 } else {
-                  final previousMessage = messages[messages.length - index - 1];
+                  final previousMessage =
+                      displayedMessages[displayedMessages.length - index - 1];
                   showDateDivider = _shouldShowDateDivider(
                     previousMessage,
                     message,

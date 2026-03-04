@@ -137,7 +137,13 @@ Future<void> buildWeb(Directory outputDir) async {
 
 Future<void> buildIOS(Directory outputDir) async {
   stdout.writeln('Building iOS IPA...');
-  await _runFlutter(['build', 'ipa', '--release', '--export-method', 'development']);
+  await _runFlutter([
+    'build',
+    'ipa',
+    '--release',
+    '--export-method',
+    'development',
+  ]);
 
   final ipaDir = Directory('build/ios/ipa');
   if (ipaDir.existsSync()) {
@@ -204,10 +210,10 @@ exec "\$HERE/usr/bin/lispinto_chat" "\$@"
   if (!destination.existsSync()) destination.createSync(recursive: true);
 
   final appImagePath = join(destination.path, 'LispintoChat.AppImage');
-  final appImageResult = await Process.run(
-    'appimagetool',
-    [appDir.path, appImagePath],
-  );
+  final appImageResult = await Process.run('appimagetool', [
+    appDir.path,
+    appImagePath,
+  ]);
 
   if (appImageResult.exitCode != 0) {
     stdout.writeln('Error creating AppImage:');

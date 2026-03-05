@@ -141,6 +141,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
         if (!_isDirty) {
           Navigator.of(context).pop();
           return;

@@ -4,6 +4,7 @@ import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// The initial screen shown when the app starts.
 final class InitialScreen extends StatefulWidget {
@@ -71,91 +72,102 @@ final class _InitialScreenState extends State<InitialScreen> {
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
+          return CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextFormField(
-                            controller: _nicknameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nickname',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.person),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Spacer(),
+                            TextFormField(
+                              controller: _nicknameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Nickname',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.person),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a nickname';
+                                }
+                                return null;
+                              },
+                              textInputAction: TextInputAction.next,
                             ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a nickname';
-                              }
-                              return null;
-                            },
-                            textInputAction: TextInputAction.next,
-                          ),
-                          const Gap(16.0),
-                          TextFormField(
-                            controller: _serverUrlController,
-                            decoration: const InputDecoration(
-                              labelText: 'Server URL',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.link),
+                            const Gap(16.0),
+                            TextFormField(
+                              controller: _serverUrlController,
+                              decoration: const InputDecoration(
+                                labelText: 'Server URL',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.link),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a server URL';
+                                }
+                                if (!value.startsWith('ws://') &&
+                                    !value.startsWith('wss://')) {
+                                  return 'URL must start with ws:// or wss://';
+                                }
+                                return null;
+                              },
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (value) =>
+                                  _handleConnectPressed(),
                             ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a server URL';
-                              }
-                              if (!value.startsWith('ws://') &&
-                                  !value.startsWith('wss://')) {
-                                return 'URL must start with ws:// or wss://';
-                              }
-                              return null;
-                            },
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (value) =>
-                                _handleConnectPressed(),
-                          ),
-                          const Gap(32.0),
-                          ElevatedButton(
-                            onPressed: _isConnecting
-                                ? null
-                                : _handleConnectPressed,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16.0,
+                            const Gap(32.0),
+                            ElevatedButton(
+                              onPressed: _isConnecting
+                                  ? null
+                                  : _handleConnectPressed,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16.0,
+                                ),
+                              ),
+                              child: _isConnecting
+                                  ? const CircularProgressIndicator()
+                                  : const Text(
+                                      'Connect',
+                                      style: TextStyle(fontSize: 16.0),
+                                    ),
+                            ),
+                            const Spacer(),
+                            const Gap(16.0),
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  const InitialPrivacyPolicyRoute().go(context);
+                                },
+                                icon: const Icon(Icons.privacy_tip_outlined),
+                                label: const Text('Privacy Policy'),
                               ),
                             ),
-                            child: _isConnecting
-                                ? const CircularProgressIndicator()
-                                : const Text(
-                                    'Connect',
-                                    style: TextStyle(fontSize: 16.0),
-                                  ),
-                          ),
-                          const Gap(16.0),
-                          Center(
-                            child: TextButton.icon(
-                              onPressed: () {
-                                const InitialPrivacyPolicyRoute().go(context);
-                              },
-                              icon: const Icon(Icons.privacy_tip_outlined),
-                              label: const Text('Privacy Policy'),
+                            const Gap(4.0),
+                            Center(
+                              child: Text(
+                                'Version ${locator<PackageInfo>().version}',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: Colors.grey),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           );
         },
       ),

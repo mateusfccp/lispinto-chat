@@ -14,6 +14,7 @@ final locator = GetIt.instance;
 /// Sets up the service locator with all necessary dependencies.
 Future<void> setupServiceLocator() async {
   final packageInfo = await PackageInfo.fromPlatform();
+  locator.registerSingleton<PackageInfo>(packageInfo);
   final appVersion = packageInfo.version;
 
   final config = await UserConfiguration.load();

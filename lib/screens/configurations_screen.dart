@@ -10,6 +10,7 @@ import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/service_locator_scope.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 /// A screen that allows the user to configure their settings.
@@ -441,6 +442,17 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                   onTap: () {
                                     const LicensesRoute().push(context);
                                   },
+                                ),
+                                const Divider(),
+                                ListTile(
+                                  leading: const Icon(Icons.info),
+                                  title: const Text('Version'),
+                                  trailing: Text(
+                                    locator<PackageInfo>().version,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
                                 ),
                               ],
                             ),

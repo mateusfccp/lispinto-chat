@@ -521,7 +521,7 @@ class _ChatScreenState extends State<ChatScreen> {
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
+                Navigator.pop(context);
                 _openConfig();
               },
             ),
@@ -529,7 +529,7 @@ class _ChatScreenState extends State<ChatScreen> {
               leading: const Icon(Icons.privacy_tip),
               title: const Text('Privacy Policy'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
+                Navigator.pop(context);
                 const PrivacyPolicyRoute().go(context);
               },
             ),
@@ -537,7 +537,7 @@ class _ChatScreenState extends State<ChatScreen> {
               leading: const Icon(Icons.description),
               title: const Text('Licenses'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
+                Navigator.pop(context);
                 const LicensesRoute().go(context);
               },
             ),
@@ -545,7 +545,7 @@ class _ChatScreenState extends State<ChatScreen> {
               leading: const Icon(Icons.exit_to_app),
               title: const Text('Quit'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
+                Navigator.pop(context);
                 _quit();
               },
             ),

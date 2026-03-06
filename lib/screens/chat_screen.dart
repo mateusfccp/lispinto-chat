@@ -19,6 +19,7 @@ import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
+import 'package:lispinto_chat/widgets/join_channel_dialog.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
@@ -283,6 +284,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       onUserMenuTap: _showUserContextMenu,
                       onOpenConfig: _openConfig,
                       onQuit: _quit,
+                      onAddChannel: _showAddChannelDialog,
                     ),
                   ],
                 ),
@@ -320,6 +322,14 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
     }
+  }
+
+  /// Shows a dialog to join or create a channel.
+  Future<void> _showAddChannelDialog() {
+    return showDialog(
+      context: context,
+      builder: (context) => JoinChannelDialog(onJoin: _provider.joinChannel),
+    );
   }
 
   Widget _buildChatArea() {
@@ -1297,13 +1307,25 @@ final class _VerticalUserList extends StatefulWidget {
     required this.onUserMenuTap,
     required this.onOpenConfig,
     required this.onQuit,
+    required this.onAddChannel,
   });
 
   final ChatProvider provider;
+
+  /// Called when the user taps on a user's name.
   final ValueChanged<String> onUserTap;
+
+  /// Called when the user triggers the context menu for a user.
   final void Function(BuildContext, Offset, String) onUserMenuTap;
+
+  /// Called when the user opens the configurations screen.
   final VoidCallback onOpenConfig;
+
+  /// Called when the user quits the app.
   final VoidCallback onQuit;
+
+  /// Called when the user taps the add channel button.
+  final VoidCallback onAddChannel;
 
   @override
   State<_VerticalUserList> createState() => _VerticalUserListState();
@@ -1397,11 +1419,26 @@ class _VerticalUserListState extends State<_VerticalUserList> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 4.0,
+                ),
                 color: Colors.black12,
-                child: Text(
-                  'Channels (${channels.length})',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Row(
+                  children: [
+                    Text(
+                      'Channels (${channels.length})',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 24.0),
+                      onPressed: widget.onAddChannel,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Join channel',
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -1562,10 +1599,33 @@ class _MobileChannelSheet extends StatelessWidget {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Channels',
-                style: Theme.of(context).textTheme.titleLarge,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Channels',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (context) => JoinChannelDialog(
+                          onJoin: (channel) {
+                            provider.joinChannel(channel);
+                          },
+                        ),
+                      );
+                    },
+                    tooltip: 'Join channel',
+                  ),
+                ],
               ),
             ),
             Expanded(

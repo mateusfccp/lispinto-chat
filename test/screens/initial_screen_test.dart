@@ -1,17 +1,17 @@
 import 'dart:async';
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:logging/logging.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
-import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/screens/initial_screen.dart';
+import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mockito/mockito.dart';
-import 'dart:collection';
 
 class MockChatProvider extends ChangeNotifier implements ChatProvider {
   @override
@@ -24,9 +24,6 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
 
   @override
   bool get isConnecting => connectionState == ChatConnectionState.connecting;
-
-  @override
-  bool get isLoggedIn => connectionState == ChatConnectionState.loggedIn;
 
   Completer<void>? connectCompleter;
 

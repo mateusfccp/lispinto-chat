@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../providers/chat_provider.dart';
@@ -14,6 +15,9 @@ final locator = GetIt.instance;
 
 /// Sets up the service locator with all necessary dependencies.
 Future<void> setupServiceLocator() async {
+  final logger = Logger('LispintoChat');
+  locator.registerSingleton<Logger>(logger);
+
   final packageInfo = await PackageInfo.fromPlatform();
   locator.registerSingleton<PackageInfo>(packageInfo);
   final appVersion = packageInfo.version;

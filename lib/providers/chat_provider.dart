@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:logging/logging.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
@@ -23,8 +24,10 @@ class ChatProvider with ChangeNotifier {
     required WebSocketFactory websocketFactory,
     FlutterLocalNotificationsPlugin? localNotifications,
     ChatService? chatService,
+    Logger? logger,
   }) : _localNotifications =
            localNotifications ?? FlutterLocalNotificationsPlugin(),
+       _logger = logger ?? Logger('ChatProvider'),
        _chatService =
            chatService ??
            ChatService(
@@ -55,6 +58,8 @@ class ChatProvider with ChangeNotifier {
 
   /// The version of the app used for the User-Agent header.
   final String appVersion;
+
+  final Logger _logger;
 
   /// The chat service that handles WebSocket communication.
   ChatService _chatService;
@@ -284,6 +289,10 @@ class ChatProvider with ChangeNotifier {
     await configuration.setNickname(newNickname);
     await configuration.setServerUrl(newServerUrl);
 
+    _logger.info(
+      'Updating configuration: serverUrl=$newServerUrl, nickname=$newNickname',
+    );
+
     // If the server URL changed, or if we are not connected, we must create a new ChatService and reconnect entirely.
     if (newServerUrl != oldServerUrl || !_isConnected) {
       _chatService.dispose();
@@ -442,11 +451,17 @@ class ChatProvider with ChangeNotifier {
   void autoConnect() async {
     if (connectionState == ChatConnectionState.disconnected) {
       try {
+        _logger.info('Auto-connecting in background...');
         await connect();
-      } catch (exception) {
+      } catch (exception, stackTrace) {
         // Background connection errors are ignored here since the service
         // already manages its own notification or reconnection loops for silent
         // failures.
+        _logger.warning(
+          'Auto-connect failed silently: $exception',
+          exception,
+          stackTrace,
+        );
       }
     }
   }

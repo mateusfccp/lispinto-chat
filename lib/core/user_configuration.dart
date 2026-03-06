@@ -1,3 +1,4 @@
+import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Manages user configuration such as nickname and server URL.
@@ -105,8 +106,15 @@ final class PersistentUserConfiguration implements UserConfiguration {
 
   /// Loads the user configuration from shared preferences.
   static Future<PersistentUserConfiguration> load() async {
-    final preferences = await SharedPreferences.getInstance();
-    return PersistentUserConfiguration(preferences: preferences);
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      return PersistentUserConfiguration(preferences: preferences);
+    } catch (exception, stackTrace) {
+      Logger(
+        'UserConfiguration',
+      ).severe('Failed to load SharedPreferences', exception, stackTrace);
+      rethrow;
+    }
   }
 
   @override

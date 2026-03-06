@@ -2,11 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'core/logging.dart';
 import 'core/router.dart';
 import 'core/service_locator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  setupLogging();
   await setupServiceLocator();
 
   if (kIsWeb) {
@@ -16,7 +18,7 @@ void main() async {
   runApp(const App());
 }
 
-class App extends StatelessWidget {
+final class App extends StatelessWidget {
   const App({super.key});
 
   @override

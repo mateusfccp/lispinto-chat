@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:logging/logging.dart';
 import 'package:retry/retry.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -33,7 +34,8 @@ interface class ChatService {
     required this.nickname,
     this.initialChannel,
     required this.webSocketFactory,
-  });
+    Logger? logger,
+  }) : _logger = logger ?? Logger('ChatService');
 
   /// The WebSocket server URL to connect to.
   final Uri serverUrl;
@@ -46,6 +48,8 @@ interface class ChatService {
 
   /// A factory to create the [WebSocketChannel].
   final WebSocketFactory webSocketFactory;
+
+  final Logger _logger;
 
   /// A stream of incoming chat messages to be displayed in the UI.
   Stream<ChatMessage> get messages => _messageController.stream;
@@ -125,6 +129,7 @@ interface class ChatService {
     if (isLoggedIn) return;
     if (_loginCompleter != null) return _loginCompleter!.future;
 
+    _logger.info('Connecting to $serverUrl as $nickname...');
     disconnect();
     _loginCompleter = Completer<void>();
 
@@ -148,18 +153,35 @@ interface class ChatService {
       // We don't await channel.ready here because we want to start listening
       // immediately. The login completer will handle waiting for full success.
       channel.ready
-          .then((_) => _connectionStateController.add(true))
-          .catchError(_handleConnectionFailure);
+          .then((_) {
+            _logger.info('WebSocket channel ready.');
+            _connectionStateController.add(true);
+          })
+          .catchError((error, stackTrace) {
+            _logger.severe(
+              'WebSocket channel connection failed: $error',
+              error,
+              stackTrace,
+            );
+            _handleConnectionFailure(error);
+          });
 
       _subscription = channel.stream.listen(
         (data) => _handleIncomingData(data.toString()),
-        onDone: () => _handleConnectionFailure(Exception('Connection closed')),
-        onError: _handleConnectionFailure,
+        onDone: () {
+          _logger.warning('WebSocket connection closed.');
+          _handleConnectionFailure(Exception('Connection closed'));
+        },
+        onError: (error, stackTrace) {
+          _logger.severe('WebSocket stream error: $error', error, stackTrace);
+          _handleConnectionFailure(error);
+        },
       );
 
       return _loginCompleter!.future
           .then((_) => _loginCompleter = null)
-          .catchError((exception) {
+          .catchError((exception, stackTrace) {
+            _logger.severe('Login completer error', exception, stackTrace);
             _loginCompleter = null;
             throw exception;
           });
@@ -206,6 +228,7 @@ interface class ChatService {
       if (line.isEmpty) continue;
 
       if (!_loggedIn && line.contains('> Type your username:')) {
+        _logger.info('Successfully logged in as $nickname.');
         channel.sink.add(nickname);
         _loggedIn = true;
         if (_loginCompleter?.isCompleted == false) {
@@ -443,16 +466,29 @@ interface class ChatService {
   Future<void> _reconnect() async {
     if (_isReconnecting) return;
     _isReconnecting = true;
+    _logger.warning(
+      'Lost connection. Attempting to reconnect (max 3 times)...',
+    );
 
+    const r = RetryOptions(maxAttempts: 3);
     try {
-      await retry(() async {
-        if (_loggedIn) return;
-        await connect();
-        if (!_loggedIn) {
-          throw Exception('Failed to connect or log in');
-        }
-      }, retryIf: (e) => !_loggedIn);
-    } catch (e) {
+      await r.retry(
+        () async {
+          _logger.info('Attempting to reconnect...');
+          if (_loggedIn) return;
+          await connect();
+          if (!_loggedIn) {
+            throw Exception('Failed to connect or log in');
+          }
+          _logger.info('Reconnected successfully.');
+        },
+        retryIf: (e) {
+          _logger.warning('Reconnection attempt failed: $e');
+          return !_loggedIn;
+        },
+      );
+    } catch (exception, stackTrace) {
+      _logger.severe('Reconnection failed completely', exception, stackTrace);
       _loggedIn = false;
       _notificationsController.add(
         ChatMessage(

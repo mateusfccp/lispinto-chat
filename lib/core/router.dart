@@ -8,6 +8,7 @@ import 'package:lispinto_chat/screens/configurations_screen.dart';
 import 'package:lispinto_chat/screens/initial_screen.dart';
 import 'package:lispinto_chat/screens/licenses_screen.dart';
 import 'package:lispinto_chat/screens/privacy_policy_screen.dart';
+import 'package:logging/logging.dart';
 
 part 'router.g.dart';
 
@@ -19,17 +20,20 @@ final router = GoRouter(
   redirect: (context, state) {
     final config = locator<UserConfiguration>();
     final provider = locator<ChatProvider>();
+    final logger = locator<Logger>();
     final isAtInitial = state.uri.path == '/';
     final isAtChat = state.uri.path.startsWith('/chat');
 
     // 1. Initial Load / Auto-Connect
     if (isAtInitial && config.autoConnect && config.hasNickname) {
+      logger.info('Redirecting to /chat (Auto-Connect enabled)');
       // The ChatProvider handles auto-connecting internally on initialization.
       return '/chat';
     }
 
     // 2. Logged in state -> Navigate to Chat
     if (isAtInitial && provider.isConnected) {
+      logger.info('Redirecting to /chat (User is already connected)');
       return '/chat';
     }
 
@@ -38,6 +42,7 @@ final router = GoRouter(
       if (provider.isConnecting) {
         return null;
       } else {
+        logger.info('Redirecting to / (User disconnected)');
         return '/';
       }
     }

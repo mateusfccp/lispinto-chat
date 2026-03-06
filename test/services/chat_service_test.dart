@@ -185,7 +185,7 @@ void main() {
         // Simulate login
         serverStream.add('|12:00:00| [@server]: > Type your username:');
         async.flushMicrotasks();
-        
+
         // Wait for login to be processed (sets _loggedIn = true)
         async.elapse(const Duration(milliseconds: 100));
         expect(failingService.isLoggedIn, isTrue);
@@ -196,13 +196,13 @@ void main() {
 
         // Now _reconnect should be running.
         // It will call connect() multiple times.
-        
+
         // Advance time significantly to allow all retries to happen.
         async.elapse(const Duration(minutes: 10));
-        
-        // connectAttempts should be 1 (initial) + 8 (retries) = 9
-        expect(connectAttempts, 9);
-        
+
+        // connectAttempts should be 1 (initial) + 3 (retries) = 4
+        expect(connectAttempts, 4);
+
         // Final state should be disconnected
         expect(isConnected, isFalse);
         expect(failingService.isLoggedIn, isFalse);

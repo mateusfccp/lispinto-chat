@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -45,7 +46,6 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
 
   @override
   void autoConnect() {}
-
 
   @override
   UnmodifiableListView<ChatMessage> get messages => UnmodifiableListView([]);
@@ -110,10 +110,11 @@ void main() {
     await locator.reset();
     final config = await UserConfiguration.load();
     locator.registerSingleton<UserConfiguration>(config);
-    
+
     mockProvider = MockChatProvider();
     locator.registerSingleton<ChatProvider>(mockProvider);
-    
+    locator.registerSingleton<Logger>(Logger('Test'));
+
     locator.registerSingleton<PackageInfo>(
       PackageInfo(
         appName: 'Lispinto Chat',
@@ -139,7 +140,7 @@ void main() {
     expect(find.text('Connect'), findsOneWidget);
     expect(find.text('Privacy Policy'), findsOneWidget);
     expect(find.text('Version 1.0.0'), findsOneWidget);
-    
+
     // Check for CustomScrollView and SliverFillRemaining
     expect(find.byType(CustomScrollView), findsOneWidget);
     expect(find.byType(SliverFillRemaining), findsOneWidget);
@@ -150,7 +151,9 @@ void main() {
     });
   });
 
-  testWidgets('InitialScreen shows loading state when connecting', (WidgetTester tester) async {
+  testWidgets('InitialScreen shows loading state when connecting', (
+    WidgetTester tester,
+  ) async {
     mockProvider.connectCompleter = Completer<void>();
 
     await tester.pumpWidget(const MaterialApp(home: InitialScreen()));
@@ -162,15 +165,20 @@ void main() {
     // Click connect
     await tester.tap(find.text('Connect'));
     await tester.pump(); // Start navigation/logic
-    await tester.pump(); // Second pump for providers to notify and UI to rebuild
+    await tester
+        .pump(); // Second pump for providers to notify and UI to rebuild
 
     // Verify loading state
     expect(find.text('Connecting'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    
+
     // Verify fields are disabled
-    final nicknameField = tester.widget<TextFormField>(find.byType(TextFormField).first);
-    final serverUrlField = tester.widget<TextFormField>(find.byType(TextFormField).last);
+    final nicknameField = tester.widget<TextFormField>(
+      find.byType(TextFormField).first,
+    );
+    final serverUrlField = tester.widget<TextFormField>(
+      find.byType(TextFormField).last,
+    );
     expect(nicknameField.enabled, isFalse);
     expect(serverUrlField.enabled, isFalse);
 

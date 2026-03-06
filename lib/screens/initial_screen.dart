@@ -5,6 +5,7 @@ import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// The initial screen shown when the app starts.
@@ -26,12 +27,14 @@ final class _InitialScreenState extends State<InitialScreen> {
 
   late final UserConfiguration _configuration;
   late final ChatProvider _chatProvider;
+  late final Logger _logger;
 
   @override
   void initState() {
     super.initState();
     _configuration = locator<UserConfiguration>();
     _chatProvider = locator<ChatProvider>();
+    _logger = locator<Logger>();
 
     _nicknameController = TextEditingController(text: _configuration.nickname);
     _serverUrlController = TextEditingController(
@@ -48,11 +51,15 @@ final class _InitialScreenState extends State<InitialScreen> {
 
   Future<void> _connectAndNavigate() async {
     try {
+      _logger.info('Initiating explicit connection from InitialScreen...');
       // Connect explicitly now. This will wait for full login.
       await _chatProvider.connect();
 
       if (mounted) {
         if (!_chatProvider.isConnected) {
+          _logger.warning(
+            'Failed to connect: Provider not connected after explicitly awaiting connection.',
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to connect. Please check your settings.'),
@@ -60,12 +67,15 @@ final class _InitialScreenState extends State<InitialScreen> {
           );
         }
       }
-    } catch (e) {
+    } catch (exception, stackTrace) {
+      _logger.severe(
+        'Explicit connection error: $exception',
+        exception,
+        stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Connection error: ${e.toString()}'),
-          ),
+          SnackBar(content: Text('Connection error: ${exception.toString()}')),
         );
       }
     }
@@ -184,9 +194,13 @@ final class _InitialScreenState extends State<InitialScreen> {
                                 Center(
                                   child: TextButton.icon(
                                     onPressed: () {
-                                      const InitialPrivacyPolicyRoute().go(context);
+                                      const InitialPrivacyPolicyRoute().go(
+                                        context,
+                                      );
                                     },
-                                    icon: const Icon(Icons.privacy_tip_outlined),
+                                    icon: const Icon(
+                                      Icons.privacy_tip_outlined,
+                                    ),
                                     label: const Text('Privacy Policy'),
                                   ),
                                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:gap/gap.dart';
 import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
@@ -357,11 +358,11 @@ final class _ImageGallery extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       child: SizedBox(
-        height: 120,
+        height: 120.0,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: imageTypes.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 8.0),
+          separatorBuilder: (context, index) => const Gap(8.0),
           itemBuilder: (context, index) {
             final imageType = imageTypes[index];
             return MouseRegion(

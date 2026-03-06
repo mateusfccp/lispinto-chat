@@ -493,9 +493,9 @@ final class _ConfigurationSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
+      elevation: 0.0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.0),
         side: BorderSide(color: Colors.grey.shade300),
       ),
       child: Padding(
@@ -510,7 +510,7 @@ final class _ConfigurationSection extends StatelessWidget {
               ),
               child: DefaultTextStyle(
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 16.0,
                   fontWeight: FontWeight.bold,
                 ),
                 child: title,

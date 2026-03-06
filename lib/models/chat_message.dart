@@ -1,5 +1,9 @@
+import 'package:logging/logging.dart';
+
 /// Represents a single chat message.
 final class ChatMessage {
+  static final _logger = Logger('ChatMessage');
+
   /// The date and time when the message was sent.
   ///
   /// This may be null for messages that don't include a timestamp.
@@ -33,16 +37,36 @@ final class ChatMessage {
 
   /// Factory constructor to create a [ChatMessage] from a parsed regex match.
   factory ChatMessage.fromParsed(List<String?> match) {
-    // Match structure: [fullMatch, date, timeHM, timeS, from, content]
     final [fullMatch, date, timeHM, timeS, from, content] = match;
 
-    if (date != null && timeHM != null && timeS != null) {
-      final dateTimeString = '$date $timeHM:$timeS';
-      final parsedDate = DateTime.parse(dateTimeString);
+    if (from == null) {
+      _logger.severe(
+        'Parsed message is missing the sender (from) field. Full match: $fullMatch',
+      );
+      throw ArgumentError('Parsed message is missing the sender (from) field.');
+    }
 
-      return ChatMessage(date: parsedDate, from: from!, content: content!);
+    if (content == null) {
+      _logger.severe(
+        'Parsed message is missing the content field. Full match: $fullMatch',
+      );
+      throw ArgumentError('Parsed message is missing the content field.');
+    }
+
+    if (timeHM != null && timeS != null) {
+      final now = DateTime.now();
+      final dateString =
+          date ??
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      try {
+        final dateTimeString = '$dateString $timeHM:$timeS';
+        final parsedDate = DateTime.parse(dateTimeString);
+        return ChatMessage(date: parsedDate, from: from, content: content);
+      } catch (_) {
+        return ChatMessage(date: now, from: from, content: content);
+      }
     } else {
-      return ChatMessage(date: DateTime.now(), from: from!, content: content!);
+      return ChatMessage(date: DateTime.now(), from: from, content: content);
     }
   }
 }

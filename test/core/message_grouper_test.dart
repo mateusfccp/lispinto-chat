@@ -3,107 +3,68 @@ import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 
 void main() {
+  const grouper = MessageGrouper();
+
   group('MessageGrouper', () {
-    const grouper = MessageGrouper();
-    final now = DateTime(2024, 1, 1, 10, 0, 0);
-    final sameSecond = DateTime(2024, 1, 1, 10, 0, 0, 500);
-    final nextSecond = DateTime(2024, 1, 1, 10, 0, 1, 0);
+    test('returns empty list for empty input', () {
+      expect(grouper.group([]), []);
+    });
 
-    test('groups messages from same user at same second', () {
-      final messages = [
-        ChatMessage(from: 'user1', content: 'msg1', date: now),
-        ChatMessage(from: 'user1', content: 'msg2', date: sameSecond),
-        ChatMessage(from: 'user2', content: 'msg3', date: now),
-      ];
-
-      final grouped = grouper.group(messages);
-
-      expect(grouped.length, 2);
-      expect(grouped[0].from, 'user1');
-      expect(grouped[0].content, 'msg1\nmsg2');
-      expect(grouped[1].from, 'user2');
-      expect(grouped[1].content, 'msg3');
+    test('returns single message as is', () {
+      final message = ChatMessage(from: 'alice', content: 'hello');
+      expect(grouper.group([message]), [message]);
     });
 
     test('does not group messages from different users', () {
-      final messages = [
-        ChatMessage(from: 'user1', content: 'msg1', date: now),
-        ChatMessage(from: 'user2', content: 'msg2', date: now),
-      ];
+      final now = DateTime.now();
+      final m1 = ChatMessage(date: now, from: 'alice', content: 'hello');
+      final m2 = ChatMessage(date: now, from: 'bob', content: 'hi');
 
-      final grouped = grouper.group(messages);
-
-      expect(grouped.length, 2);
-      expect(grouped[0].from, 'user1');
-      expect(grouped[1].from, 'user2');
+      final result = grouper.group([m1, m2]);
+      expect(result.length, 2);
+      expect(result[0].from, 'alice');
+      expect(result[1].from, 'bob');
     });
 
-    test('does not group messages with different seconds', () {
-      final messages = [
-        ChatMessage(from: 'user1', content: 'msg1', date: now),
-        ChatMessage(from: 'user1', content: 'msg2', date: nextSecond),
-      ];
+    test('does not group messages from same user with different times', () {
+      final now = DateTime.now();
+      final later = now.add(const Duration(seconds: 1));
+      final m1 = ChatMessage(date: now, from: 'alice', content: 'hello');
+      final m2 = ChatMessage(date: later, from: 'alice', content: 'world');
 
-      final grouped = grouper.group(messages);
-
-      expect(grouped.length, 2);
-      expect(grouped[0].content, 'msg1');
-      expect(grouped[1].content, 'msg2');
+      final result = grouper.group([m1, m2]);
+      expect(result.length, 2);
+      expect(result[0].content, 'hello');
+      expect(result[1].content, 'world');
     });
 
-    test('does not group messages without dates', () {
-      final messages = [
-        ChatMessage(from: 'user1', content: 'msg1', date: null),
-        ChatMessage(from: 'user1', content: 'msg2', date: null),
-      ];
+    test('groups messages from same user at the exact same time', () {
+      final now = DateTime(2026, 3, 6, 18, 0, 0);
+      final m1 = ChatMessage(date: now, from: 'alice', content: 'hello');
+      final m2 = ChatMessage(date: now, from: 'alice', content: 'world');
 
-      final grouped = grouper.group(messages);
-
-      expect(grouped.length, 2);
+      final result = grouper.group([m1, m2]);
+      expect(result.length, 1);
+      expect(result[0].from, 'alice');
+      expect(result[0].content, 'hello\nworld');
+      expect(result[0].date, now);
     });
 
-    test('handles empty list', () {
-      expect(grouper.group([]), isEmpty);
-    });
+    test('groups multiple sequences of messages', () {
+      final now = DateTime(2026, 3, 6, 18, 0, 0);
+      final later = now.add(const Duration(seconds: 1));
+      
+      final m1 = ChatMessage(date: now, from: 'alice', content: 'a1');
+      final m2 = ChatMessage(date: now, from: 'alice', content: 'a2');
+      final m3 = ChatMessage(date: now, from: 'bob', content: 'b1');
+      final m4 = ChatMessage(date: later, from: 'bob', content: 'b2');
+      final m5 = ChatMessage(date: later, from: 'bob', content: 'b3');
 
-    test('groups three sequential messages', () {
-      final messages = [
-        ChatMessage(from: 'user1', content: '1', date: now),
-        ChatMessage(from: 'user1', content: '2', date: now),
-        ChatMessage(from: 'user1', content: '3', date: now),
-      ];
-
-      final grouped = grouper.group(messages);
-
-      expect(grouped.length, 1);
-      expect(grouped[0].content, '1\n2\n3');
-    });
-
-    group('canGroup', () {
-      test('returns true for same sender and same second', () {
-        final a = ChatMessage(from: 'user1', content: 'a', date: now);
-        final b = ChatMessage(from: 'user1', content: 'b', date: sameSecond);
-        expect(grouper.canGroup(a, b), isTrue);
-      });
-
-      test('returns false for different senders', () {
-        final a = ChatMessage(from: 'user1', content: 'a', date: now);
-        final b = ChatMessage(from: 'user2', content: 'b', date: now);
-        expect(grouper.canGroup(a, b), isFalse);
-      });
-
-      test('returns false for different seconds', () {
-        final a = ChatMessage(from: 'user1', content: 'a', date: now);
-        final b = ChatMessage(from: 'user1', content: 'b', date: nextSecond);
-        expect(grouper.canGroup(a, b), isFalse);
-      });
-
-      test('returns false if date is null', () {
-        final a = ChatMessage(from: 'user1', content: 'a', date: null);
-        final b = ChatMessage(from: 'user1', content: 'b', date: now);
-        expect(grouper.canGroup(a, b), isFalse);
-        expect(grouper.canGroup(b, a), isFalse);
-      });
+      final result = grouper.group([m1, m2, m3, m4, m5]);
+      expect(result.length, 3);
+      expect(result[0].content, 'a1\na2');
+      expect(result[1].content, 'b1');
+      expect(result[2].content, 'b2\nb3');
     });
   });
 }

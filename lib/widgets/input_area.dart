@@ -195,6 +195,7 @@ class _InputAreaState extends State<InputArea> {
         builder: (context, child) {
           final sendButton = IconButton(
             icon: const Icon(Icons.send),
+            tooltip: 'Send message',
             onPressed: (widget.provider.isConnected && !_isUploading)
                 ? widget.onSend
                 : null,
@@ -218,6 +219,7 @@ class _InputAreaState extends State<InputArea> {
                   prototype: sendButton,
                   child: PopupMenuButton<_AttachmentOption>(
                     icon: const Icon(Icons.add),
+                    tooltip: 'Add attachment',
                     onOpened: (widget.provider.isConnected && !_isUploading)
                         ? null
                         : () => Navigator.of(context).pop(),

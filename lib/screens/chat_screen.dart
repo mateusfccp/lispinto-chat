@@ -54,6 +54,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _searchDebounce;
 
   final List<NotificationItem> _activeNotifications = [];
+  final Map<String, Timer> _notificationTimers = {};
   int _notificationCounter = 0;
   _MobileDrawerType _mobileDrawerType = _MobileDrawerType.users;
 
@@ -82,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _activeNotifications.add(item);
       listKey.currentState?.insertItem(_activeNotifications.length - 1);
 
-      Timer(const Duration(seconds: 3), () {
+      _notificationTimers[id] = Timer(const Duration(seconds: 3), () {
         _removeNotification(id);
       });
     });
@@ -102,6 +103,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _removeNotification(String id) {
     if (!mounted) return;
+    _notificationTimers[id]?.cancel();
+    _notificationTimers.remove(id);
     final index = _activeNotifications.indexWhere((n) => n.id == id);
     if (index == -1) return;
 
@@ -162,6 +165,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    for (final timer in _notificationTimers.values) {
+      timer.cancel();
+    }
+    _notificationTimers.clear();
     _searchDebounce?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();

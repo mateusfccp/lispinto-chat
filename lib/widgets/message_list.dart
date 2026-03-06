@@ -247,31 +247,35 @@ final class _NotificationPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      borderRadius: BorderRadius.circular(32.0),
-      child: InkWell(
-        onTap: onTap,
+    return Semantics(
+      label: 'Notification',
+      container: true,
+      child: Material(
         borderRadius: BorderRadius.circular(32.0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.inversePrimary,
-            borderRadius: BorderRadius.circular(32.0),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 4.0,
-                offset: Offset(0.0, 2.0),
-              ),
-            ],
-          ),
-          child: DefaultTextStyle.merge(
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(32.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.inversePrimary,
+              borderRadius: BorderRadius.circular(32.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4.0,
+                  offset: Offset(0.0, 2.0),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
-            child: text,
+            child: DefaultTextStyle.merge(
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+              child: text,
+            ),
           ),
         ),
       ),

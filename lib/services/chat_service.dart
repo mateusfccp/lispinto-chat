@@ -67,6 +67,8 @@ interface class ChatService {
   Stream<Map<String, int>> get channels => _channelsController.stream;
   final _channelsController = StreamController<Map<String, int>>.broadcast();
 
+  bool _isDisposed = false;
+
   /// A stream of the current connection state.
   ///
   /// True if connected, false if disconnected. The UI can listen to this stream
@@ -126,6 +128,7 @@ interface class ChatService {
   /// If already connected, it will first disconnect and then reconnect.
   /// [mockChannel] can be provided for testing purposes.
   Future<void> connect({WebSocketChannel? mockChannel}) async {
+    if (_isDisposed) return;
     if (isLoggedIn) return;
     if (_loginCompleter != null) return _loginCompleter!.future;
 
@@ -220,6 +223,7 @@ interface class ChatService {
   }
 
   void _handleIncomingData(String data) {
+    if (_isDisposed) return;
     final channel = _channel;
     if (channel == null) return;
 
@@ -421,6 +425,7 @@ interface class ChatService {
   }
 
   void _startKeepAlive() {
+    if (_isDisposed) return;
     _keepAliveTimer?.cancel();
     _keepAliveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       requestChannelsList();
@@ -442,6 +447,7 @@ interface class ChatService {
     _loggedIn = false;
     _currentChannels.clear();
     _keepAliveTimer?.cancel();
+    _keepAliveTimer = null;
     _subscription?.cancel();
     try {
       _channel?.sink.close();
@@ -506,6 +512,7 @@ interface class ChatService {
 
   /// Cleans up all resources used by the service.
   void dispose() {
+    _isDisposed = true;
     disconnect();
     _messageController.close();
     _notificationsController.close();

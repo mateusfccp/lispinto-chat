@@ -36,6 +36,7 @@ class SearchInput extends StatelessWidget {
     final iconButton = IconButton(
       icon: const Icon(Icons.search),
       onPressed: onToggleSearch,
+      tooltip: isSearchActive ? 'Close search' : 'Search messages',
     );
 
     return Align(

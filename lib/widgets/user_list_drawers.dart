@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/responsive.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 
@@ -102,11 +103,14 @@ class _VerticalUserListState extends State<VerticalUserList> {
                 color: Colors.black12,
                 child: Row(
                   children: [
-                    Text(
-                      'Online Users (${users.length})',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    Expanded(
+                      child: Text(
+                        'Online Users (${users.length})',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const Spacer(),
+                    const Gap(8.0),
                     ConnectionStatusIndicator(
                       state: widget.provider.connectionState,
                       shouldShowLabel: isDesktop,

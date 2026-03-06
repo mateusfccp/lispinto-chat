@@ -13,7 +13,8 @@ import 'package:logging/logging.dart';
 part 'router.g.dart';
 
 /// The global router instance for the application.
-final router = GoRouter(
+/// Creates a fresh [GoRouter] instance.
+GoRouter createRouter() => GoRouter(
   routes: $appRoutes,
   initialLocation: '/',
   refreshListenable: locator<ChatProvider>(),

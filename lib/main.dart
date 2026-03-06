@@ -19,8 +19,15 @@ void main() async {
   runApp(const App());
 }
 
-final class App extends StatelessWidget {
+final class App extends StatefulWidget {
   const App({super.key});
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  late final _router = createRouter();
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +43,7 @@ final class App extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.dark,
-      routerConfig: router,
+      routerConfig: _router,
     );
   }
 }

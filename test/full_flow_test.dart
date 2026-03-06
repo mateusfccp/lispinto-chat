@@ -60,7 +60,8 @@ class MockWebSocketFactory extends Fake implements WebSocketFactory {
 
 class MockImageUploadService extends Fake implements ImageUploadService {
   @override
-  Future<String> uploadImage(Uint8List bytes) async => 'https://example.com/image.png';
+  Future<String> uploadImage(Uint8List bytes) async =>
+      'https://example.com/image.png';
 }
 
 class MockFlutterLocalNotificationsPlugin extends Fake
@@ -90,10 +91,10 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       webSocketFactory = MockWebSocketFactory();
-      
+
       final prefs = await SharedPreferences.getInstance();
       final config = PersistentUserConfiguration(preferences: prefs);
-      
+
       await locator.reset();
 
       locator.registerSingleton<Logger>(Logger('Test'));
@@ -102,7 +103,7 @@ void main() {
       locator.registerSingleton<MessageGrouper>(const MessageGrouper());
       locator.registerSingleton<WebSocketFactory>(webSocketFactory);
       locator.registerSingleton<ImageUploadService>(MockImageUploadService());
-      
+
       locator.registerSingleton<ChatProvider>(
         ChatProvider(
           config,
@@ -111,7 +112,7 @@ void main() {
           localNotifications: MockFlutterLocalNotificationsPlugin(),
         ),
       );
-      
+
       locator.registerSingleton<PackageInfo>(
         PackageInfo(
           appName: 'Test',
@@ -128,35 +129,37 @@ void main() {
 
     testWidgets('Login, Join and Message Flow', (tester) async {
       final provider = locator<ChatProvider>();
-      
+
       try {
         await tester.pumpWidget(const App());
         await tester.pumpAndSettle();
 
         // 1. Verify Initial Screen
         expect(find.text('Nickname'), findsWidgets);
-        
+
         // 2. Enter nickname and connect
         await tester.enterText(find.byType(TextFormField).first, 'tester');
         await tester.tap(find.text('Connect'));
-        await tester.pump(); 
+        await tester.pump();
 
         // Simulate server handshake
         final channel = webSocketFactory.lastChannel;
         expect(channel, isNotNull);
-        
+
         channel!.feed('> Type your username:');
-        
+
         // Feed server messages to transition to loggedIn and populate channels
-        channel.feed('|18:00:00| [@server]: The user @tester joined to the party!');
+        channel.feed(
+          '|18:00:00| [@server]: The user @tester joined to the party!',
+        );
         channel.feed('|18:00:01| [@server]: #general: 1 user');
-        
+
         // Wait for navigation and state updates
-        for(int i=0; i<5; i++) {
+        for (int i = 0; i < 5; i++) {
           await tester.pump(const Duration(milliseconds: 200));
         }
         await tester.pumpAndSettle();
-        
+
         // 3. Verify we are in ChatScreen
         expect(find.byType(ChatScreen), findsOneWidget);
         expect(provider.isConnected, isTrue);
@@ -165,27 +168,27 @@ void main() {
         // 4. Send message
         final inputArea = find.byType(InputArea);
         expect(inputArea, findsOneWidget);
-        
+
         final inputFinder = find.descendant(
           of: inputArea,
           matching: find.byType(TextField),
         );
         expect(inputFinder, findsOneWidget);
-        
+
         final testMessage = 'hello unique message 123456';
         await tester.enterText(inputFinder, testMessage);
         await tester.pump();
-        
+
         final sendButton = find.byTooltip('Send message').last;
         expect(sendButton, findsOneWidget);
-        
+
         await tester.tap(sendButton);
         await tester.pump(const Duration(milliseconds: 500));
         await tester.pumpAndSettle();
 
         // 5. Simulate server echoing our message
         channel.feed('|18:00:02| [@tester]: $testMessage');
-        
+
         await tester.pump(const Duration(milliseconds: 500));
         await tester.pumpAndSettle();
 

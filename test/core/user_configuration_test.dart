@@ -52,14 +52,17 @@ void main() {
       expect(prefs.getBool('auto_connect'), isTrue);
     });
 
-    test('hasNickname returns true only for non-empty trimmed nicknames', () async {
-      SharedPreferences.setMockInitialValues({'nickname': '  '});
-      var config = await UserConfiguration.load();
-      expect(config.hasNickname, isFalse);
+    test(
+      'hasNickname returns true only for non-empty trimmed nicknames',
+      () async {
+        SharedPreferences.setMockInitialValues({'nickname': '  '});
+        var config = await UserConfiguration.load();
+        expect(config.hasNickname, isFalse);
 
-      SharedPreferences.setMockInitialValues({'nickname': 'bob'});
-      config = await UserConfiguration.load();
-      expect(config.hasNickname, isTrue);
-    });
+        SharedPreferences.setMockInitialValues({'nickname': 'bob'});
+        config = await UserConfiguration.load();
+        expect(config.hasNickname, isTrue);
+      },
+    );
   });
 }

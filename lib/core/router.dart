@@ -12,45 +12,46 @@ import 'package:logging/logging.dart';
 
 part 'router.g.dart';
 
-/// The global router instance for the application.
-/// Creates a fresh [GoRouter] instance.
-GoRouter createRouter() => GoRouter(
-  routes: $appRoutes,
-  initialLocation: '/',
-  refreshListenable: locator<ChatProvider>(),
-  redirect: (context, state) {
-    final config = locator<UserConfiguration>();
-    final provider = locator<ChatProvider>();
-    final logger = locator<Logger>();
-    final isAtInitial = state.uri.path == '/';
-    final isAtChat = state.uri.path.startsWith('/chat');
+/// Creates the router for the application.
+GoRouter createRouter() {
+  return GoRouter(
+    routes: $appRoutes,
+    initialLocation: '/',
+    refreshListenable: locator<ChatProvider>(),
+    redirect: (context, state) {
+      final config = locator<UserConfiguration>();
+      final provider = locator<ChatProvider>();
+      final logger = locator<Logger>();
+      final isAtInitial = state.uri.path == '/';
+      final isAtChat = state.uri.path.startsWith('/chat');
 
-    // 1. Initial Load / Auto-Connect
-    if (isAtInitial && config.autoConnect && config.hasNickname) {
-      logger.info('Redirecting to /chat (Auto-Connect enabled)');
-      // The ChatProvider handles auto-connecting internally on initialization.
-      return '/chat';
-    }
-
-    // 2. Logged in state -> Navigate to Chat
-    if (isAtInitial && provider.isConnected) {
-      logger.info('Redirecting to /chat (User is already connected)');
-      return '/chat';
-    }
-
-    // 3. Logged out state -> Navigate to Initial
-    if (!provider.isConnected && isAtChat) {
-      if (provider.isConnecting) {
-        return null;
-      } else {
-        logger.info('Redirecting to / (User disconnected)');
-        return '/';
+      // 1. Initial Load / Auto-Connect
+      if (isAtInitial && config.autoConnect && config.hasNickname) {
+        logger.info('Redirecting to /chat (Auto-Connect enabled)');
+        // The ChatProvider handles auto-connecting internally on initialization.
+        return '/chat';
       }
-    }
 
-    return null;
-  },
-);
+      // 2. Logged in state -> Navigate to Chat
+      if (isAtInitial && provider.isConnected) {
+        logger.info('Redirecting to /chat (User is already connected)');
+        return '/chat';
+      }
+
+      // 3. Logged out state -> Navigate to Initial
+      if (!provider.isConnected && isAtChat) {
+        if (provider.isConnecting) {
+          return null;
+        } else {
+          logger.info('Redirecting to / (User disconnected)');
+          return '/';
+        }
+      }
+
+      return null;
+    },
+  );
+}
 
 /// The initial route of the application, shown at the root path '/'.
 @TypedGoRoute<InitialRoute>(

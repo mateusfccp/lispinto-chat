@@ -49,10 +49,9 @@ class SearchInput extends StatelessWidget {
         prototype: iconButton,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final width =
-                isSearchActive
-                    ? constraints.maxWidth
-                    : constraints.minWidth + (_borderWidth * 2.0);
+            final width = isSearchActive
+                ? constraints.maxWidth
+                : constraints.minWidth + (_borderWidth * 2.0);
 
             return AnimatedContainer(
               curve: Curves.easeInOut,

@@ -53,7 +53,7 @@ void main() {
     test('groups multiple sequences of messages', () {
       final now = DateTime(2026, 3, 6, 18, 0, 0);
       final later = now.add(const Duration(seconds: 1));
-      
+
       final m1 = ChatMessage(date: now, from: 'alice', content: 'a1');
       final m2 = ChatMessage(date: now, from: 'alice', content: 'a2');
       final m3 = ChatMessage(date: now, from: 'bob', content: 'b1');

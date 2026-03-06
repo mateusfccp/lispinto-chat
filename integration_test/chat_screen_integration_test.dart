@@ -1,17 +1,24 @@
-import 'package:flutter/services.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:lispinto_chat/screens/chat_screen.dart';
-import 'package:lispinto_chat/providers/chat_provider.dart';
-import 'package:lispinto_chat/core/user_configuration.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:mockito/mockito.dart';
-
+import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
-import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/screens/chat_screen.dart';
+import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:lispinto_chat/services/image_upload_service.dart';
+import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/websocket_factory.dart';
+import 'package:logging/logging.dart';
+import 'package:mockito/mockito.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockFlutterLocalNotificationsPlugin extends Mock
     implements FlutterLocalNotificationsPlugin {
@@ -27,8 +34,20 @@ class MockFlutterLocalNotificationsPlugin extends Mock
 }
 
 class MockChatService extends Mock implements ChatService {
+  final _connectionStateController = StreamController<bool>.broadcast();
+
+  MockChatService() {
+    _connectionStateController.add(true);
+  }
+
   @override
   Stream<ChatMessage> get messages => const Stream.empty();
+
+  @override
+  Stream<bool> get connectionState async* {
+    yield true;
+    yield* _connectionStateController.stream;
+  }
 
   @override
   Stream<ChatMessage> get notifications => const Stream.empty();
@@ -37,10 +56,30 @@ class MockChatService extends Mock implements ChatService {
   Stream<List<String>> get users => Stream.value(['alice']);
 
   @override
-  Stream<bool> get connectionState => Stream.value(true);
+  Stream<String> get nickChanges => const Stream.empty();
 
   @override
-  Stream<String> get nickChanges => const Stream.empty();
+  Stream<Map<String, int>> get channels => const Stream.empty();
+
+  @override
+  ChatConnectionState get state => ChatConnectionState.loggedIn;
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  bool get isLoggedIn => true;
+
+  @override
+  bool get isConnecting => false;
+}
+
+class MockWebSocketFactory extends Mock implements WebSocketFactory {}
+
+class MockImageUploadService extends Mock implements ImageUploadService {
+  @override
+  Future<String> uploadImage(Uint8List bytes) async =>
+      'http://example.com/image.png';
 }
 
 void main() {
@@ -66,33 +105,60 @@ void main() {
       final config = PersistentUserConfiguration(preferences: prefs);
       final mockNotifications = MockFlutterLocalNotificationsPlugin();
       final mockChatService = MockChatService();
+      final mockWebSocketFactory = MockWebSocketFactory();
 
       provider = ChatProvider(
         config,
         appVersion: 'test',
+        websocketFactory: mockWebSocketFactory,
         localNotifications: mockNotifications,
         chatService: mockChatService,
       );
 
-      locator.reset();
+      locator.pushNewScope();
       locator.registerSingleton<UserConfiguration>(config);
       locator.registerSingleton<ChatProvider>(provider);
+      locator.registerSingleton<Logger>(Logger('Test'));
+      locator.registerSingleton<PackageInfo>(
+        PackageInfo(
+          appName: 'Test',
+          packageName: 'test',
+          version: '1.0.0',
+          buildNumber: '1',
+        ),
+      );
+      locator.registerSingleton<LinkImageDetector>(LinkImageDetector());
+      locator.registerSingleton<MessageGrouper>(const MessageGrouper());
+      locator.registerSingleton<ImageUploadService>(MockImageUploadService());
+    });
+
+    tearDown(() {
+      locator.popScope();
     });
 
     testWidgets('preserves text selection when tapping a user to DM', (
       tester,
     ) async {
-      await tester.pumpWidget(const MaterialApp(home: ChatScreen()));
+      await tester.binding.setSurfaceSize(const Size(1024, 768));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1024, 768)),
+            child: const ChatScreen(),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final textFieldFinder = find.byWidgetPredicate(
         (widget) =>
             widget is TextField &&
             widget.decoration?.hintText == 'Type a message...',
+        skipOffstage: false,
       );
       expect(textFieldFinder, findsOneWidget);
 
-      final textField = tester.widget<TextField>(textFieldFinder);
+      final textField = tester.widget<TextField>(textFieldFinder.first);
       final controller = textField.controller!;
 
       controller.value = const TextEditingValue(
@@ -105,9 +171,10 @@ void main() {
       expect(controller.selection.baseOffset, 5);
       expect(controller.selection.extentOffset, 7);
 
-      expect(find.text('alice'), findsOneWidget);
+      final aliceFinder = find.text('alice', skipOffstage: false);
+      expect(aliceFinder, findsOneWidget);
 
-      await tester.tap(find.text('alice'));
+      await tester.tap(aliceFinder);
 
       await tester.pumpAndSettle();
 

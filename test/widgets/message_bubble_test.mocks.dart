@@ -5,11 +5,12 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:collection' as _i3;
-import 'dart:ui' as _i9;
+import 'dart:ui' as _i10;
 
 import 'package:lispinto_chat/core/user_configuration.dart' as _i2;
 import 'package:lispinto_chat/models/chat_message.dart' as _i8;
 import 'package:lispinto_chat/providers/chat_provider.dart' as _i6;
+import 'package:lispinto_chat/services/chat_service.dart' as _i9;
 import 'package:lispinto_chat/services/link_image_detector.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
@@ -146,6 +147,19 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
           as bool);
 
   @override
+  _i9.ChatConnectionState get connectionState =>
+      (super.noSuchMethod(
+            Invocation.getter(#connectionState),
+            returnValue: _i9.ChatConnectionState.disconnected,
+          )
+          as _i9.ChatConnectionState);
+
+  @override
+  bool get isConnecting =>
+      (super.noSuchMethod(Invocation.getter(#isConnecting), returnValue: false)
+          as bool);
+
+  @override
   String get activeChannel =>
       (super.noSuchMethod(
             Invocation.getter(#activeChannel),
@@ -248,8 +262,17 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
   );
 
   @override
-  void connect() => super.noSuchMethod(
-    Invocation.method(#connect, []),
+  _i5.Future<void> connect() =>
+      (super.noSuchMethod(
+            Invocation.method(#connect, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  void autoConnect() => super.noSuchMethod(
+    Invocation.method(#autoConnect, []),
     returnValueForMissingStub: null,
   );
 
@@ -266,13 +289,13 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
   );
 
   @override
-  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

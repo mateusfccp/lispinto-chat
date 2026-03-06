@@ -15,14 +15,33 @@ part 'router.g.dart';
 final router = GoRouter(
   routes: $appRoutes,
   initialLocation: '/',
+  refreshListenable: locator<ChatProvider>(),
   redirect: (context, state) {
-    if (state.uri.path == '/') {
-      final config = locator<UserConfiguration>();
-      if (config.autoConnect && config.hasNickname) {
-        locator<ChatProvider>().connect();
-        return '/chat';
+    final config = locator<UserConfiguration>();
+    final provider = locator<ChatProvider>();
+    final isAtInitial = state.uri.path == '/';
+    final isAtChat = state.uri.path.startsWith('/chat');
+
+    // 1. Initial Load / Auto-Connect
+    if (isAtInitial && config.autoConnect && config.hasNickname) {
+      // The ChatProvider handles auto-connecting internally on initialization.
+      return '/chat';
+    }
+
+    // 2. Logged in state -> Navigate to Chat
+    if (isAtInitial && provider.isConnected) {
+      return '/chat';
+    }
+
+    // 3. Logged out state -> Navigate to Initial
+    if (!provider.isConnected && isAtChat) {
+      if (provider.isConnecting) {
+        return null;
+      } else {
+        return '/';
       }
     }
+
     return null;
   },
 );

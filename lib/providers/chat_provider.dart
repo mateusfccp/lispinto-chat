@@ -7,8 +7,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
-import 'package:lispinto_chat/services/websocket_factory.dart';
 import 'package:lispinto_chat/services/web_notifications.dart';
+import 'package:lispinto_chat/services/websocket_factory.dart';
 
 /// A provider that manages chat state.
 ///
@@ -36,12 +36,16 @@ class ChatProvider with ChangeNotifier {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
         if (!_isConnected) {
-          _chatService.connect();
+          autoConnect();
         }
       },
     );
     _initializeNotifications();
     _initializeService();
+
+    if (configuration.autoConnect && configuration.hasNickname) {
+      autoConnect();
+    }
   }
 
   late final AppLifecycleListener _lifecycleListener;
@@ -79,6 +83,12 @@ class ChatProvider with ChangeNotifier {
   /// Whether the client is currently connected to the chat server.
   bool get isConnected => _isConnected;
   bool _isConnected = false;
+
+  /// The current connection state of the chat server.
+  ChatConnectionState get connectionState => _chatService.state;
+
+  /// Whether the client is currently in the process of connecting.
+  bool get isConnecting => _chatService.isConnecting;
 
   /// The currently active channel.
   String get activeChannel => _activeChannel;
@@ -424,6 +434,21 @@ class ChatProvider with ChangeNotifier {
     await _chatService.connect();
     _isConnected = _chatService.isConnected;
     notifyListeners();
+  }
+
+  /// Attempts to connect to the server without propagating errors upwards.
+  ///
+  /// Useful for background initialization and auto-reconnection.
+  void autoConnect() async {
+    if (connectionState == ChatConnectionState.disconnected) {
+      try {
+        await connect();
+      } catch (exception) {
+        // Background connection errors are ignored here since the service
+        // already manages its own notification or reconnection loops for silent
+        // failures.
+      }
+    }
   }
 
   /// Disconnects from the chat server explicitly.

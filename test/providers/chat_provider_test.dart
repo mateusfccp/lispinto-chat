@@ -7,6 +7,7 @@ import 'package:mockito/mockito.dart';
 
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/services/websocket_factory.dart';
 
 class MockFlutterLocalNotificationsPlugin extends Mock
     implements FlutterLocalNotificationsPlugin {
@@ -77,6 +78,7 @@ void main() {
       provider = ChatProvider(
         config,
         appVersion: "test",
+        websocketFactory: const DefaultWebSocketFactory('test'),
         localNotifications: mockNotifications,
         chatService: fakeChatService,
       );

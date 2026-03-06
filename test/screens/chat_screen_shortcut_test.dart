@@ -12,6 +12,7 @@ import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lispinto_chat/services/websocket_factory.dart';
 
 import 'chat_screen_shortcut_test.mocks.dart';
 
@@ -20,6 +21,7 @@ class FakeChatProvider extends ChatProvider {
     super.configuration, {
     required super.appVersion,
     super.localNotifications, // Accept the mock
+    super.websocketFactory = const DefaultWebSocketFactory('test'),
   });
 
   @override

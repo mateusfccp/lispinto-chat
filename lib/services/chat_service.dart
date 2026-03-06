@@ -7,6 +7,24 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'websocket_factory.dart';
 
+/// The possible connection states of the [ChatService].
+enum ChatConnectionState {
+  /// The client is not connected to the server.
+  disconnected,
+
+  /// The client is currently establishing a WebSocket connection.
+  connecting,
+
+  /// The connection is established, but the user is not yet logged in.
+  connected,
+
+  /// The user is successfully logged in to the chat server.
+  loggedIn,
+
+  /// The connection was lost, and the client is attempting to reconnect.
+  reconnecting,
+}
+
 /// A service that manages the server connection and messages processing.
 interface class ChatService {
   /// Creates a [ChatService].
@@ -67,11 +85,29 @@ interface class ChatService {
   bool _isReconnecting = false;
   Completer<void>? _loginCompleter;
 
+  /// The current connection state of the client.
+  ChatConnectionState get state {
+    if (_isReconnecting) return ChatConnectionState.reconnecting;
+    if (_loginCompleter != null) return ChatConnectionState.connecting;
+    if (_channel == null) return ChatConnectionState.disconnected;
+    if (_loggedIn) return ChatConnectionState.loggedIn;
+    return ChatConnectionState.connected;
+  }
+
   /// Whether the client is currently connected to the WebSocket server.
-  bool get isConnected => _channel != null;
+  bool get isConnected {
+    return state == ChatConnectionState.connected ||
+        state == ChatConnectionState.loggedIn;
+  }
 
   /// Whether the client is currently logged in to the chat server.
-  bool get isLoggedIn => _loggedIn;
+  bool get isLoggedIn => state == ChatConnectionState.loggedIn;
+
+  /// Whether the client is currently in the process of connecting or logging in.
+  bool get isConnecting {
+    return state == ChatConnectionState.connecting ||
+        state == ChatConnectionState.reconnecting;
+  }
 
   final List<String> _currentUsers = [];
 
@@ -86,6 +122,9 @@ interface class ChatService {
   /// If already connected, it will first disconnect and then reconnect.
   /// [mockChannel] can be provided for testing purposes.
   Future<void> connect({WebSocketChannel? mockChannel}) async {
+    if (isLoggedIn) return;
+    if (_loginCompleter != null) return _loginCompleter!.future;
+
     disconnect();
     _loginCompleter = Completer<void>();
 
@@ -109,46 +148,27 @@ interface class ChatService {
       // We don't await channel.ready here because we want to start listening
       // immediately. The login completer will handle waiting for full success.
       channel.ready
-          .then((_) {
-            _connectionStateController.add(true);
-          })
-          .catchError((error) {
-            if (!_isReconnecting) {
-              _handleDisconnect();
-            }
-            if (_loginCompleter?.isCompleted == false) {
-              _loginCompleter?.completeError(error);
-            }
-          });
+          .then((_) => _connectionStateController.add(true))
+          .catchError(_handleConnectionFailure);
 
       _subscription = channel.stream.listen(
-        (data) {
-          _handleIncomingData(data.toString());
-        },
-        onDone: () {
-          if (!_isReconnecting) {
-            _handleDisconnect();
-          }
-          if (_loginCompleter?.isCompleted == false) {
-            _loginCompleter?.completeError(Exception('Connection closed'));
-          }
-        },
-        onError: (error) {
-          if (!_isReconnecting) {
-            _handleDisconnect();
-          }
-          if (_loginCompleter?.isCompleted == false) {
-            _loginCompleter?.completeError(error);
-          }
-        },
+        (data) => _handleIncomingData(data.toString()),
+        onDone: () => _handleConnectionFailure(Exception('Connection closed')),
+        onError: _handleConnectionFailure,
       );
 
-      return _loginCompleter!.future;
+      return _loginCompleter!.future
+          .then((_) => _loginCompleter = null)
+          .catchError((exception) {
+            _loginCompleter = null;
+            throw exception;
+          });
     } catch (error) {
       _handleDisconnect();
       if (_loginCompleter?.isCompleted == false) {
         _loginCompleter?.completeError(error);
       }
+      _loginCompleter = null;
       rethrow;
     }
   }
@@ -188,7 +208,9 @@ interface class ChatService {
       if (!_loggedIn && line.contains('> Type your username:')) {
         channel.sink.add(nickname);
         _loggedIn = true;
-        _loginCompleter?.complete();
+        if (_loginCompleter?.isCompleted == false) {
+          _loginCompleter?.complete();
+        }
         channel.sink.add('/log :depth 100 :date-format date');
         _startKeepAlive();
         continue;
@@ -382,6 +404,14 @@ interface class ChatService {
     });
     _requestUserList(); // Initial fetch for users
     requestChannelsList(); // Initial fetch for channels
+  }
+
+  void _handleConnectionFailure(Object error) {
+    if (!_isReconnecting) _handleDisconnect();
+    if (_loginCompleter?.isCompleted == false) {
+      _loginCompleter?.completeError(error);
+    }
+    _loginCompleter = null;
   }
 
   void _handleDisconnect() {

@@ -993,6 +993,10 @@ class _InputAreaState extends State<_InputArea> {
                   prototype: sendButton,
                   child: PopupMenuButton<_AttachmentOption>(
                     icon: const Icon(Icons.add),
+                    onOpened: (widget.provider.isConnected && !_isUploading)
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    enabled: widget.provider.isConnected && !_isUploading,
                     onSelected: (value) {
                       if (value == .uploadPhoto) {
                         final imgbbApiKey = locator<UserConfiguration>()

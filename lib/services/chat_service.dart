@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:retry/retry.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'websocket_factory.dart';
@@ -12,8 +13,8 @@ interface class ChatService {
   ChatService({
     required this.serverUrl,
     required this.nickname,
-    required this.appVersion,
     this.initialChannel,
+    required this.webSocketFactory,
   });
 
   /// The WebSocket server URL to connect to.
@@ -22,11 +23,11 @@ interface class ChatService {
   /// The nickname to use when logging in to the chat server.
   final String nickname;
 
-  /// The version of the app, used for the User-Agent header.
-  final String appVersion;
-
   /// The initial channel to join on connection.
   final String? initialChannel;
+
+  /// A factory to create the [WebSocketChannel].
+  final WebSocketFactory webSocketFactory;
 
   /// A stream of incoming chat messages to be displayed in the UI.
   Stream<ChatMessage> get messages => _messageController.stream;
@@ -63,6 +64,14 @@ interface class ChatService {
   StreamSubscription? _subscription;
   Timer? _keepAliveTimer;
   bool _loggedIn = false;
+  bool _isReconnecting = false;
+  Completer<void>? _loginCompleter;
+
+  /// Whether the client is currently connected to the WebSocket server.
+  bool get isConnected => _channel != null;
+
+  /// Whether the client is currently logged in to the chat server.
+  bool get isLoggedIn => _loggedIn;
 
   final List<String> _currentUsers = [];
 
@@ -76,8 +85,9 @@ interface class ChatService {
   ///
   /// If already connected, it will first disconnect and then reconnect.
   /// [mockChannel] can be provided for testing purposes.
-  void connect({WebSocketChannel? mockChannel}) {
+  Future<void> connect({WebSocketChannel? mockChannel}) async {
     disconnect();
+    _loginCompleter = Completer<void>();
 
     try {
       var connectionUri = serverUrl;
@@ -94,23 +104,52 @@ interface class ChatService {
       }
 
       final channel = _channel =
-          mockChannel ?? createWebSocketChannel(connectionUri, appVersion);
+          mockChannel ?? webSocketFactory.create(connectionUri);
 
-      channel.ready.catchError((_) {
-        _handleDisconnect();
-      });
-
-      _connectionStateController.add(true);
+      // We don't await channel.ready here because we want to start listening
+      // immediately. The login completer will handle waiting for full success.
+      channel.ready
+          .then((_) {
+            _connectionStateController.add(true);
+          })
+          .catchError((error) {
+            if (!_isReconnecting) {
+              _handleDisconnect();
+            }
+            if (_loginCompleter?.isCompleted == false) {
+              _loginCompleter?.completeError(error);
+            }
+          });
 
       _subscription = channel.stream.listen(
         (data) {
           _handleIncomingData(data.toString());
         },
-        onDone: _handleDisconnect,
-        onError: (error) => _handleDisconnect(),
+        onDone: () {
+          if (!_isReconnecting) {
+            _handleDisconnect();
+          }
+          if (_loginCompleter?.isCompleted == false) {
+            _loginCompleter?.completeError(Exception('Connection closed'));
+          }
+        },
+        onError: (error) {
+          if (!_isReconnecting) {
+            _handleDisconnect();
+          }
+          if (_loginCompleter?.isCompleted == false) {
+            _loginCompleter?.completeError(error);
+          }
+        },
       );
+
+      return _loginCompleter!.future;
     } catch (error) {
       _handleDisconnect();
+      if (_loginCompleter?.isCompleted == false) {
+        _loginCompleter?.completeError(error);
+      }
+      rethrow;
     }
   }
 
@@ -124,6 +163,11 @@ interface class ChatService {
     _channel = null;
     _loggedIn = false;
     _connectionStateController.add(false);
+
+    if (_loginCompleter?.isCompleted == false) {
+      _loginCompleter?.completeError(Exception('Disconnected'));
+    }
+    _loginCompleter = null;
   }
 
   /// Sends a message to the chat server.
@@ -144,6 +188,7 @@ interface class ChatService {
       if (!_loggedIn && line.contains('> Type your username:')) {
         channel.sink.add(nickname);
         _loggedIn = true;
+        _loginCompleter?.complete();
         channel.sink.add('/log :depth 100 :date-format date');
         _startKeepAlive();
         continue;
@@ -340,6 +385,7 @@ interface class ChatService {
   }
 
   void _handleDisconnect() {
+    final wasLoggedIn = _loggedIn;
     _loggedIn = false;
     _currentChannels.clear();
     _keepAliveTimer?.cancel();
@@ -350,20 +396,46 @@ interface class ChatService {
     _channel = null;
 
     _connectionStateController.add(false);
-    _notificationsController.add(
-      ChatMessage(
-        from: 'system',
-        content: 'Connection lost. Attempting to reconnect...',
-        date: DateTime.now(),
-      ),
-    );
 
-    // Attempt reconnect after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!_loggedIn && _channel == null) {
-        connect();
-      }
-    });
+    if (wasLoggedIn && !_isReconnecting) {
+      _notificationsController.add(
+        ChatMessage(
+          from: 'system',
+          content: 'Connection lost. Attempting to reconnect...',
+          date: DateTime.now(),
+        ),
+      );
+
+      _reconnect();
+    }
+  }
+
+  Future<void> _reconnect() async {
+    if (_isReconnecting) return;
+    _isReconnecting = true;
+
+    try {
+      await retry(() async {
+        if (_loggedIn) return;
+        await connect();
+        if (!_loggedIn) {
+          throw Exception('Failed to connect or log in');
+        }
+      }, retryIf: (e) => !_loggedIn);
+    } catch (e) {
+      _loggedIn = false;
+      _notificationsController.add(
+        ChatMessage(
+          from: 'system',
+          content:
+              'Failed to connect. Please try again later or reach out to the server administrator.',
+          date: DateTime.now(),
+        ),
+      );
+      disconnect();
+    } finally {
+      _isReconnecting = false;
+    }
   }
 
   /// Cleans up all resources used by the service.

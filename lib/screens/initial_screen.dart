@@ -46,12 +46,31 @@ final class _InitialScreenState extends State<InitialScreen> {
   Future<void> _connectAndNavigate() async {
     setState(() => _isConnecting = true);
 
-    // Connect explicitly now
-    _chatProvider.connect();
+    try {
+      // Connect explicitly now. This will wait for full login.
+      await _chatProvider.connect();
 
-    if (mounted) {
-      setState(() => _isConnecting = false);
-      const ChatRoute().go(context);
+      if (mounted) {
+        setState(() => _isConnecting = false);
+        if (_chatProvider.isConnected) {
+          const ChatRoute().go(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to connect. Please check your settings.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isConnecting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connection error: ${e.toString()}'),
+          ),
+        );
+      }
     }
   }
 
@@ -88,6 +107,7 @@ final class _InitialScreenState extends State<InitialScreen> {
                           children: [
                             const Spacer(),
                             TextFormField(
+                              enabled: !_isConnecting,
                               controller: _nicknameController,
                               decoration: const InputDecoration(
                                 labelText: 'Nickname',
@@ -104,6 +124,7 @@ final class _InitialScreenState extends State<InitialScreen> {
                             ),
                             const Gap(16.0),
                             TextFormField(
+                              enabled: !_isConnecting,
                               controller: _serverUrlController,
                               decoration: const InputDecoration(
                                 labelText: 'Server URL',
@@ -135,7 +156,24 @@ final class _InitialScreenState extends State<InitialScreen> {
                                 ),
                               ),
                               child: _isConnecting
-                                  ? const CircularProgressIndicator()
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 20.0,
+                                          height: 20.0,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.0,
+                                          ),
+                                        ),
+                                        const Gap(12.0),
+                                        const Text(
+                                          'Connecting',
+                                          style: TextStyle(fontSize: 16.0),
+                                        ),
+                                      ],
+                                    )
                                   : const Text(
                                       'Connect',
                                       style: TextStyle(fontSize: 16.0),

@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:lispinto_chat/services/websocket_factory.dart';
 import 'package:lispinto_chat/services/web_notifications.dart';
 
 /// A provider that manages chat state.
@@ -19,6 +20,7 @@ class ChatProvider with ChangeNotifier {
   ChatProvider(
     this.configuration, {
     required this.appVersion,
+    required WebSocketFactory websocketFactory,
     FlutterLocalNotificationsPlugin? localNotifications,
     ChatService? chatService,
   }) : _localNotifications =
@@ -28,8 +30,8 @@ class ChatProvider with ChangeNotifier {
            ChatService(
              serverUrl: Uri.parse(configuration.serverUrl),
              nickname: configuration.nickname,
-             appVersion: appVersion,
              initialChannel: configuration.lastChannel,
+             webSocketFactory: websocketFactory,
            ) {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
@@ -279,8 +281,8 @@ class ChatProvider with ChangeNotifier {
       _chatService = ChatService(
         serverUrl: Uri.parse(newServerUrl),
         nickname: newNickname,
-        appVersion: appVersion,
         initialChannel: _activeChannel,
+        webSocketFactory: _chatService.webSocketFactory,
       );
 
       _messages.clear();
@@ -418,7 +420,11 @@ class ChatProvider with ChangeNotifier {
   }
 
   /// Connects to the chat server explicitly.
-  void connect() => _chatService.connect();
+  Future<void> connect() async {
+    await _chatService.connect();
+    _isConnected = _chatService.isConnected;
+    notifyListeners();
+  }
 
   /// Disconnects from the chat server explicitly.
   void disconnect() => _chatService.disconnect();

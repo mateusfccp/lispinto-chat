@@ -5,6 +5,7 @@ import '../providers/chat_provider.dart';
 import '../services/image_upload_service.dart';
 import '../services/imgbb_upload_service.dart';
 import '../services/link_image_detector.dart';
+import '../services/websocket_factory.dart';
 import 'message_grouper.dart';
 import 'user_configuration.dart';
 
@@ -25,8 +26,12 @@ Future<void> setupServiceLocator() async {
 
   locator.registerSingleton<MessageGrouper>(const MessageGrouper());
 
+  locator.registerSingleton<WebSocketFactory>(
+    DefaultWebSocketFactory(appVersion),
+  );
+
   locator.registerSingleton<ChatProvider>(
-    ChatProvider(config, appVersion: appVersion),
+    ChatProvider(config, appVersion: appVersion, websocketFactory: locator()),
   );
 
   locator.registerSingleton<ImageUploadService>(

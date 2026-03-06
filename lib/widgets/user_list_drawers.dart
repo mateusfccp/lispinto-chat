@@ -149,10 +149,9 @@ class _VerticalUserListState extends State<VerticalUserList> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.add, size: 24.0),
-                      onPressed: widget.onAddChannel,
+                      icon: const Icon(Icons.add_box, size: 18.0),
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      onPressed: widget.onAddChannel,
                       tooltip: 'Join channel',
                     ),
                   ],
@@ -320,11 +319,15 @@ class MobileChannelSheet extends StatelessWidget {
   /// Called when a channel is selected.
   final ValueChanged<String> onChannelSelected;
 
+  /// Called to join or add a new channel.
+  final VoidCallback onAddChannel;
+
   /// Creates a [MobileChannelSheet].
   const MobileChannelSheet({
     super.key,
     required this.provider,
     required this.onChannelSelected,
+    required this.onAddChannel,
   });
 
   @override
@@ -339,11 +342,21 @@ class MobileChannelSheet extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               width: double.infinity,
-              child: Text(
-                'Channels',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              child: Row(
+                children: [
+                  Text(
+                    'Channels',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.add_box),
+                    onPressed: onAddChannel,
+                    tooltip: 'Join channel',
+                  ),
+                ],
               ),
             ),
             Expanded(

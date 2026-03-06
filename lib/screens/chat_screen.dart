@@ -471,6 +471,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       _provider.joinChannel(channel);
                       Navigator.pop(context);
                     },
+                    onAddChannel: () {
+                      Navigator.pop(context);
+                      _showAddChannelDialog();
+                    },
                   );
                 },
               );

@@ -18,7 +18,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Join/Create Channel'), findsOneWidget);
+    expect(find.text('Join channel'), findsOneWidget);
     expect(find.byType(TextFormField), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField), 'test-channel');

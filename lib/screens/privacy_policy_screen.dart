@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:lispinto_chat/widgets/scrollable_screen.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 /// A screen that displays the app's privacy policy.
@@ -39,30 +40,16 @@ final class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
             return Center(child: Text('Failed to load privacy policy.'));
           }
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 600.0),
-                        child: MarkdownBody(
-                          data: snapshot.data!,
-                          onTapLink: (text, href, title) {
-                            if (href != null) {
-                              launchUrlString(href);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+          return ScrollableScreen(
+            maxWidth: 600.0,
+            mainChild: MarkdownBody(
+              data: snapshot.data!,
+              onTapLink: (text, href, title) {
+                if (href != null) {
+                  launchUrlString(href);
+                }
+              },
+            ),
           );
         },
       ),

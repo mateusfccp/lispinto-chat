@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
+import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:logging/logging.dart';
 import 'package:retry/retry.dart';
@@ -30,26 +33,60 @@ enum ChatConnectionState {
 interface class ChatService {
   /// Creates a [ChatService].
   ChatService({
-    required this.serverUrl,
+    required Uri url,
     required this.nickname,
     this.initialChannel,
+    required UserConfiguration configuration,
+    required http.Client httpClient,
     required this.webSocketFactory,
-    Logger? logger,
-  }) : _logger = logger ?? Logger('ChatService');
+  }) : _configuration = configuration,
+       _httpClient = httpClient,
+       _url = url,
+       _wsUrl = deriveWebSocketUrl(url);
 
-  /// The WebSocket server URL to connect to.
-  final Uri serverUrl;
+  /// The HTTP server URL to connect to.
+  Uri get url => _url;
+  Uri _url;
+
+  set url(Uri value) {
+    _url = value;
+    _wsUrl = deriveWebSocketUrl(value);
+  }
+
+  /// The WebSocket URL to connect to.
+  Uri get websocketUrl => _wsUrl;
+  Uri _wsUrl;
 
   /// The nickname to use when logging in to the chat server.
-  final String nickname;
+  String nickname;
 
   /// The initial channel to join on connection.
   final String? initialChannel;
 
+  final UserConfiguration _configuration;
+
   /// A factory to create the [WebSocketChannel].
   final WebSocketFactory webSocketFactory;
 
-  final Logger _logger;
+  final http.Client _httpClient;
+
+  static final _logger = Logger('ChatService');
+
+  /// The current active channel we are focused on.
+  String get currentChannel => _currentChannel;
+
+  set currentChannel(String value) {
+    if (_currentChannel != value) {
+      _currentChannel = value;
+      _currentChannelController.add(value);
+    }
+  }
+
+  late String _currentChannel = initialChannel ?? 'general';
+
+  /// A stream of the current active channel we are focused on.
+  Stream<String> get currentChannelStream => _currentChannelController.stream;
+  final _currentChannelController = StreamController<String>.broadcast();
 
   /// A stream of incoming chat messages to be displayed in the UI.
   Stream<ChatMessage> get messages => _messageController.stream;
@@ -115,13 +152,21 @@ interface class ChatService {
         state == ChatConnectionState.reconnecting;
   }
 
+  bool _isAppInBackground = false;
+
+  /// Signals to the service whether the app is in the background.
+  ///
+  /// When in the background, the service will pause automatic reconnection
+  /// attempts to preserve battery life and OS resources.
+  void setAppBackgroundState(bool isBackground) {
+    _isAppInBackground = isBackground;
+  }
+
   final List<String> _currentUsers = [];
+  final DateTime _appStartTime = DateTime.now();
 
   final Map<String, _ChannelPingData> _currentChannels = {};
   int _channelPingId = 0;
-
-  /// Whether to show empty channels in the channel list.
-  bool showEmptyChannels = false;
 
   /// Connects to the chat server and starts listening for messages.
   ///
@@ -132,26 +177,27 @@ interface class ChatService {
     if (isLoggedIn) return;
     if (_loginCompleter != null) return _loginCompleter!.future;
 
-    _logger.info('Connecting to $serverUrl as $nickname...');
+    _logger.info('Connecting to $url as $nickname...');
     disconnect();
     _loginCompleter = Completer<void>();
 
     try {
-      var connectionUri = serverUrl;
-      if (initialChannel != null) {
-        final channelName = initialChannel!.startsWith('#')
-            ? initialChannel!.substring(1)
-            : initialChannel!;
-        connectionUri = connectionUri.replace(
+      final Uri connectionUrl;
+
+      if (initialChannel case final initialChannel?) {
+        final channelName = initialChannel;
+        connectionUrl = websocketUrl.replace(
           queryParameters: {
-            ...connectionUri.queryParameters,
+            ...websocketUrl.queryParameters,
             'channel': channelName,
           },
         );
+      } else {
+        connectionUrl = websocketUrl;
       }
 
       final channel = _channel =
-          mockChannel ?? webSocketFactory.create(connectionUri);
+          mockChannel ?? webSocketFactory.create(connectionUrl);
 
       // We don't await channel.ready here because we want to start listening
       // immediately. The login completer will handle waiting for full success.
@@ -208,6 +254,11 @@ interface class ChatService {
     _channel = null;
     _loggedIn = false;
     _connectionStateController.add(false);
+
+    // Clear state so reconnecting doesn't show stale users or channels briefly.
+    _currentUsers.clear();
+    _usersController.add([]);
+    _channelsController.add({});
 
     if (_loginCompleter?.isCompleted == false) {
       _loginCompleter?.completeError(Exception('Disconnected'));
@@ -281,7 +332,7 @@ interface class ChatService {
           _messageController.add(message);
         }
       } else {
-        throw FormatException('Unexpected message format: $line');
+        _logger.warning('Unexpected message format: $line');
       }
     }
   }
@@ -289,54 +340,29 @@ interface class ChatService {
   bool _processServerMessage(ChatMessage message) {
     final content = message.content;
 
-    final isJoin = content.contains('joined to the party');
-    final isExit = content.contains('exited from the party');
-    final isNickChange = content.contains('Your new nick is: @');
-    final isNickChangeBroadcast = content.contains('is now known as @');
-    final isSystemMessage =
-        isJoin || isExit || isNickChange || isNickChangeBroadcast;
-    final isUsersListResponse = content.startsWith('users: ');
-
-    if (message.isServerMessage) {
-      final channelCountMatch = RegExp(
-        r'^#([A-Za-z0-9_\-]+): (\d+) users?$',
-      ).firstMatch(content);
-      if (channelCountMatch != null) {
-        final channel = '#${channelCountMatch.group(1)}';
-        final count = int.parse(channelCountMatch.group(2)!);
-        _currentChannels[channel] = _ChannelPingData(count, _channelPingId);
-
-        final currentMap = {
-          for (final entry in _currentChannels.entries)
-            entry.key: entry.value.userCount,
-        };
-        _channelsController.add(currentMap);
-
-        return false; // Swallow channel list pings
-      }
-    }
-
-    if (content == 'channels:' &&
-        (message.from == 'server' || message.from == '@server')) {
+    if (content.startsWith('pong (system)')) {
       return false;
     }
 
-    if (isSystemMessage) {
-      if (isNickChange) {
-        final match = RegExp(r'Your new nick is: @(.*)').firstMatch(content);
-        if (match != null) {
-          if (match.group(1) case final newNick?) {
-            _nickChangeController.add(newNick);
-            _notificationsController.add(
-              ChatMessage(
-                from: 'system',
-                content: 'Your nickname has been changed to $newNick.',
-                date: DateTime.now(),
-              ),
-            );
-          }
+    final isNickChange = content.contains('Your new nick is: @');
+    final isJoin = content.contains('joined to the party');
+    final isExit = content.contains('exited from the party');
+    final isNickChangeBroadcast = content.contains('is now known as @');
+
+    if (isNickChange) {
+      final match = RegExp(r'Your new nick is: @(.*)').firstMatch(content);
+      if (match != null) {
+        if (match.group(1) case final newNick?) {
+          _nickChangeController.add(newNick);
         }
-      } else if (isNickChangeBroadcast) {
+      }
+    }
+
+    final date = message.date;
+    final isRealTime = date != null && date.isAfter(_appStartTime);
+
+    if (isRealTime) {
+      if (isNickChangeBroadcast) {
         final match = RegExp(
           r'User @(.*) is now known as @(.*)',
         ).firstMatch(content);
@@ -364,7 +390,6 @@ interface class ChatService {
         }
         _notificationsController.add(message);
         requestChannelsList();
-        return false;
       } else if (isExit) {
         final match = RegExp(
           r'The user @(.*) exited from the party :\(',
@@ -376,51 +401,117 @@ interface class ChatService {
         }
         _notificationsController.add(message);
         requestChannelsList();
-        return false;
       }
     }
 
-    if (isUsersListResponse) {
-      final usersString = content.replaceFirst('users: ', '');
-      final usersList = [
+    return true;
+  }
+
+  Future<Map<String, Object?>> _makeApiRequest(
+    String command, {
+    Map<String, Object?>? kwargs,
+    String? channel,
+  }) async {
+    var apiUrl = url;
+
+    // Build the HTTP endpoint URL.
+    apiUrl = apiUrl.replace(
+      pathSegments: [...apiUrl.pathSegments, 'api', 'commands', command],
+    );
+
+    final requestData = <String, Object?>{};
+    if (kwargs != null) requestData['kwargs'] = kwargs;
+    if (channel != null) requestData['channel'] = channel;
+
+    final requestBody = jsonEncode(requestData);
+
+    _logger.fine('HTTP POST Request to $apiUrl');
+    _logger.finer('Request Body: $requestBody');
+
+    final response = await _httpClient.post(
+      apiUrl,
+      headers: {'Content-Type': 'application/json'},
+      body: requestBody,
+    );
+
+    _logger.fine('HTTP Response from $apiUrl: Status ${response.statusCode}');
+    _logger.finer('Response Body: ${response.body}');
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body) as Map<String, Object?>;
+    } else {
+      throw Exception(
+        'Failed API request to $apiUrl: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
+  /// Requests the list of channels from the server via HTTP API.
+  Future<Map<String, int>> requestChannelsList() async {
+    if (!_loggedIn) return {};
+
+    _channelPingId++;
+    try {
+      final showEmptyChannels = _configuration.showEmptyChannels;
+      final data = await _makeApiRequest(
+        'channels',
+        kwargs: showEmptyChannels ? {'all': 't'} : null,
+      );
+      final result = data['result'] as String;
+
+      final currentChannels = <String, int>{};
+      for (final line in LineSplitter.split(result)) {
+        final match = RegExp(
+          r'^#([A-Za-z0-9_\-]+): (\d+) users?$',
+        ).firstMatch(line);
+        if (match != null) {
+          final channel = '#${match.group(1)}';
+          final count = int.parse(match.group(2)!);
+          currentChannels[channel] = count;
+          _currentChannels[channel] = _ChannelPingData(count, _channelPingId);
+        }
+      }
+
+      _currentChannels.removeWhere((k, v) => v.pingId != _channelPingId);
+      final currentMap = {
+        for (final entry in _currentChannels.entries)
+          entry.key: entry.value.userCount,
+      };
+      _channelsController.add(currentMap);
+      return currentMap;
+    } catch (e, st) {
+      _logger.warning('Failed to load channels', e, st);
+      return {};
+    }
+  }
+
+  /// Requests the list of users from the server via HTTP API.
+  Future<List<String>> requestUsersList({required String targetChannel}) async {
+    if (!_loggedIn) return [];
+
+    try {
+      final data = await _makeApiRequest('users', channel: targetChannel);
+      final result = data['result'] as String;
+
+      final usersString = result.replaceFirst('users: ', '');
+      final usersList = <String>[
         for (final user in usersString.split(','))
           if (user.isNotEmpty) user.trim(),
       ];
 
+      if (_loggedIn &&
+          targetChannel == _currentChannel &&
+          !usersList.contains(nickname)) {
+        usersList.add(nickname);
+      }
+
       _currentUsers.clear();
       _currentUsers.addAll(usersList);
       _usersController.add(_currentUsers.toList());
-      return false;
-    }
-    return true;
-  }
-
-  void _requestUserList() {
-    if (_loggedIn && _channel != null) {
-      sendMessage('/users');
-    }
-  }
-
-  /// Requests the list of channels from the server.
-  void requestChannelsList() {
-    if (_loggedIn && _channel != null) {
-      _channelPingId++;
-      if (showEmptyChannels) {
-        sendMessage('/channels :all t');
-      } else {
-        sendMessage('/channels');
-      }
-
-      // Give the server up to 1 second to send all individual channel messages,
-      // and purge whatever channels were not seen.
-      Timer(const Duration(seconds: 1), () {
-        _currentChannels.removeWhere((k, v) => v.pingId != _channelPingId);
-        final currentMap = {
-          for (final entry in _currentChannels.entries)
-            entry.key: entry.value.userCount,
-        };
-        _channelsController.add(currentMap);
-      });
+      return _currentUsers.toList();
+    } catch (e, st) {
+      _logger.warning('Failed to load users', e, st);
+      return [];
     }
   }
 
@@ -428,9 +519,13 @@ interface class ChatService {
     if (_isDisposed) return;
     _keepAliveTimer?.cancel();
     _keepAliveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      requestChannelsList();
+      if (_loggedIn && _channel != null) {
+        sendMessage('/ping system');
+        requestChannelsList();
+        requestUsersList(targetChannel: currentChannel);
+      }
     });
-    _requestUserList(); // Initial fetch for users
+    requestUsersList(targetChannel: currentChannel); // Initial fetch for users
     requestChannelsList(); // Initial fetch for channels
   }
 
@@ -470,7 +565,7 @@ interface class ChatService {
   }
 
   Future<void> _reconnect() async {
-    if (_isReconnecting) return;
+    if (_isReconnecting || _isAppInBackground) return;
     _isReconnecting = true;
     _logger.warning(
       'Lost connection. Attempting to reconnect (max 3 times)...',
@@ -480,6 +575,10 @@ interface class ChatService {
     try {
       await r.retry(
         () async {
+          if (_isAppInBackground) {
+            _logger.info('App in background, aborting reconnect loop.');
+            throw Exception('App went to background');
+          }
           _logger.info('Attempting to reconnect...');
           if (_loggedIn) return;
           await connect();
@@ -489,6 +588,7 @@ interface class ChatService {
           _logger.info('Reconnected successfully.');
         },
         retryIf: (e) {
+          if (_isAppInBackground) return false;
           _logger.warning('Reconnection attempt failed: $e');
           return !_loggedIn;
         },
@@ -520,6 +620,27 @@ interface class ChatService {
     _connectionStateController.close();
     _nickChangeController.close();
     _channelsController.close();
+    _currentChannelController.close();
+  }
+
+  @visibleForTesting
+  static Uri deriveWebSocketUrl(Uri url) {
+    if (url.scheme == 'ws' || url.scheme == 'wss') {
+      return url.replace(
+        pathSegments: [...url.pathSegments, 'ws'],
+      );
+    }
+
+    if (url.scheme != 'http' && url.scheme != 'https') {
+      throw ArgumentError('URL must start with http://, https://, ws:// or wss://');
+    }
+
+    final scheme = url.scheme == 'https' ? 'wss' : 'ws';
+
+    return url.replace(
+      scheme: scheme,
+      pathSegments: [...url.pathSegments, 'ws'],
+    );
   }
 }
 

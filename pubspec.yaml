@@ -9,6 +9,7 @@ environment:
 
 dependencies:
   ansicolor: ^2.0.3
+  async: ^2.13.0
   flutter:
     sdk: flutter
   flutter_local_notifications: ^20.1.0

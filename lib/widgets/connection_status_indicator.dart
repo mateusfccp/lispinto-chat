@@ -42,11 +42,14 @@ final class ConnectionStatusIndicator extends StatelessWidget {
           ),
           if (shouldShowLabel) ...[
             const Gap(4.0),
-            Text(
-              label,
-              style: TextStyle(
-                color: color.withValues(alpha: 0.8),
-                fontSize: 10.0,
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.8),
+                  fontSize: 10.0,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

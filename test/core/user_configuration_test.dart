@@ -9,7 +9,7 @@ void main() {
       final config = await UserConfiguration.load();
 
       expect(config.nickname, '');
-      expect(config.serverUrl, 'wss://chat.manoel.dev/ws');
+      expect(config.serverUrl, 'https://chat.manoel.dev');
       expect(config.pushNotificationsEnabled, isFalse);
       expect(config.mentionNotificationsEnabled, isFalse);
       expect(config.autoConnect, isFalse);
@@ -18,7 +18,7 @@ void main() {
       expect(config.showEmptyChannels, isFalse);
       expect(config.showMarkdown, isTrue);
       expect(config.groupMessages, isTrue);
-      expect(config.lastChannel, '#general');
+      expect(config.lastChannel, 'general');
       expect(config.hasNickname, isFalse);
     });
 
@@ -40,16 +40,16 @@ void main() {
 
     test('saves values correctly', () async {
       SharedPreferences.setMockInitialValues({});
-      final config = await UserConfiguration.load();
-      final prefs = await SharedPreferences.getInstance();
+      final configuration = await UserConfiguration.load();
+      final preferences = await SharedPreferences.getInstance();
 
-      await config.setNickname('bob');
-      await config.setServerUrl('ws://new-server.com');
-      await config.setAutoConnect(true);
+      configuration.nickname = 'bob';
+      configuration.serverUrl = 'ws://new-server.com';
+      configuration.autoConnect = true;
 
-      expect(prefs.getString('nickname'), 'bob');
-      expect(prefs.getString('server_url'), 'ws://new-server.com');
-      expect(prefs.getBool('auto_connect'), isTrue);
+      expect(preferences.getString('nickname'), 'bob');
+      expect(preferences.getString('server_url'), 'ws://new-server.com');
+      expect(preferences.getBool('auto_connect'), isTrue);
     });
 
     test(

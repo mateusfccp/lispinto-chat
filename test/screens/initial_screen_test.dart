@@ -1,6 +1,7 @@
-import 'dart:async';
+  import 'dart:async';
 import 'dart:collection';
 
+import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
@@ -15,12 +16,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class MockChatProvider extends ChangeNotifier implements ChatProvider {
   @override
+  ResultFuture<List<String>>? get usersFuture => null;
+
+  @override
+  ResultFuture<Map<String, int>>? get channelsFuture => null;
+
+  @override
   ChatConnectionState connectionState = ChatConnectionState.disconnected;
 
   @override
   bool get isConnected =>
       connectionState == ChatConnectionState.connected ||
       connectionState == ChatConnectionState.loggedIn;
+
+  @override
+  bool get isLoggedIn => connectionState == ChatConnectionState.loggedIn;
 
   @override
   bool get isConnecting => connectionState == ChatConnectionState.connecting;
@@ -37,7 +47,7 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
   }
 
   @override
-  Future<void> updateConfiguration(String nickname, String serverUrl) async {
+  Future<void> updateConfiguration(UserConfiguration newConfiguration) async {
     // Just a stub
   }
 
@@ -46,12 +56,6 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
 
   @override
   UnmodifiableListView<ChatMessage> get messages => UnmodifiableListView([]);
-
-  @override
-  UnmodifiableListView<String> get onlineUsers => UnmodifiableListView([]);
-
-  @override
-  UnmodifiableMapView<String, int> get channels => UnmodifiableMapView({});
 
   @override
   String get activeChannel => '#general';
@@ -157,7 +161,7 @@ void main() {
 
     // Fill in nickname and server URL
     await tester.enterText(find.byType(TextFormField).first, 'TestUser');
-    await tester.enterText(find.byType(TextFormField).last, 'ws://test');
+    await tester.enterText(find.byType(TextFormField).last, 'https://test');
 
     // Click connect
     await tester.tap(find.text('Connect'));

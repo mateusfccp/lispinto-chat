@@ -92,9 +92,13 @@ class _VerticalUserListState extends State<VerticalUserList> {
     final child = Card(
       child: ListenableBuilder(
         listenable: widget.provider,
-        builder: (context, _) {
-          final users = widget.provider.onlineUsers;
-          final channels = widget.provider.channels;
+        builder: (context, child) {
+          final usersFuture = widget.provider.usersFuture;
+          final channelsFuture = widget.provider.channelsFuture;
+
+          final users = usersFuture?.result?.asValue?.value ?? [];
+          final channels = channelsFuture?.result?.asValue?.value ?? {};
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -104,16 +108,41 @@ class _VerticalUserListState extends State<VerticalUserList> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Online Users (${users.length})',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: usersFuture != null && usersFuture.result == null
+                          ? const Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Online Users',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Gap(8.0),
+                                SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Online Users (${users.length})',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                     ),
                     const Gap(8.0),
-                    ConnectionStatusIndicator(
-                      state: widget.provider.connectionState,
-                      shouldShowLabel: isDesktop,
+                    Flexible(
+                      child: ConnectionStatusIndicator(
+                        state: widget.provider.connectionState,
+                        shouldShowLabel: isDesktop,
+                      ),
                     ),
                   ],
                 ),
@@ -147,11 +176,34 @@ class _VerticalUserListState extends State<VerticalUserList> {
                 color: Colors.black12,
                 child: Row(
                   children: [
-                    Text(
-                      'Channels (${channels.length})',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
+                    if (channelsFuture != null && channelsFuture.result == null)
+                      const Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Channels',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Gap(8.0),
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: Text(
+                          'Channels (${channels.length})',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     IconButton(
                       icon: const Icon(Icons.add_box, size: 18.0),
                       padding: EdgeInsets.zero,
@@ -176,13 +228,12 @@ class _VerticalUserListState extends State<VerticalUserList> {
                   ],
                 ),
               ),
-              if (widget.provider.activeChannel != '#general')
+              if (widget.provider.activeChannel != 'general')
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     children: [
-                      const Text('Private Channel'),
-                      const Spacer(),
+                      const Expanded(child: Text('Private Channel')),
                       Switch(
                         value: widget.provider.isCurrentChannelPrivate,
                         onChanged: widget.provider.setPrivateChannel,
@@ -338,8 +389,9 @@ class MobileChannelSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: provider,
-      builder: (context, _) {
-        final channels = provider.channels;
+      builder: (context, child) {
+        final channelsFuture = provider.channelsFuture;
+        final channels = channelsFuture?.result?.asValue?.value ?? {};
         return Column(
           children: [
             Container(
@@ -348,13 +400,30 @@ class MobileChannelSheet extends StatelessWidget {
               width: double.infinity,
               child: Row(
                 children: [
-                  Text(
-                    'Channels',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Expanded(
+                    child: channelsFuture != null && channelsFuture.result == null
+                        ? Row(
+                            children: [
+                              Text(
+                                'Channels',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const Gap(8.0),
+                              const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            'Channels (${channels.length})',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                   ),
-                  const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.add_box),
                     onPressed: onAddChannel,

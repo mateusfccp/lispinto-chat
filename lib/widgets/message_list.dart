@@ -38,11 +38,11 @@ final class MessageList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final configuration = locator<UserConfiguration>();
     return ListenableBuilder(
-      listenable: provider,
+      listenable: Listenable.merge([provider, configuration]),
       builder: (context, child) {
         final messages = provider.messages;
-        final configuration = locator<UserConfiguration>();
         final displayedMessages = configuration.groupMessages
             ? locator<MessageGrouper>().group(messages)
             : messages;

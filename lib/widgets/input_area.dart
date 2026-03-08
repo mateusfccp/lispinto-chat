@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lispinto_chat/core/responsive.dart';
-import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
@@ -31,6 +30,7 @@ final class InputArea extends StatefulWidget {
     required this.focusNode,
     required this.provider,
     required this.onSend,
+    required this.openConfigurations,
   });
 
   /// The controller for the text field.
@@ -44,6 +44,9 @@ final class InputArea extends StatefulWidget {
 
   /// Callback when a message is sent.
   final VoidCallback onSend;
+
+  /// Callback to open the configurations screen.
+  final VoidCallback openConfigurations;
 
   @override
   State<InputArea> createState() => _InputAreaState();
@@ -71,7 +74,7 @@ class _InputAreaState extends State<InputArea> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  const ConfigurationsRoute().push(context);
+                  widget.openConfigurations();
                 },
                 child: const Text('Go to Settings'),
               ),
@@ -201,12 +204,18 @@ class _InputAreaState extends State<InputArea> {
                 : null,
           );
 
+          final onlineUsers = [
+            ...?widget.provider.usersFuture?.result?.asValue?.value,
+          ];
           final users = [
-            for (final user in widget.provider.onlineUsers)
+            for (final user in onlineUsers)
               if (user != widget.provider.configuration.nickname) user,
           ];
 
-          final channels = [...widget.provider.channels.keys];
+          final channelsMap = {
+            ...?widget.provider.channelsFuture?.result?.asValue?.value,
+          };
+          final channels = [...channelsMap.keys];
           final currentDmNickname = widget.provider.currentDmNickname;
 
           return Padding(
@@ -245,7 +254,7 @@ class _InputAreaState extends State<InputArea> {
                                 TextButton(
                                   onPressed: () {
                                     Navigator.of(context).pop();
-                                    const ConfigurationsRoute().push(context);
+                                    widget.openConfigurations();
                                   },
                                   child: const Text('Go to Settings'),
                                 ),

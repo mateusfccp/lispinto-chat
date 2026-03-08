@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:async/async.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:logging/logging.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/web_notifications.dart';
-import 'package:lispinto_chat/services/websocket_factory.dart';
+import 'package:logging/logging.dart';
 
 /// A provider that manages chat state.
 ///
@@ -21,27 +21,20 @@ class ChatProvider with ChangeNotifier {
   ChatProvider(
     this.configuration, {
     required this.appVersion,
-    required WebSocketFactory websocketFactory,
-    FlutterLocalNotificationsPlugin? localNotifications,
-    ChatService? chatService,
-    Logger? logger,
-  }) : _localNotifications =
-           localNotifications ?? FlutterLocalNotificationsPlugin(),
-       _logger = logger ?? Logger('ChatProvider'),
-       _chatService =
-           chatService ??
-           ChatService(
-             serverUrl: Uri.parse(configuration.serverUrl),
-             nickname: configuration.nickname,
-             initialChannel: configuration.lastChannel,
-             webSocketFactory: websocketFactory,
-           ) {
+    required FlutterLocalNotificationsPlugin localNotifications,
+    required ChatService chatService,
+  }) : _localNotifications = localNotifications,
+       _chatService = chatService {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
-        if (!_isConnected) {
+        _chatService.setAppBackgroundState(false);
+        if (!_isConnected && configuration.autoConnect) {
           autoConnect();
         }
       },
+      onPause: () => _chatService.setAppBackgroundState(true),
+      onInactive: () => _chatService.setAppBackgroundState(true),
+      onDetach: () => _chatService.setAppBackgroundState(true),
     );
     _initializeNotifications();
     _initializeService();
@@ -52,6 +45,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   late final AppLifecycleListener _lifecycleListener;
+  bool _isDisposed = false;
 
   /// The user configuration.
   final UserConfiguration configuration;
@@ -59,35 +53,30 @@ class ChatProvider with ChangeNotifier {
   /// The version of the app used for the User-Agent header.
   final String appVersion;
 
-  final Logger _logger;
-
-  /// The chat service that handles WebSocket communication.
-  ChatService _chatService;
+  static final _logger = Logger('ChatProvider');
+  final ChatService _chatService;
 
   /// The list of chat messages to display in the UI.
   UnmodifiableListView<ChatMessage> get messages {
     return UnmodifiableListView(_messages);
   }
 
-  final _messages = <ChatMessage>[];
+  final List<ChatMessage> _messages = [];
 
-  /// The list of online users to display in the UI.
-  UnmodifiableListView<String> get onlineUsers {
-    return UnmodifiableListView(_onlineUsers);
-  }
+  /// A future containing the result of the current users list fetch.
+  ResultFuture<List<String>>? get usersFuture => _usersFuture;
+  ResultFuture<List<String>>? _usersFuture;
 
-  List<String> _onlineUsers = [];
-
-  /// The list of channels to display in the UI.
-  UnmodifiableMapView<String, int> get channels {
-    return UnmodifiableMapView(_channels);
-  }
-
-  Map<String, int> _channels = {};
+  /// A future containing the result of the current channels list fetch.
+  ResultFuture<Map<String, int>>? get channelsFuture => _channelsFuture;
+  ResultFuture<Map<String, int>>? _channelsFuture;
 
   /// Whether the client is currently connected to the chat server.
   bool get isConnected => _isConnected;
   bool _isConnected = false;
+
+  /// Whether the client is currently logged in to the chat server.
+  bool get isLoggedIn => _chatService.isLoggedIn;
 
   /// The current connection state of the chat server.
   ChatConnectionState get connectionState => _chatService.state;
@@ -96,8 +85,7 @@ class ChatProvider with ChangeNotifier {
   bool get isConnecting => _chatService.isConnecting;
 
   /// The currently active channel.
-  String get activeChannel => _activeChannel;
-  late String _activeChannel = configuration.lastChannel;
+  String get activeChannel => _chatService.currentChannel;
 
   /// Whether the current channel is private.
   bool get isCurrentChannelPrivate => _isCurrentChannelPrivate;
@@ -122,8 +110,7 @@ class ChatProvider with ChangeNotifier {
 
   DateTime _lastNotificationTimestamp = DateTime.now();
 
-  // Track stream subscriptions
-  final List<StreamSubscription> _subscriptions = [];
+  final List<StreamSubscription<Object?>> _subscriptions = [];
 
   Future<void> _initializeNotifications() async {
     const darwinSettings = DarwinInitializationSettings(
@@ -165,7 +152,9 @@ class ChatProvider with ChangeNotifier {
   }
 
   void _initializeService() {
-    _chatService.showEmptyChannels = configuration.showEmptyChannels;
+    _subscriptions.add(
+      _chatService.currentChannelStream.listen((channel) => notifyListeners()),
+    );
     _subscriptions.add(
       _chatService.messages.listen((message) {
         _messages.add(message);
@@ -176,9 +165,8 @@ class ChatProvider with ChangeNotifier {
           ).firstMatch(message.content);
           if (privateStatus != null) {
             final targetChannel = privateStatus.group(1);
-            final status = privateStatus.group(2);
-            if (targetChannel == _activeChannel) {
-              _isCurrentChannelPrivate = status == 'ON';
+            if (targetChannel == activeChannel) {
+              _isCurrentChannelPrivate = privateStatus.group(2) == 'ON';
             }
           }
 
@@ -196,6 +184,7 @@ class ChatProvider with ChangeNotifier {
         if (configuration.mentionNotificationsEnabled &&
             configuration.hasNickname &&
             message.from != configuration.nickname &&
+            !message.isSystemMessage &&
             hasMention(message.content, configuration.nickname)) {
           final timestamp = message.date ?? DateTime.now();
           if (timestamp.isAfter(_lastNotificationTimestamp)) {
@@ -208,7 +197,22 @@ class ChatProvider with ChangeNotifier {
 
     _subscriptions.add(
       _chatService.users.listen((users) {
-        _onlineUsers = users;
+        _usersFuture = ResultFuture(Future.value(users));
+        notifyListeners();
+      }),
+    );
+    _subscriptions.add(
+      _chatService.channels.listen((channels) {
+        final currentUsersCount =
+            _usersFuture?.result?.asValue?.value.length ?? 0;
+        final displayActiveChannel = activeChannel.startsWith('#')
+            ? activeChannel
+            : '#$activeChannel';
+        final channelMap = {
+          displayActiveChannel: currentUsersCount,
+          ...channels,
+        };
+        _channelsFuture = ResultFuture(Future.value(channelMap));
         notifyListeners();
       }),
     );
@@ -222,8 +226,8 @@ class ChatProvider with ChangeNotifier {
         if (connected) {
           // Send /join to ensure the connection gets associated with the currently
           // expected channel on reconnect (or login defaults).
-          _chatService.sendMessage('/join $_activeChannel');
-          _chatService.sendMessage('/users');
+          _chatService.sendMessage('/join $activeChannel');
+          _fetchUsersAndChannelsList();
         }
 
         notifyListeners();
@@ -231,15 +235,8 @@ class ChatProvider with ChangeNotifier {
     );
 
     _subscriptions.add(
-      _chatService.channels.listen((channels) {
-        _channels = {_activeChannel: _onlineUsers.length, ...channels};
-        notifyListeners();
-      }),
-    );
-
-    _subscriptions.add(
       _chatService.nickChanges.listen((newNick) {
-        configuration.setNickname(newNick);
+        configuration.nickname = newNick;
         notifyListeners();
       }),
     );
@@ -279,46 +276,38 @@ class ChatProvider with ChangeNotifier {
   /// If [newNickname] differs from the current nickname, it sends a command to
   /// the server to change it. If [newServerUrl] differs, it completely
   /// disconnects and reconnects the underlying WebSocket to the new address.
-  Future<void> updateConfiguration(
-    String newNickname,
-    String newServerUrl,
-  ) async {
+  Future<void> updateConfiguration(UserConfiguration newConfiguration) async {
     final oldServerUrl = configuration.serverUrl;
+    final newServerUrl = newConfiguration.serverUrl;
     final oldNickname = configuration.nickname;
+    final newNickname = newConfiguration.nickname;
 
-    await configuration.setNickname(newNickname);
-    await configuration.setServerUrl(newServerUrl);
+    configuration.updateWith(newConfiguration);
 
-    _logger.info(
-      'Updating configuration: serverUrl=$newServerUrl, nickname=$newNickname',
-    );
+    _logger.info('Updating configuration.');
 
-    // If the server URL changed, or if we are not connected, we must create a new ChatService and reconnect entirely.
+    // If the server URL changed, or if we are not connected, we must disconnect
+    // and reconnect entirely.
     if (newServerUrl != oldServerUrl || !_isConnected) {
-      _chatService.dispose();
+      _chatService.disconnect();
 
-      _chatService = ChatService(
-        serverUrl: Uri.parse(newServerUrl),
-        nickname: newNickname,
-        initialChannel: _activeChannel,
-        webSocketFactory: _chatService.webSocketFactory,
-      );
+      _chatService.url = Uri.parse(newServerUrl);
+      _chatService.nickname = newNickname;
 
       _messages.clear();
-      _onlineUsers.clear();
-      _channels.clear();
+      _usersFuture = null;
+      _channelsFuture = null;
       _isConnected = false;
       _currentDmUser = null;
-      _activeChannel = '#general';
+      _chatService.currentChannel = 'general';
       _isCurrentChannelPrivate = false;
 
-      _initializeService();
+      _fetchUsersAndChannelsList();
     }
     // If only the nickname or settings changed, sync them.
     else {
-      _chatService.showEmptyChannels = configuration.showEmptyChannels;
       if (_isConnected) {
-        _chatService.requestChannelsList();
+        _fetchUsersAndChannelsList();
       }
       if (newNickname != oldNickname && _isConnected) {
         _chatService.sendMessage('/nick $newNickname');
@@ -339,8 +328,9 @@ class ChatProvider with ChangeNotifier {
       // Check if user is manually entering a DM mode
       if (message.startsWith('/dm ')) {
         if (message.split(' ') case final split when split.length > 1) {
-          final targetUser = split[1].trim();
-          if (onlineUsers.contains(targetUser)) {
+          final String targetUser = split[1].trim();
+          final currentUsers = _usersFuture?.result?.asValue?.value ?? [];
+          if (targetUser.isNotEmpty && currentUsers.contains(targetUser)) {
             setDmMode(targetUser);
           }
         }
@@ -380,26 +370,41 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Joins a specific channel, clearing the message history.
+  /// Joins a new channel.
+  ///
+  /// If the specified [channel] is the same as the current one, this method
+  /// does nothing.
   void joinChannel(String channel) {
-    if (_activeChannel == channel) return;
+    if (activeChannel == channel) return;
 
-    final formattedChannel = channel.startsWith('#') ? channel : '#$channel';
-
-    _activeChannel = formattedChannel;
     _currentDmUser = null;
     _searchQuery = '';
     _isCurrentChannelPrivate = false;
     _messages.clear();
-
-    configuration.setLastChannel(formattedChannel);
+    _chatService.currentChannel = channel;
+    configuration.lastChannel = channel.replaceFirst('#', '');
     notifyListeners();
 
-    _chatService.sendMessage('/join $formattedChannel');
+    _chatService.sendMessage('/join $channel');
     _chatService.sendMessage('/private status');
     _chatService.sendMessage('/log :depth 100 :date-format date');
-    _chatService.sendMessage('/users');
-    _chatService.requestChannelsList();
+
+    _fetchUsersAndChannelsList();
+  }
+
+  Future<void> _fetchUsersAndChannelsList() async {
+    final usersFuture = ResultFuture(
+      _chatService.requestUsersList(targetChannel: activeChannel),
+    );
+    _usersFuture = usersFuture;
+
+    final channelsFuture = ResultFuture(_chatService.requestChannelsList());
+    _channelsFuture = channelsFuture;
+
+    notifyListeners();
+
+    _notifyWhenComplete(usersFuture);
+    _notifyWhenComplete(channelsFuture);
   }
 
   /// Sets whether the current channel is private.
@@ -471,11 +476,18 @@ class ChatProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _lifecycleListener.dispose();
     for (var subscription in _subscriptions) {
       subscription.cancel();
     }
-    _chatService.dispose();
     super.dispose();
+  }
+
+  Future<void> _notifyWhenComplete<T>(Future<T> future) {
+    return future.then((value) {
+      if (_isDisposed) return;
+      notifyListeners();
+    });
   }
 }

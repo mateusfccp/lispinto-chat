@@ -21,6 +21,7 @@ final class MessageBubble extends StatefulWidget {
     super.key,
     required this.message,
     required this.searchQuery,
+    this.configuration,
   });
 
   /// The chat [message] to display in this bubble.
@@ -28,6 +29,9 @@ final class MessageBubble extends StatefulWidget {
 
   /// The current active search query to highlight in the message content.
   final String searchQuery;
+
+  /// An optional configuration to use instead of the global one.
+  final UserConfiguration? configuration;
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
@@ -123,11 +127,15 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final showImagePreviews = locator<UserConfiguration>().showImagePreviews;
+    final effectiveConfig = widget.configuration ?? locator<UserConfiguration>();
+    return ListenableBuilder(
+      listenable: effectiveConfig,
+      builder: (context, _) {
+        final showImagePreviews = effectiveConfig.showImagePreviews;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: widget.message.isSystemMessage
@@ -148,15 +156,18 @@ class _MessageBubbleState extends State<MessageBubble> {
             child: _buildContent(context),
           ),
         ),
-        if (_imageTypes.isNotEmpty && showImagePreviews)
-          _ImageGallery(imageTypes: _imageTypes, onImageTap: _launchUrl),
-      ],
+            if (_imageTypes.isNotEmpty && showImagePreviews)
+              _ImageGallery(imageTypes: _imageTypes, onImageTap: _launchUrl),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildContent(BuildContext context) {
-    final showImagePreviews = locator<UserConfiguration>().showImagePreviews;
-    final showMarkdown = locator<UserConfiguration>().showMarkdown;
+    final effectiveConfig = widget.configuration ?? locator<UserConfiguration>();
+    final showImagePreviews = effectiveConfig.showImagePreviews;
+    final showMarkdown = effectiveConfig.showMarkdown;
 
     final stylizedSpans = buildStylizedText(
       context: context,
@@ -197,7 +208,8 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   String _getTimestampText(DateTime date) {
-    final showSeconds = locator<UserConfiguration>().showTimeSeconds;
+    final effectiveConfig = widget.configuration ?? locator<UserConfiguration>();
+    final showSeconds = effectiveConfig.showTimeSeconds;
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     if (showSeconds) {

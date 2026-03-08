@@ -153,7 +153,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.startsWith('/dm')) {
       final parts = text.split(RegExp(r'\s+'));
       if (parts case ['/dm', final username, '']) {
-        final users = [..._provider.onlineUsers]
+        final users = [...?_provider.usersFuture?.result?.asValue?.value]
           ..remove(_provider.configuration.nickname);
         if (users.contains(username)) {
           _provider.setDmMode(username);
@@ -206,12 +206,12 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _openConfig() {
+  void _openConfigurations() {
     const ConfigurationsRoute().push(context);
   }
 
   void _quit() {
-    _provider.configuration.setAutoConnect(false);
+    _provider.configuration.autoConnect = false;
     _provider.disconnect();
     if (mounted) {
       const InitialRoute().go(context);
@@ -299,7 +299,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       provider: _provider,
                       onUserTap: _onUserTap,
                       onUserMenuTap: _showUserContextMenu,
-                      onOpenConfig: _openConfig,
+                      onOpenConfig: _openConfigurations,
                       onQuit: _quit,
                       onAddChannel: _showAddChannelDialog,
                     ),
@@ -371,6 +371,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   focusNode: _focusNode,
                   provider: _provider,
                   onSend: _sendMessage,
+                  openConfigurations: _openConfigurations,
                 ),
               ),
               Positioned(
@@ -550,7 +551,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
-            if (_provider.activeChannel != '#general' &&
+            if (_provider.activeChannel != 'general' &&
                 _provider.currentDmNickname == null)
               ListenableBuilder(
                 listenable: _provider,
@@ -569,7 +570,7 @@ class _ChatScreenState extends State<ChatScreen> {
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pop(context);
-                _openConfig();
+                _openConfigurations();
               },
             ),
             ListTile(
@@ -609,7 +610,7 @@ class _ChatScreenState extends State<ChatScreen> {
         child: ListenableBuilder(
           listenable: _provider,
           builder: (context, child) {
-            final users = _provider.onlineUsers;
+            final users = [...?_provider.usersFuture?.result?.asValue?.value];
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

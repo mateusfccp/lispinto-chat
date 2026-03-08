@@ -105,12 +105,10 @@ void main() {
       final config = PersistentUserConfiguration(preferences: prefs);
       final mockNotifications = MockFlutterLocalNotificationsPlugin();
       final mockChatService = MockChatService();
-      final mockWebSocketFactory = MockWebSocketFactory();
 
       provider = ChatProvider(
         config,
         appVersion: 'test',
-        websocketFactory: mockWebSocketFactory,
         localNotifications: mockNotifications,
         chatService: mockChatService,
       );

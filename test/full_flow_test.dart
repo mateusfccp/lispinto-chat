@@ -1,16 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/main.dart';
-import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
+import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/image_upload_service.dart';
 import 'package:lispinto_chat/services/link_image_detector.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
@@ -84,6 +86,21 @@ class MockFlutterLocalNotificationsPlugin extends Fake
   }) async {}
 }
 
+class MockHttpClient extends Fake implements http.Client {
+  @override
+  Future<http.Response> post(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) async {
+    return http.Response(
+      '{"status":"success", "result": "channels: #general(1)"}',
+      200,
+    );
+  }
+}
+
 void main() {
   group('Full User Flow Test', () {
     late MockWebSocketFactory webSocketFactory;
@@ -104,12 +121,22 @@ void main() {
       locator.registerSingleton<WebSocketFactory>(webSocketFactory);
       locator.registerSingleton<ImageUploadService>(MockImageUploadService());
 
+      final chatService = ChatService(
+        url: Uri.parse('ws://localhost'),
+        nickname: 'test',
+        webSocketFactory: webSocketFactory,
+        httpClient: MockHttpClient(),
+        configuration: config,
+      );
+
+      locator.registerSingleton<ChatService>(chatService);
+
       locator.registerSingleton<ChatProvider>(
         ChatProvider(
           config,
           appVersion: 'test',
-          websocketFactory: webSocketFactory,
           localNotifications: MockFlutterLocalNotificationsPlugin(),
+          chatService: chatService,
         ),
       );
 
@@ -132,7 +159,7 @@ void main() {
 
       try {
         await tester.pumpWidget(const App());
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
 
         // 1. Verify Initial Screen
         expect(find.text('Nickname'), findsWidgets);
@@ -140,11 +167,18 @@ void main() {
         // 2. Enter nickname and connect
         await tester.enterText(find.byType(TextFormField).first, 'tester');
         await tester.tap(find.text('Connect'));
-        await tester.pump();
-
         // Simulate server handshake
-        final channel = webSocketFactory.lastChannel;
-        expect(channel, isNotNull);
+        MockWebSocketChannel? channel;
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+          channel = webSocketFactory.lastChannel;
+          if (channel != null) break;
+        }
+        expect(
+          channel,
+          isNotNull,
+          reason: 'WebSocket channel should be created',
+        );
 
         channel!.feed('> Type your username:');
 
@@ -158,7 +192,9 @@ void main() {
         for (int i = 0; i < 5; i++) {
           await tester.pump(const Duration(milliseconds: 200));
         }
-        await tester.pumpAndSettle();
+        // Pump to let animations and timers run, but don't wait forever if there's a spinner
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(seconds: 2));
 
         // 3. Verify we are in ChatScreen
         expect(find.byType(ChatScreen), findsOneWidget);
@@ -184,13 +220,13 @@ void main() {
 
         await tester.tap(sendButton);
         await tester.pump(const Duration(milliseconds: 500));
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
 
         // 5. Simulate server echoing our message
         channel.feed('|18:00:02| [@tester]: $testMessage');
 
         await tester.pump(const Duration(milliseconds: 500));
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
 
         // 6. Verify message is displayed in the list
         expect(find.textContaining(testMessage), findsWidgets);

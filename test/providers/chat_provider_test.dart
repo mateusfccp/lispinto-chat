@@ -1,13 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
-import 'package:lispinto_chat/providers/chat_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:mockito/mockito.dart';
-
-import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/providers/chat_provider.dart';
+import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
+import 'package:mockito/mockito.dart';
 
 class MockFlutterLocalNotificationsPlugin extends Mock
     implements FlutterLocalNotificationsPlugin {
@@ -22,8 +22,68 @@ class MockFlutterLocalNotificationsPlugin extends Mock
   }
 }
 
+class FakeUserConfiguration extends Fake implements UserConfiguration {
+  @override
+  String get nickname => _nickname;
+  String _nickname = 'tester';
+
+  @override
+  set nickname(String value) => _nickname = value;
+
+  @override
+  bool get hasNickname => _nickname.isNotEmpty;
+
+  @override
+  String get serverUrl => 'http://localhost:8080';
+
+  @override
+  bool get autoConnect => _autoConnect;
+  bool _autoConnect = false;
+
+  @override
+  set autoConnect(bool value) => _autoConnect = value;
+
+  @override
+  bool get mentionNotificationsEnabled => true;
+
+  @override
+  bool get pushNotificationsEnabled => true;
+
+  @override
+  String get lastChannel => 'general';
+
+  @override
+  set lastChannel(String value) {}
+
+  @override
+  bool get showImagePreviews => true;
+
+  @override
+  bool get showEmptyChannels => true;
+}
+
 class FakeChatService extends Fake implements ChatService {
   final List<String> sentMessages = [];
+
+  final _currentChannelController = StreamController<String>.broadcast();
+
+  @override
+  WebSocketFactory get webSocketFactory =>
+      const DefaultWebSocketFactory('test');
+
+  @override
+  String get currentChannel => _currentChannel;
+
+  @override
+  set currentChannel(String value) {
+    _currentChannel = value;
+    _currentChannelController.add(value);
+  }
+
+  String _currentChannel = '#general';
+
+  @override
+  Stream<String> get currentChannelStream => _currentChannelController.stream;
 
   @override
   Stream<ChatMessage> get messages => const Stream.empty();
@@ -39,15 +99,18 @@ class FakeChatService extends Fake implements ChatService {
 
   @override
   Stream<bool> get connectionState => Stream.value(true);
-
   @override
   Stream<String> get nickChanges => const Stream.empty();
 
   @override
-  bool showEmptyChannels = false;
+  Future<Map<String, int>> requestChannelsList() async {
+    return {};
+  }
 
   @override
-  void requestChannelsList() {}
+  Future<List<String>> requestUsersList({required String targetChannel}) async {
+    return [];
+  }
 
   @override
   void sendMessage(String message) {
@@ -67,18 +130,13 @@ void main() {
 
     setUp(() async {
       TestWidgetsFlutterBinding.ensureInitialized();
-      SharedPreferences.setMockInitialValues({});
-      config = await UserConfiguration.load();
-      await config.setNickname('TestUser');
-      await config.setServerUrl('ws://localhost:8080');
-
+      config = FakeUserConfiguration();
       final mockNotifications = MockFlutterLocalNotificationsPlugin();
       fakeChatService = FakeChatService();
 
       provider = ChatProvider(
         config,
         appVersion: "test",
-        websocketFactory: const DefaultWebSocketFactory('test'),
         localNotifications: mockNotifications,
         chatService: fakeChatService,
       );
@@ -90,8 +148,9 @@ void main() {
 
     test('Initializes with default state', () {
       expect(provider.messages, isEmpty);
-      expect(provider.onlineUsers, isEmpty);
-      expect(provider.isConnected, isFalse);
+      expect(provider.usersFuture, isNotNull);
+      expect(provider.channelsFuture, isNotNull);
+      expect(provider.isConnected, isTrue);
       expect(provider.currentDmNickname, isNull);
     });
 

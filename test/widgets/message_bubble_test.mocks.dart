@@ -42,12 +42,6 @@ class _FakeUnmodifiableListView_1<E> extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeUnmodifiableMapView_2<K, V> extends _i1.SmartFake
-    implements _i3.UnmodifiableMapView<K, V> {
-  _FakeUnmodifiableMapView_2(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
 /// A class which mocks [LinkImageDetector].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -120,30 +114,13 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
           as _i3.UnmodifiableListView<_i8.ChatMessage>);
 
   @override
-  _i3.UnmodifiableListView<String> get onlineUsers =>
-      (super.noSuchMethod(
-            Invocation.getter(#onlineUsers),
-            returnValue: _FakeUnmodifiableListView_1<String>(
-              this,
-              Invocation.getter(#onlineUsers),
-            ),
-          )
-          as _i3.UnmodifiableListView<String>);
-
-  @override
-  _i3.UnmodifiableMapView<String, int> get channels =>
-      (super.noSuchMethod(
-            Invocation.getter(#channels),
-            returnValue: _FakeUnmodifiableMapView_2<String, int>(
-              this,
-              Invocation.getter(#channels),
-            ),
-          )
-          as _i3.UnmodifiableMapView<String, int>);
-
-  @override
   bool get isConnected =>
       (super.noSuchMethod(Invocation.getter(#isConnected), returnValue: false)
+          as bool);
+
+  @override
+  bool get isLoggedIn =>
+      (super.noSuchMethod(Invocation.getter(#isLoggedIn), returnValue: false)
           as bool);
 
   @override
@@ -212,14 +189,10 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
 
   @override
   _i5.Future<void> updateConfiguration(
-    String? newNickname,
-    String? newServerUrl,
+    _i2.UserConfiguration? newConfiguration,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#updateConfiguration, [
-              newNickname,
-              newServerUrl,
-            ]),
+            Invocation.method(#updateConfiguration, [newConfiguration]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

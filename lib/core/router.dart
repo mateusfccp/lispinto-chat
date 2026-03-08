@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
-import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:lispinto_chat/screens/configurations_screen.dart';
@@ -19,30 +18,35 @@ GoRouter createRouter() {
     initialLocation: '/',
     refreshListenable: locator<ChatProvider>(),
     redirect: (context, state) {
-      final config = locator<UserConfiguration>();
       final provider = locator<ChatProvider>();
       final logger = locator<Logger>();
       final isAtInitial = state.uri.path == '/';
       final isAtChat = state.uri.path.startsWith('/chat');
 
-      // 1. Initial Load / Auto-Connect
-      if (isAtInitial && config.autoConnect && config.hasNickname) {
-        logger.info('Redirecting to /chat (Auto-Connect enabled)');
-        // The ChatProvider handles auto-connecting internally on initialization.
-        return '/chat';
-      }
-
-      // 2. Logged in state -> Navigate to Chat
-      if (isAtInitial && provider.isConnected) {
+      // 1. Logged in state -> Navigate to Chat
+      if (isAtInitial && provider.isLoggedIn) {
         logger.info('Redirecting to /chat (User is already connected)');
         return '/chat';
       }
 
-      // 3. Logged out state -> Navigate to Initial
-      if (!provider.isConnected && isAtChat) {
+      // 1b. Auto-connect enabled -> Navigate to Chat on startup
+      if (isAtInitial &&
+          provider.configuration.autoConnect &&
+          provider.configuration.hasNickname) {
+        logger.info('Redirecting to /chat (Auto-connect is enabled)');
+        return '/chat';
+      }
+
+      // 2. Logged out state -> Navigate to Initial
+      if (!provider.isLoggedIn && isAtChat) {
         if (provider.isConnecting) {
           return null;
-        } else {
+        }
+
+        // Only redirect to Initial if at the root chat screen.
+        // This allows remaining on utility screens (config, licenses, etc.)
+        // while the connection is resetting.
+        if (state.uri.path == '/chat') {
           logger.info('Redirecting to / (User disconnected)');
           return '/';
         }

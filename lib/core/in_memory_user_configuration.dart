@@ -1,7 +1,7 @@
 import 'user_configuration.dart';
 
 /// In-memory implementation of [UserConfiguration] for preview and testing.
-final class InMemoryUserConfiguration implements UserConfiguration {
+final class InMemoryUserConfiguration extends UserConfiguration {
   /// Creates an [InMemoryUserConfiguration] with optional initial values.
   InMemoryUserConfiguration({
     String nickname = '',
@@ -14,7 +14,7 @@ final class InMemoryUserConfiguration implements UserConfiguration {
     bool showEmptyChannels = false,
     bool showMarkdown = true,
     bool groupMessages = true,
-    String lastChannel = '#general',
+    String lastChannel = 'general',
     String imgbbApiKey = '',
   }) : _nickname = nickname,
        _serverUrl = serverUrl,
@@ -28,6 +28,21 @@ final class InMemoryUserConfiguration implements UserConfiguration {
        _groupMessages = groupMessages,
        _lastChannel = lastChannel,
        _imgbbApiKey = imgbbApiKey;
+
+  /// Creates an [InMemoryUserConfiguration] from another [UserConfiguration].
+  InMemoryUserConfiguration.fromConfiguration(UserConfiguration config)
+    : _nickname = config.nickname,
+      _serverUrl = config.serverUrl,
+      _pushNotificationsEnabled = config.pushNotificationsEnabled,
+      _mentionNotificationsEnabled = config.mentionNotificationsEnabled,
+      _autoConnect = config.autoConnect,
+      _showTimeSeconds = config.showTimeSeconds,
+      _showImagePreviews = config.showImagePreviews,
+      _showEmptyChannels = config.showEmptyChannels,
+      _showMarkdown = config.showMarkdown,
+      _groupMessages = config.groupMessages,
+      _lastChannel = config.lastChannel,
+      _imgbbApiKey = config.imgbbApiKey;
 
   String _nickname;
   String _serverUrl;
@@ -46,19 +61,28 @@ final class InMemoryUserConfiguration implements UserConfiguration {
   String get nickname => _nickname;
 
   @override
-  Future<void> setNickname(String value) async => _nickname = value;
+  set nickname(String value) {
+    _nickname = value;
+    notifyListeners();
+  }
 
   @override
   String get serverUrl => _serverUrl;
 
   @override
-  Future<void> setServerUrl(String value) async => _serverUrl = value;
+  set serverUrl(String value) {
+    _serverUrl = value;
+    notifyListeners();
+  }
 
   @override
   String get imgbbApiKey => _imgbbApiKey;
 
   @override
-  Future<void> setImgbbApiKey(String value) async => _imgbbApiKey = value;
+  set imgbbApiKey(String value) {
+    _imgbbApiKey = value;
+    notifyListeners();
+  }
 
   @override
   bool get hasNickname => _nickname.trim().isNotEmpty;
@@ -67,57 +91,97 @@ final class InMemoryUserConfiguration implements UserConfiguration {
   bool get pushNotificationsEnabled => _pushNotificationsEnabled;
 
   @override
-  Future<void> setPushNotificationsEnabled(bool value) async =>
-      _pushNotificationsEnabled = value;
+  set pushNotificationsEnabled(bool value) {
+    _pushNotificationsEnabled = value;
+    notifyListeners();
+  }
 
   @override
   bool get mentionNotificationsEnabled => _mentionNotificationsEnabled;
 
   @override
-  Future<void> setMentionNotificationsEnabled(bool value) async =>
-      _mentionNotificationsEnabled = value;
+  set mentionNotificationsEnabled(bool value) {
+    _mentionNotificationsEnabled = value;
+    notifyListeners();
+  }
 
   @override
   bool get autoConnect => _autoConnect;
 
   @override
-  Future<void> setAutoConnect(bool value) async => _autoConnect = value;
+  set autoConnect(bool value) {
+    _autoConnect = value;
+    notifyListeners();
+  }
 
   @override
   bool get showTimeSeconds => _showTimeSeconds;
 
   @override
-  Future<void> setShowTimeSeconds(bool value) async => _showTimeSeconds = value;
+  set showTimeSeconds(bool value) {
+    _showTimeSeconds = value;
+    notifyListeners();
+  }
 
   @override
   bool get showImagePreviews => _showImagePreviews;
 
   @override
-  Future<void> setShowImagePreviews(bool value) async =>
-      _showImagePreviews = value;
+  set showImagePreviews(bool value) {
+    _showImagePreviews = value;
+    notifyListeners();
+  }
 
   @override
   bool get showEmptyChannels => _showEmptyChannels;
 
   @override
-  Future<void> setShowEmptyChannels(bool value) async =>
-      _showEmptyChannels = value;
+  set showEmptyChannels(bool value) {
+    _showEmptyChannels = value;
+    notifyListeners();
+  }
 
   @override
   bool get showMarkdown => _showMarkdown;
 
   @override
-  Future<void> setShowMarkdown(bool value) async => _showMarkdown = value;
+  set showMarkdown(bool value) {
+    _showMarkdown = value;
+    notifyListeners();
+  }
 
   @override
   bool get groupMessages => _groupMessages;
 
   @override
-  Future<void> setGroupMessages(bool value) async => _groupMessages = value;
+  set groupMessages(bool value) {
+    _groupMessages = value;
+    notifyListeners();
+  }
 
   @override
   String get lastChannel => _lastChannel;
 
   @override
-  Future<void> setLastChannel(String value) async => _lastChannel = value;
+  set lastChannel(String value) {
+    _lastChannel = value;
+    notifyListeners();
+  }
+
+  @override
+  void updateWith(UserConfiguration other) {
+    _nickname = other.nickname;
+    _serverUrl = other.serverUrl;
+    _imgbbApiKey = other.imgbbApiKey;
+    _pushNotificationsEnabled = other.pushNotificationsEnabled;
+    _mentionNotificationsEnabled = other.mentionNotificationsEnabled;
+    _autoConnect = other.autoConnect;
+    _showTimeSeconds = other.showTimeSeconds;
+    _showImagePreviews = other.showImagePreviews;
+    _showEmptyChannels = other.showEmptyChannels;
+    _showMarkdown = other.showMarkdown;
+    _groupMessages = other.groupMessages;
+    _lastChannel = other.lastChannel;
+    notifyListeners();
+  }
 }

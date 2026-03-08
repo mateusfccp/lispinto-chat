@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
+import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
+import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:lispinto_chat/services/websocket_factory.dart';
 
 import 'chat_screen_shortcut_test.mocks.dart';
 
@@ -20,13 +21,9 @@ class FakeChatProvider extends ChatProvider {
   FakeChatProvider(
     super.configuration, {
     required super.appVersion,
-    super.localNotifications, // Accept the mock
-    super.websocketFactory = const DefaultWebSocketFactory('test'),
+    required super.localNotifications,
+    required super.chatService,
   });
-
-  @override
-  UnmodifiableListView<String> get onlineUsers =>
-      UnmodifiableListView(['testuser', 'otheruser']);
 
   @override
   UnmodifiableListView<ChatMessage> get messages => UnmodifiableListView([]);
@@ -47,24 +44,55 @@ class FakeChatProvider extends ChatProvider {
   void search(String query) {}
 }
 
+class FakeUserConfiguration extends Fake implements UserConfiguration {
+  @override
+  String get nickname => 'testuser';
+
+  @override
+  set nickname(String value) {}
+
+  @override
+  bool get hasNickname => true;
+
+  @override
+  String get serverUrl => 'ws://localhost';
+
+  @override
+  String get lastChannel => 'general';
+
+  @override
+  set lastChannel(String value) {}
+
+  @override
+  bool get autoConnect => false;
+
+  @override
+  set autoConnect(bool value) {}
+
+  @override
+  bool get groupMessages => true;
+
+  @override
+  bool get mentionNotificationsEnabled => false;
+
+  @override
+  bool get pushNotificationsEnabled => false;
+
+  @override
+  bool get showImagePreviews => true;
+
+  @override
+  bool get showEmptyChannels => true;
+}
+
 @GenerateMocks([SharedPreferences, FlutterLocalNotificationsPlugin])
 void main() {
-  late MockSharedPreferences mockPrefs;
   late MockFlutterLocalNotificationsPlugin mockNotifications;
   late UserConfiguration config;
 
   setUp(() {
-    mockPrefs = MockSharedPreferences();
     mockNotifications = MockFlutterLocalNotificationsPlugin();
-    config = PersistentUserConfiguration(preferences: mockPrefs);
-
-    when(mockPrefs.getString('nickname')).thenReturn('testuser');
-    when(mockPrefs.getString('server_url')).thenReturn('ws://localhost');
-    when(mockPrefs.getString('last_channel')).thenReturn(null);
-    when(mockPrefs.getString('imgbb_api_key')).thenReturn(null);
-    when(mockPrefs.getString('last_channel')).thenReturn(null);
-    when(mockPrefs.getString('imgbb_api_key')).thenReturn(null);
-    when(mockPrefs.getBool(any)).thenReturn(false);
+    config = FakeUserConfiguration();
 
     // Suppress overflow errors in tests
     FlutterError.onError = (FlutterErrorDetails details) {
@@ -86,11 +114,14 @@ void main() {
     // Setup locator
     locator.reset();
     locator.registerSingleton<UserConfiguration>(config);
+    locator.registerSingleton<MessageGrouper>(const MessageGrouper());
+    final mockChatService = FakeTestChatService();
     locator.registerSingleton<ChatProvider>(
       FakeChatProvider(
         config,
         appVersion: '1.0.0',
         localNotifications: mockNotifications,
+        chatService: mockChatService,
       ),
     );
   });
@@ -145,20 +176,28 @@ void main() {
   testWidgets('Escape should close search and return focus to chat input', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    // Set a large surface size to avoid layout overflows
+    await tester.binding.setSurfaceSize(const Size(1920, 1080));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(const MaterialApp(home: ChatScreen()));
+    await tester.pump();
 
-    await tester.pumpAndSettle();
+    // Ensure focus is on the main detector
+    await tester.tap(find.byType(ChatScreen));
+    await tester.pump();
 
-    // Open search
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+    // Open search with CTRL+S
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
-    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    // Or open with CMD+S
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump();
 
     final searchInputFinder = find.byWidgetPredicate(
       (widget) =>
@@ -187,4 +226,52 @@ void main() {
         .focusNode;
     expect(chatInputFocusNode?.hasFocus ?? false, isTrue);
   });
+}
+
+class FakeTestChatService extends Fake implements ChatService {
+  @override
+  Stream<String> get currentChannelStream => const Stream.empty();
+
+  @override
+  Stream<ChatMessage> get messages => const Stream.empty();
+
+  @override
+  Stream<List<String>> get users => const Stream.empty();
+
+  @override
+  Stream<Map<String, int>> get channels => const Stream.empty();
+
+  @override
+  Stream<String> get nickChanges => const Stream.empty();
+
+  @override
+  Stream<ChatMessage> get notifications => const Stream.empty();
+
+  @override
+  void setAppBackgroundState(bool state) {}
+
+  @override
+  ChatConnectionState get state => ChatConnectionState.connected;
+
+  @override
+  Stream<bool> get connectionState => Stream.value(true);
+
+  @override
+  String get currentChannel => '#general';
+
+  @override
+  void sendMessage(String text, {params}) {}
+
+  @override
+  Future<List<String>> requestUsersList({required String targetChannel}) async {
+    return [];
+  }
+
+  @override
+  Future<Map<String, int>> requestChannelsList() async {
+    return {};
+  }
+
+  @override
+  void dispose() {}
 }

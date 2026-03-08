@@ -1,92 +1,80 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Manages user configuration such as nickname and server URL.
-abstract interface class UserConfiguration {
+abstract class UserConfiguration with ChangeNotifier {
   /// Gets the nickname from shared preferences.
-  String get nickname;
-
-  /// Saves the nickname to shared preferences.
-  Future<void> setNickname(String value);
+  abstract String nickname;
 
   /// Gets the server URL from shared preferences.
-  String get serverUrl;
-
-  /// Saves the server URL to shared preferences.
-  Future<void> setServerUrl(String value);
+  abstract String serverUrl;
 
   /// Gets the ImgBB API key from shared preferences.
-  String get imgbbApiKey;
-
-  /// Saves the ImgBB API key to shared preferences.
-  Future<void> setImgbbApiKey(String value);
+  abstract String imgbbApiKey;
 
   /// Returns true if the user has set a non-empty nickname.
   bool get hasNickname;
 
   /// Whether push notifications are enabled.
-  bool get pushNotificationsEnabled;
-
-  /// Saves the push notifications preference.
-  Future<void> setPushNotificationsEnabled(bool value);
+  abstract bool pushNotificationsEnabled;
 
   /// Whether mention notifications are enabled.
-  bool get mentionNotificationsEnabled;
-
-  /// Saves the mention notifications preference.
-  Future<void> setMentionNotificationsEnabled(bool value);
+  abstract bool mentionNotificationsEnabled;
 
   /// Whether the user wants to automatically skip the initial screen on startup.
-  bool get autoConnect;
-
-  /// Saves the auto-connect preference.
-  Future<void> setAutoConnect(bool value);
+  abstract bool autoConnect;
 
   /// Whether to show seconds in message timestamps.
-  bool get showTimeSeconds;
-
-  /// Saves the show-time-seconds preference.
-  Future<void> setShowTimeSeconds(bool value);
+  abstract bool showTimeSeconds;
 
   /// Whether to show image previews for URLs.
-  bool get showImagePreviews;
-
-  /// Saves the show-image-previews preference.
-  Future<void> setShowImagePreviews(bool value);
+  abstract bool showImagePreviews;
 
   /// Whether to show empty channels in the channel list.
-  bool get showEmptyChannels;
-
-  /// Saves the show-empty-channels preference.
-  Future<void> setShowEmptyChannels(bool value);
+  abstract bool showEmptyChannels;
 
   /// Whether to enable markdown-like styling.
-  bool get showMarkdown;
-
-  /// Saves the show-markdown preference.
-  Future<void> setShowMarkdown(bool value);
+  abstract bool showMarkdown;
 
   /// Whether to group sequential messages from the same user at the same time.
-  bool get groupMessages;
-
-  /// Saves the group-messages preference.
-  Future<void> setGroupMessages(bool value);
+  abstract bool groupMessages;
 
   /// Gets the last joined channel.
-  String get lastChannel;
-
-  /// Saves the last joined channel.
-  Future<void> setLastChannel(String value);
+  abstract String lastChannel;
 
   /// Loads the persistent user configuration.
   static Future<UserConfiguration> load() => PersistentUserConfiguration.load();
+
+  /// Updates this configuration with values from another configuration.
+  ///
+  /// It avoids notifying listeners until all values are updated, which is
+  /// useful when loading a new configuration from persistent storage or when
+  /// applying a batch of changes at once.
+  void updateWith(UserConfiguration other);
 }
 
 /// Persistent implementation of [UserConfiguration] using [SharedPreferences].
-final class PersistentUserConfiguration implements UserConfiguration {
+final class PersistentUserConfiguration extends UserConfiguration {
   /// Creates a [PersistentUserConfiguration].
-  const PersistentUserConfiguration({required SharedPreferences preferences})
-    : _preferences = preferences;
+  PersistentUserConfiguration({required SharedPreferences preferences})
+    : _preferences = preferences,
+      _nickname = preferences.getString(_keyNickname) ?? '',
+      _serverUrl = preferences.getString(_keyServerUrl) ?? _defaultServerUrl,
+      _pushNotificationsEnabled =
+          preferences.getBool(_keyPushNotifications) ?? false,
+      _mentionNotificationsEnabled =
+          preferences.getBool(_keyMentionNotifications) ?? false,
+      _autoConnect = preferences.getBool(_keyAutoConnect) ?? false,
+      _showTimeSeconds = preferences.getBool(_keyShowTimeSeconds) ?? false,
+      _showImagePreviews = preferences.getBool(_keyShowImagePreviews) ?? true,
+      _showEmptyChannels = preferences.getBool(_keyShowEmptyChannels) ?? false,
+      _showMarkdown = preferences.getBool(_keyShowMarkdown) ?? true,
+      _groupMessages = preferences.getBool(_keyGroupMessages) ?? true,
+      _lastChannel = preferences.getString(_keyLastChannel) ?? 'general',
+      _imgbbApiKey = preferences.getString(_keyImgbbApiKey) ?? '';
 
   static const String _keyNickname = 'nickname';
   static const String _keyServerUrl = 'server_url';
@@ -100,7 +88,7 @@ final class PersistentUserConfiguration implements UserConfiguration {
   static const String _keyGroupMessages = 'group_messages';
   static const String _keyLastChannel = 'last_channel';
   static const String _keyImgbbApiKey = 'imgbb_api_key';
-  static const String _defaultServerUrl = 'wss://chat.manoel.dev/ws';
+  static const String _defaultServerUrl = 'https://chat.manoel.dev';
 
   final SharedPreferences _preferences;
 
@@ -118,122 +106,154 @@ final class PersistentUserConfiguration implements UserConfiguration {
   }
 
   @override
-  String get nickname => _preferences.getString(_keyNickname) ?? '';
+  String get nickname => _nickname;
+  String _nickname;
 
   @override
-  Future<void> setNickname(String value) async {
-    await _preferences.setString(_keyNickname, value);
+  set nickname(String value) {
+    _nickname = value;
+    unawaited(_preferences.setString(_keyNickname, value));
+    notifyListeners();
   }
 
   @override
-  String get serverUrl {
-    return _preferences.getString(_keyServerUrl) ?? _defaultServerUrl;
+  String get serverUrl => _serverUrl;
+  String _serverUrl;
+
+  @override
+  set serverUrl(String value) {
+    _serverUrl = value;
+    unawaited(_preferences.setString(_keyServerUrl, value));
+    notifyListeners();
   }
 
   @override
-  Future<void> setServerUrl(String value) async {
-    await _preferences.setString(_keyServerUrl, value);
-  }
+  String get imgbbApiKey => _imgbbApiKey;
+  String _imgbbApiKey;
 
   @override
-  String get imgbbApiKey {
-    return _preferences.getString(_keyImgbbApiKey) ?? '';
-  }
-
-  @override
-  Future<void> setImgbbApiKey(String value) async {
-    await _preferences.setString(_keyImgbbApiKey, value);
+  set imgbbApiKey(String value) {
+    _imgbbApiKey = value;
+    unawaited(_preferences.setString(_keyImgbbApiKey, value));
+    notifyListeners();
   }
 
   @override
   bool get hasNickname => nickname.trim().isNotEmpty;
 
   @override
-  bool get pushNotificationsEnabled {
-    return _preferences.getBool(_keyPushNotifications) ?? false;
+  bool get pushNotificationsEnabled => _pushNotificationsEnabled;
+  bool _pushNotificationsEnabled;
+
+  @override
+  set pushNotificationsEnabled(bool value) {
+    _pushNotificationsEnabled = value;
+    unawaited(_preferences.setBool(_keyPushNotifications, value));
+    notifyListeners();
   }
 
   @override
-  Future<void> setPushNotificationsEnabled(bool value) async {
-    await _preferences.setBool(_keyPushNotifications, value);
+  bool get mentionNotificationsEnabled => _mentionNotificationsEnabled;
+  bool _mentionNotificationsEnabled;
+
+  @override
+  set mentionNotificationsEnabled(bool value) {
+    _mentionNotificationsEnabled = value;
+    unawaited(_preferences.setBool(_keyMentionNotifications, value));
+    notifyListeners();
   }
 
   @override
-  bool get mentionNotificationsEnabled {
-    return _preferences.getBool(_keyMentionNotifications) ?? false;
+  bool get autoConnect => _autoConnect;
+  bool _autoConnect;
+
+  @override
+  set autoConnect(bool value) {
+    _autoConnect = value;
+    unawaited(_preferences.setBool(_keyAutoConnect, value));
+    notifyListeners();
   }
 
   @override
-  Future<void> setMentionNotificationsEnabled(bool value) async {
-    await _preferences.setBool(_keyMentionNotifications, value);
+  bool get showTimeSeconds => _showTimeSeconds;
+  bool _showTimeSeconds;
+
+  @override
+  set showTimeSeconds(bool value) {
+    _showTimeSeconds = value;
+    unawaited(_preferences.setBool(_keyShowTimeSeconds, value));
+    notifyListeners();
   }
 
   @override
-  bool get autoConnect {
-    return _preferences.getBool(_keyAutoConnect) ?? false;
+  bool get showImagePreviews => _showImagePreviews;
+  bool _showImagePreviews;
+
+  @override
+  set showImagePreviews(bool value) {
+    _showImagePreviews = value;
+    unawaited(_preferences.setBool(_keyShowImagePreviews, value));
+    notifyListeners();
   }
 
   @override
-  Future<void> setAutoConnect(bool value) async {
-    await _preferences.setBool(_keyAutoConnect, value);
+  bool get showEmptyChannels => _showEmptyChannels;
+  bool _showEmptyChannels;
+
+  @override
+  set showEmptyChannels(bool value) {
+    _showEmptyChannels = value;
+    unawaited(_preferences.setBool(_keyShowEmptyChannels, value));
+    notifyListeners();
   }
 
   @override
-  bool get showTimeSeconds {
-    return _preferences.getBool(_keyShowTimeSeconds) ?? false;
+  bool get showMarkdown => _showMarkdown;
+  bool _showMarkdown;
+
+  @override
+  set showMarkdown(bool value) {
+    _showMarkdown = value;
+    unawaited(_preferences.setBool(_keyShowMarkdown, value));
+    notifyListeners();
   }
 
   @override
-  Future<void> setShowTimeSeconds(bool value) async {
-    await _preferences.setBool(_keyShowTimeSeconds, value);
+  bool get groupMessages => _groupMessages;
+  bool _groupMessages;
+
+  @override
+  set groupMessages(bool value) {
+    _groupMessages = value;
+    unawaited(_preferences.setBool(_keyGroupMessages, value));
+    notifyListeners();
   }
 
   @override
-  bool get showImagePreviews {
-    return _preferences.getBool(_keyShowImagePreviews) ?? true;
+  String get lastChannel => _lastChannel;
+  String _lastChannel;
+
+  @override
+  set lastChannel(String value) {
+    _lastChannel = value;
+    unawaited(_preferences.setString(_keyLastChannel, value));
+    notifyListeners();
   }
 
   @override
-  Future<void> setShowImagePreviews(bool value) async {
-    await _preferences.setBool(_keyShowImagePreviews, value);
-  }
-
-  @override
-  bool get showEmptyChannels {
-    return _preferences.getBool(_keyShowEmptyChannels) ?? false;
-  }
-
-  @override
-  Future<void> setShowEmptyChannels(bool value) async {
-    await _preferences.setBool(_keyShowEmptyChannels, value);
-  }
-
-  @override
-  bool get showMarkdown {
-    return _preferences.getBool(_keyShowMarkdown) ?? true;
-  }
-
-  @override
-  Future<void> setShowMarkdown(bool value) async {
-    await _preferences.setBool(_keyShowMarkdown, value);
-  }
-
-  @override
-  bool get groupMessages {
-    return _preferences.getBool(_keyGroupMessages) ?? true;
-  }
-
-  @override
-  Future<void> setGroupMessages(bool value) async {
-    await _preferences.setBool(_keyGroupMessages, value);
-  }
-
-  @override
-  String get lastChannel =>
-      _preferences.getString(_keyLastChannel) ?? '#general';
-
-  @override
-  Future<void> setLastChannel(String value) async {
-    await _preferences.setString(_keyLastChannel, value);
+  void updateWith(UserConfiguration other) {
+    _nickname = other.nickname;
+    _serverUrl = other.serverUrl;
+    _imgbbApiKey = other.imgbbApiKey;
+    _pushNotificationsEnabled = other.pushNotificationsEnabled;
+    _mentionNotificationsEnabled = other.mentionNotificationsEnabled;
+    _autoConnect = other.autoConnect;
+    _showTimeSeconds = other.showTimeSeconds;
+    _showImagePreviews = other.showImagePreviews;
+    _showEmptyChannels = other.showEmptyChannels;
+    _showMarkdown = other.showMarkdown;
+    _groupMessages = other.groupMessages;
+    _lastChannel = other.lastChannel;
+    notifyListeners();
   }
 }

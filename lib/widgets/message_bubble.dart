@@ -127,7 +127,8 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveConfig = widget.configuration ?? locator<UserConfiguration>();
+    final effectiveConfig =
+        widget.configuration ?? locator<UserConfiguration>();
     return ListenableBuilder(
       listenable: effectiveConfig,
       builder: (context, _) {
@@ -136,26 +137,29 @@ class _MessageBubbleState extends State<MessageBubble> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: widget.message.isSystemMessage
-                ? LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      getNicknameColor(
-                        widget.message.from,
-                      ).withValues(alpha: 0.5),
-                      Colors.transparent,
-                    ],
-                  )
-                : null,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: _buildContent(context),
-          ),
-        ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: widget.message.isSystemMessage
+                    ? LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          getNicknameColor(
+                            widget.message.from,
+                          ).withValues(alpha: 0.5),
+                          Colors.transparent,
+                        ],
+                      )
+                    : null,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 4.0,
+                ),
+                child: _buildContent(context),
+              ),
+            ),
             if (_imageTypes.isNotEmpty && showImagePreviews)
               _ImageGallery(imageTypes: _imageTypes, onImageTap: _launchUrl),
           ],
@@ -165,7 +169,8 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final effectiveConfig = widget.configuration ?? locator<UserConfiguration>();
+    final effectiveConfig =
+        widget.configuration ?? locator<UserConfiguration>();
     final showImagePreviews = effectiveConfig.showImagePreviews;
     final showMarkdown = effectiveConfig.showMarkdown;
 
@@ -208,7 +213,8 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   String _getTimestampText(DateTime date) {
-    final effectiveConfig = widget.configuration ?? locator<UserConfiguration>();
+    final effectiveConfig =
+        widget.configuration ?? locator<UserConfiguration>();
     final showSeconds = effectiveConfig.showTimeSeconds;
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');

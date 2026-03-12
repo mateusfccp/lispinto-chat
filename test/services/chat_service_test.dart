@@ -107,7 +107,11 @@ void main() {
   Future<MockWebSocketChannel> connectAndLogin() async {
     final loginFuture = service.connect();
     final channel = factory.lastCreatedChannel!;
+
+    httpClient.responseBody = '{"result": ""}';
     channel.feed('> Type your username:');
+    channel.feed('|10:00:00| [@server]: Your session ID is: mock-uuid');
+    
     await loginFuture;
     return channel;
   }
@@ -118,7 +122,10 @@ void main() {
       final channel = factory.lastCreatedChannel!;
 
       final outgoing = channel.outgoing.first;
+
+      httpClient.responseBody = '{"result": ""}';
       channel.feed('> Type your username:');
+      channel.feed('|10:00:00| [@server]: Your session ID is: mock-uuid');
 
       expect(await outgoing, 'tester');
       await loginFuture;
@@ -193,7 +200,10 @@ void main() {
       expect(service.isLoggedIn, isFalse);
       expect(service.isConnected, isFalse); // Because state is 'connecting'
 
+      httpClient.responseBody = '{"result": ""}';
       channel.feed('> Type your username:');
+      channel.feed('|10:00:00| [@server]: Your session ID is: mock-uuid');
+
       await loginFuture;
 
       expect(service.isLoggedIn, isTrue);

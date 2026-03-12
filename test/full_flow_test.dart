@@ -181,6 +181,7 @@ void main() {
         );
 
         channel!.feed('> Type your username:');
+        channel.feed('|10:00:00| [@server]: Your session ID is: mock-uuid');
 
         // Feed server messages to transition to loggedIn and populate channels
         channel.feed(

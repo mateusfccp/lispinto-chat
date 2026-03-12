@@ -262,9 +262,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     _ConfigurationSection(
                       title: const Text('Messages appearance'),
                       children: [
-                        _MessagePreview(
-                          configuration: _newConfiguration,
-                        ),
+                        _MessagePreview(configuration: _newConfiguration),
                         const Divider(),
                         SwitchListTile(
                           title: const Text('Show time seconds'),
@@ -409,9 +407,7 @@ final class _ConfigurationSection extends StatelessWidget {
 }
 
 final class _MessagePreview extends StatelessWidget {
-  const _MessagePreview({
-    required this.configuration,
-  });
+  const _MessagePreview({required this.configuration});
 
   final UserConfiguration configuration;
 
@@ -441,9 +437,10 @@ final class _MessagePreview extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          for (final message in configuration.groupMessages
-              ? messageGrouper.group(messages)
-              : messages)
+          for (final message
+              in configuration.groupMessages
+                  ? messageGrouper.group(messages)
+                  : messages)
             MessageBubble(
               message: message,
               searchQuery: '',

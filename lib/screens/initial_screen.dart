@@ -54,7 +54,6 @@ final class _InitialScreenState extends State<InitialScreen> {
   Future<void> _connectAndNavigate() async {
     try {
       _logger.info('Initiating explicit connection from InitialScreen...');
-      // Connect explicitly now. This will wait for full login.
       await _chatProvider.connect();
 
       _configuration.autoConnect = true;

@@ -114,8 +114,9 @@ class _VerticalUserListState extends State<VerticalUserList> {
                                 Expanded(
                                   child: Text(
                                     'Online Users',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -401,7 +402,8 @@ class MobileChannelSheet extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: channelsFuture != null && channelsFuture.result == null
+                    child:
+                        channelsFuture != null && channelsFuture.result == null
                         ? Row(
                             children: [
                               Text(
@@ -413,7 +415,9 @@ class MobileChannelSheet extends StatelessWidget {
                               const SizedBox(
                                 width: 12,
                                 height: 12,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ],
                           )

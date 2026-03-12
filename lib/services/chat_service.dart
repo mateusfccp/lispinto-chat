@@ -127,14 +127,21 @@ interface class ChatService {
   bool _loggedIn = false;
   bool _isReconnecting = false;
   Completer<void>? _loginCompleter;
+  String? _sessionUuid;
 
   /// The current connection state of the client.
   ChatConnectionState get state {
-    if (_isReconnecting) return ChatConnectionState.reconnecting;
-    if (_loginCompleter != null) return ChatConnectionState.connecting;
-    if (_channel == null) return ChatConnectionState.disconnected;
-    if (_loggedIn) return ChatConnectionState.loggedIn;
-    return ChatConnectionState.connected;
+    if (_isReconnecting) {
+      return ChatConnectionState.reconnecting;
+    } else if (_loginCompleter != null) {
+      return ChatConnectionState.connecting;
+    } else if (_channel == null) {
+      return ChatConnectionState.disconnected;
+    } else if (_loggedIn) {
+      return ChatConnectionState.loggedIn;
+    } else {
+      return ChatConnectionState.connected;
+    }
   }
 
   /// Whether the client is currently connected to the WebSocket server.
@@ -173,19 +180,36 @@ interface class ChatService {
   /// If already connected, it will first disconnect and then reconnect.
   /// [mockChannel] can be provided for testing purposes.
   Future<void> connect({WebSocketChannel? mockChannel}) async {
-    if (_isDisposed) return;
-    if (isLoggedIn) return;
-    if (_loginCompleter != null) return _loginCompleter!.future;
+    if (_isDisposed) {
+      _logger.warning(
+        'Attempted to connect after service was disposed. Ignoring.',
+      );
+      return;
+    }
+
+    if (isLoggedIn) {
+      _logger.info('Already connected and logged in. No action taken.');
+      return;
+    }
+
+    if (_loginCompleter != null) {
+      _logger.info(
+        'Already in the process of connecting. Awaiting existing connection '
+        'attempt.',
+      );
+      return;
+    }
 
     _logger.info('Connecting to $url as $nickname...');
     disconnect();
-    _loginCompleter = Completer<void>();
+
+    final loginCompleter = Completer<void>();
+    _loginCompleter = loginCompleter;
 
     try {
       final Uri connectionUrl;
 
-      if (initialChannel case final initialChannel?) {
-        final channelName = initialChannel;
+      if (initialChannel case final channelName?) {
         connectionUrl = websocketUrl.replace(
           queryParameters: {
             ...websocketUrl.queryParameters,
@@ -227,7 +251,7 @@ interface class ChatService {
         },
       );
 
-      return _loginCompleter!.future
+      return loginCompleter.future
           .then((_) => _loginCompleter = null)
           .catchError((exception, stackTrace) {
             _logger.severe('Login completer error', exception, stackTrace);
@@ -236,9 +260,7 @@ interface class ChatService {
           });
     } catch (error) {
       _handleDisconnect();
-      if (_loginCompleter?.isCompleted == false) {
-        _loginCompleter?.completeError(error);
-      }
+      if (!loginCompleter.isCompleted) loginCompleter.completeError(error);
       _loginCompleter = null;
       rethrow;
     }
@@ -253,6 +275,7 @@ interface class ChatService {
     } catch (_) {}
     _channel = null;
     _loggedIn = false;
+    _sessionUuid = null;
     _connectionStateController.add(false);
 
     // Clear state so reconnecting doesn't show stale users or channels briefly.
@@ -286,11 +309,7 @@ interface class ChatService {
         _logger.info('Successfully logged in as $nickname.');
         channel.sink.add(nickname);
         _loggedIn = true;
-        if (_loginCompleter?.isCompleted == false) {
-          _loginCompleter?.complete();
-        }
-        channel.sink.add('/log :depth 100 :date-format date');
-        _startKeepAlive();
+        channel.sink.add('/session');
         continue;
       }
 
@@ -342,6 +361,21 @@ interface class ChatService {
 
     if (content.startsWith('pong (system)')) {
       return false;
+    }
+
+    if (message.isServerMessage) {
+      const sessionIdPrefix = 'Your session ID is: ';
+      final prefixIndex = content.indexOf(sessionIdPrefix);
+      if (prefixIndex != -1) {
+        _sessionUuid = content.substring(prefixIndex + sessionIdPrefix.length);
+        _logger.info('Captured session UUID: $_sessionUuid');
+
+        if (_loginCompleter?.isCompleted == false) {
+          _fetchInitialData();
+        }
+
+        return false;
+      }
     }
 
     final isNickChange = content.contains('Your new nick is: @');
@@ -407,10 +441,33 @@ interface class ChatService {
     return true;
   }
 
+  Future<void> _fetchInitialData() async {
+    try {
+      await Future.wait([
+        requestChannelsList(),
+        requestUsersList(targetChannel: currentChannel),
+        requestLog(dateFormat: 'date').then((logResult) {
+          final lines = LineSplitter.split(logResult);
+          for (final line in lines) {
+            _handleIncomingData(line);
+          }
+        }),
+      ]);
+      _startKeepAlive();
+      _loginCompleter?.complete();
+    } catch (e, st) {
+      _logger.severe('Failed to fetch initial data: $e', e, st);
+      _loginCompleter?.completeError(e, st);
+      disconnect();
+    }
+  }
+
   Future<Map<String, Object?>> _makeApiRequest(
     String command, {
+    List<String>? args,
     Map<String, Object?>? kwargs,
     String? channel,
+    bool requiresSession = false,
   }) async {
     var apiUrl = url;
 
@@ -420,6 +477,7 @@ interface class ChatService {
     );
 
     final requestData = <String, Object?>{};
+    if (args != null) requestData['args'] = args;
     if (kwargs != null) requestData['kwargs'] = kwargs;
     if (channel != null) requestData['channel'] = channel;
 
@@ -428,9 +486,19 @@ interface class ChatService {
     _logger.fine('HTTP POST Request to $apiUrl');
     _logger.finer('Request Body: $requestBody');
 
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (requiresSession) {
+      if (_sessionUuid == null) {
+        throw Exception(
+          'Session required for $command but no session UUID is available.',
+        );
+      }
+      headers['Client-Session'] = _sessionUuid!;
+    }
+
     final response = await _httpClient.post(
       apiUrl,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: requestBody,
     );
 
@@ -444,6 +512,43 @@ interface class ChatService {
         'Failed API request to $apiUrl: ${response.statusCode} - ${response.body}',
       );
     }
+  }
+
+  /// Requests the server version.
+  Future<String> requestServerVersion() async {
+    final data = await _makeApiRequest('version');
+    return data['result'] as String;
+  }
+
+  /// Requests the server uptime.
+  Future<String> requestServerUptime() async {
+    final data = await _makeApiRequest('uptime');
+    return data['result'] as String;
+  }
+
+  /// Requests information about a specific user.
+  Future<String> requestWhois(String targetUsername) async {
+    final data = await _makeApiRequest(
+      'whois',
+      args: [targetUsername],
+      requiresSession: true,
+    );
+    return data['result'] as String;
+  }
+
+  /// Commands the server to join a new channel for this session.
+  Future<void> requestJoin(String channelName) async {
+    await _makeApiRequest('join', args: [channelName], requiresSession: true);
+  }
+
+  /// Requests the message history for the current channel.
+  Future<String> requestLog({String? dateFormat}) async {
+    final data = await _makeApiRequest(
+      'log',
+      kwargs: dateFormat != null ? {'date-format': dateFormat} : null,
+      requiresSession: true,
+    );
+    return data['result'] as String;
   }
 
   /// Requests the list of channels from the server via HTTP API.
@@ -525,8 +630,6 @@ interface class ChatService {
         requestUsersList(targetChannel: currentChannel);
       }
     });
-    requestUsersList(targetChannel: currentChannel); // Initial fetch for users
-    requestChannelsList(); // Initial fetch for channels
   }
 
   void _handleConnectionFailure(Object error) {
@@ -626,13 +729,13 @@ interface class ChatService {
   @visibleForTesting
   static Uri deriveWebSocketUrl(Uri url) {
     if (url.scheme == 'ws' || url.scheme == 'wss') {
-      return url.replace(
-        pathSegments: [...url.pathSegments, 'ws'],
-      );
+      return url.replace(pathSegments: [...url.pathSegments, 'ws']);
     }
 
     if (url.scheme != 'http' && url.scheme != 'https') {
-      throw ArgumentError('URL must start with http://, https://, ws:// or wss://');
+      throw ArgumentError(
+        'URL must start with http://, https://, ws:// or wss://',
+      );
     }
 
     final scheme = url.scheme == 'https' ? 'wss' : 'ws';

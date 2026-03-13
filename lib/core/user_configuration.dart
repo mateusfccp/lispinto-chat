@@ -243,17 +243,48 @@ final class PersistentUserConfiguration extends UserConfiguration {
   @override
   void updateWith(UserConfiguration other) {
     _nickname = other.nickname;
+    unawaited(_preferences.setString(_keyNickname, _nickname));
+
     _serverUrl = other.serverUrl;
+    unawaited(_preferences.setString(_keyServerUrl, _serverUrl));
+
     _imgbbApiKey = other.imgbbApiKey;
+    unawaited(_preferences.setString(_keyImgbbApiKey, _imgbbApiKey));
+
     _pushNotificationsEnabled = other.pushNotificationsEnabled;
+    unawaited(
+      _preferences.setBool(_keyPushNotifications, _pushNotificationsEnabled),
+    );
+
     _mentionNotificationsEnabled = other.mentionNotificationsEnabled;
+    unawaited(
+      _preferences.setBool(
+        _keyMentionNotifications,
+        _mentionNotificationsEnabled,
+      ),
+    );
+
     _autoConnect = other.autoConnect;
+    unawaited(_preferences.setBool(_keyAutoConnect, _autoConnect));
+
     _showTimeSeconds = other.showTimeSeconds;
+    unawaited(_preferences.setBool(_keyShowTimeSeconds, _showTimeSeconds));
+
     _showImagePreviews = other.showImagePreviews;
+    unawaited(_preferences.setBool(_keyShowImagePreviews, _showImagePreviews));
+
     _showEmptyChannels = other.showEmptyChannels;
+    unawaited(_preferences.setBool(_keyShowEmptyChannels, _showEmptyChannels));
+
     _showMarkdown = other.showMarkdown;
+    unawaited(_preferences.setBool(_keyShowMarkdown, _showMarkdown));
+
     _groupMessages = other.groupMessages;
+    unawaited(_preferences.setBool(_keyGroupMessages, _groupMessages));
+
     _lastChannel = other.lastChannel;
+    unawaited(_preferences.setString(_keyLastChannel, _lastChannel));
+
     notifyListeners();
   }
 }

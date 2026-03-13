@@ -111,7 +111,7 @@ void main() {
     httpClient.responseBody = '{"result": ""}';
     channel.feed('> Type your username:');
     channel.feed('|10:00:00| [@server]: Your session ID is: mock-uuid');
-    
+
     await loginFuture;
     return channel;
   }

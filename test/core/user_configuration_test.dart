@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,5 +65,21 @@ void main() {
         expect(config.hasNickname, isTrue);
       },
     );
+
+    test('updateWith persists changes to SharedPreferences', () async {
+      SharedPreferences.setMockInitialValues({});
+      final config = await UserConfiguration.load();
+      final preferences = await SharedPreferences.getInstance();
+
+      final other = InMemoryUserConfiguration(
+        nickname: 'updated-nick',
+        serverUrl: 'https://updated-server.com',
+      );
+
+      config.updateWith(other);
+
+      expect(preferences.getString('nickname'), 'updated-nick');
+      expect(preferences.getString('server_url'), 'https://updated-server.com');
+    });
   });
 }

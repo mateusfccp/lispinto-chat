@@ -379,9 +379,6 @@ interface class ChatService {
     }
 
     final isNickChange = content.contains('Your new nick is: @');
-    final isJoin = content.contains('joined to the party');
-    final isExit = content.contains('exited from the party');
-    final isNickChangeBroadcast = content.contains('is now known as @');
 
     if (isNickChange) {
       final match = RegExp(r'Your new nick is: @(.*)').firstMatch(content);
@@ -396,6 +393,10 @@ interface class ChatService {
     final isRealTime = date != null && date.isAfter(_appStartTime);
 
     if (isRealTime) {
+      final isJoin = content.contains('joined to the party');
+      final isExit = content.contains('exited from the party');
+      final isNickChangeBroadcast = content.contains('is now known as @');
+
       if (isNickChangeBroadcast) {
         final match = RegExp(
           r'User @(.*) is now known as @(.*)',

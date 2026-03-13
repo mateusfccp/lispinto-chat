@@ -281,32 +281,64 @@ class _ChatScreenState extends State<ChatScreen> {
           },
         ),
       },
-      child: Scaffold(
-        appBar: !isDesktop ? _buildMobileAppBar() : null,
-        endDrawer: !isDesktop
-            ? switch (_mobileDrawerType) {
-                _MobileDrawerType.users => _buildMobileUserDrawer(),
-                _MobileDrawerType.options => _buildMobileOptionsMenuDrawer(),
-              }
-            : null,
-        body: isDesktop
-            ? SafeArea(
-                bottom: false,
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: _buildChatArea()),
-                    VerticalUserList(
-                      provider: _provider,
-                      onUserTap: _onUserTap,
-                      onUserMenuTap: _showUserContextMenu,
-                      onOpenConfig: _openConfigurations,
-                      onQuit: _quit,
-                      onAddChannel: _showAddChannelDialog,
-                    ),
-                  ],
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+
+          final quit = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('Quit Chat?'),
+                content: const Text(
+                  'You will be disconnected from the chat. Are you sure you want to quit?',
                 ),
-              )
-            : SafeArea(bottom: false, child: _buildChatArea()),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Quit'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (quit == true && mounted) {
+            _quit();
+          }
+        },
+        child: Scaffold(
+          appBar: !isDesktop ? _buildMobileAppBar() : null,
+          endDrawer: !isDesktop
+              ? switch (_mobileDrawerType) {
+                  _MobileDrawerType.users => _buildMobileUserDrawer(),
+                  _MobileDrawerType.options => _buildMobileOptionsMenuDrawer(),
+                }
+              : null,
+          body: isDesktop
+              ? SafeArea(
+                  bottom: false,
+                  child: Row(
+                    children: [
+                      Expanded(flex: 3, child: _buildChatArea()),
+                      VerticalUserList(
+                        provider: _provider,
+                        onUserTap: _onUserTap,
+                        onUserMenuTap: _showUserContextMenu,
+                        onOpenConfig: _openConfigurations,
+                        onQuit: _quit,
+                        onAddChannel: _showAddChannelDialog,
+                      ),
+                    ],
+                  ),
+                )
+              : SafeArea(bottom: false, child: _buildChatArea()),
+        ),
       ),
     );
   }

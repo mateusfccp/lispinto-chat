@@ -139,11 +139,9 @@ class _VerticalUserListState extends State<VerticalUserList> {
                             ),
                     ),
                     const Gap(8.0),
-                    Flexible(
-                      child: ConnectionStatusIndicator(
-                        state: widget.provider.connectionState,
-                        shouldShowLabel: isDesktop,
-                      ),
+                    ConnectionStatusIndicator(
+                      state: widget.provider.connectionState,
+                      shouldShowLabel: isDesktop,
                     ),
                   ],
                 ),

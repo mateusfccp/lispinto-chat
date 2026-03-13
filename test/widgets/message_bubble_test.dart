@@ -146,7 +146,9 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
         await tester.pumpAndSettle();
       });
@@ -175,7 +177,9 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
         await tester.pumpAndSettle();
       });
@@ -211,7 +215,9 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
         await tester.pumpAndSettle();
       });
@@ -235,7 +241,9 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
         await tester.pumpAndSettle();
       });
@@ -257,7 +265,9 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          wrapWithLocalization(MessageBubble(message: message, searchQuery: 'bold')),
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: 'bold'),
+          ),
         );
         await tester.pumpAndSettle();
       });
@@ -288,9 +298,7 @@ void main() {
       expect(foundHighlight, isTrue);
     });
 
-    testWidgets('renders SvgPicture for SVG images', (
-      tester,
-    ) async {
+    testWidgets('renders SvgPicture for SVG images', (tester) async {
       final message = ChatMessage(
         from: 'user',
         content: 'Check this: https://example.com/logo.svg',
@@ -304,7 +312,9 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
         await tester.pump();
       });
@@ -314,67 +324,69 @@ void main() {
       expect(find.byType(Image), findsNothing);
     });
 
-    testWidgets(
-      'renders all images in gallery for multiple distinct links',
-      (tester) async {
-        final message = ChatMessage(
-          from: 'user',
-          content:
-              'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.svg',
-          date: DateTime.now(),
+    testWidgets('renders all images in gallery for multiple distinct links', (
+      tester,
+    ) async {
+      final message = ChatMessage(
+        from: 'user',
+        content:
+            'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.svg',
+        date: DateTime.now(),
+      );
+
+      stubDetector(
+        'https://example.com/a.jpg',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+      stubDetector(
+        'https://example.com/b.png',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+      stubDetector(
+        'https://example.com/c.svg',
+        SvgImageType(url: 'https://example.com/logo.svg'),
+      );
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
+        await tester.pumpAndSettle();
+      });
 
-        stubDetector(
-          'https://example.com/a.jpg',
-          RasterImageType(url: 'https://example.com/image.jpg'),
+      expect(find.text('image'), findsNWidgets(3));
+      expect(find.byType(Image), findsNWidgets(2));
+      expect(find.byType(SvgPicture), findsNWidgets(1));
+    });
+
+    testWidgets('renders all images in gallery even for duplicate links', (
+      tester,
+    ) async {
+      final message = ChatMessage(
+        from: 'user',
+        content:
+            'Same: https://example.com/a.jpg and https://example.com/a.jpg',
+        date: DateTime.now(),
+      );
+
+      stubDetector(
+        'https://example.com/a.jpg',
+        RasterImageType(url: 'https://example.com/image.jpg'),
+      );
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(
+            MessageBubble(message: message, searchQuery: ''),
+          ),
         );
-        stubDetector(
-          'https://example.com/b.png',
-          RasterImageType(url: 'https://example.com/image.jpg'),
-        );
-        stubDetector(
-          'https://example.com/c.svg',
-          SvgImageType(url: 'https://example.com/logo.svg'),
-        );
+        await tester.pumpAndSettle();
+      });
 
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
-          );
-          await tester.pumpAndSettle();
-        });
-
-        expect(find.text('image'), findsNWidgets(3));
-        expect(find.byType(Image), findsNWidgets(2));
-        expect(find.byType(SvgPicture), findsNWidgets(1));
-      },
-    );
-
-    testWidgets(
-      'renders all images in gallery even for duplicate links',
-      (tester) async {
-        final message = ChatMessage(
-          from: 'user',
-          content:
-              'Same: https://example.com/a.jpg and https://example.com/a.jpg',
-          date: DateTime.now(),
-        );
-
-        stubDetector(
-          'https://example.com/a.jpg',
-          RasterImageType(url: 'https://example.com/image.jpg'),
-        );
-
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
-          );
-          await tester.pumpAndSettle();
-        });
-
-        expect(find.text('image'), findsNWidgets(2));
-        expect(find.byType(Image), findsNWidgets(2));
-      },
-    );
+      expect(find.text('image'), findsNWidgets(2));
+      expect(find.byType(Image), findsNWidgets(2));
+    });
   });
 }

@@ -23,7 +23,6 @@ privacy-policy = Privacy Policy
 version = Version { $version }
 
 # Configurations Screen
-configuration = Configuration
 imgbb-api-key = ImgBB API Key
 imgbb-api-key-description = Image uploading requires an ImgBB API key. You can get one for free at the ImgBB website. If you don't provide a key, image uploading will be disabled.
 get-api-key = Get API Key

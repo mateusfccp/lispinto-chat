@@ -261,8 +261,8 @@ class _VerticalUserListState extends State<VerticalUserList> {
                     TextButton.icon(
                       onPressed: widget.onOpenConfig,
                       icon: const Icon(Icons.settings, size: 18.0),
-                      label: const Text(
-                        'Settings',
+                      label: Text(
+                        AppLocalizations.of(context).settings,
                         style: TextStyle(fontSize: 12.0),
                       ),
                       style: TextButton.styleFrom(
@@ -272,8 +272,8 @@ class _VerticalUserListState extends State<VerticalUserList> {
                     TextButton.icon(
                       onPressed: widget.onQuit,
                       icon: const Icon(Icons.exit_to_app, size: 18.0),
-                      label: const Text(
-                        'Quit',
+                      label: Text(
+                        AppLocalizations.of(context).quit,
                         style: TextStyle(fontSize: 12.0),
                       ),
                       style: TextButton.styleFrom(

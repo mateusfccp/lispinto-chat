@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/constants.dart';
 import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/message_grouper.dart';
@@ -13,7 +14,6 @@ import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// A screen that allows the user to configure their settings.
 final class ConfigurationsScreen extends StatefulWidget {
@@ -102,7 +102,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(AppLocalizations.of(context).configuration)),
+        appBar: AppBar(title: Text(AppLocalizations.of(context).settings)),
         body: ScrollableScreen(
           maxWidth: 600.0,
           mainChild: Form(

@@ -41,7 +41,8 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null) return Container();
+                  if (FluentLocalizations.of(context) == null)
+                    return Container();
                   result = buildStylizedText(
                     context: context,
                     text: 'This is **bold text**',
@@ -80,7 +81,8 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null) return Container();
+                  if (FluentLocalizations.of(context) == null)
+                    return Container();
                   result = buildStylizedText(
                     context: context,
                     text: 'Hey @user check this',
@@ -119,7 +121,8 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null) return Container();
+                  if (FluentLocalizations.of(context) == null)
+                    return Container();
                   final stylized = buildStylizedText(
                     context: context,
                     text: 'This is **bold text**',
@@ -175,7 +178,8 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null) return Container();
+                  if (FluentLocalizations.of(context) == null)
+                    return Container();
                   result = buildStylizedText(
                     context: context,
                     text: 'Check https://google.com',
@@ -223,7 +227,8 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null) return Container();
+                  if (FluentLocalizations.of(context) == null)
+                    return Container();
                   final stylized = buildStylizedText(
                     context: context,
                     text: 'Check $url for more',

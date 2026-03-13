@@ -57,9 +57,6 @@ mixin _$AppLocalizationsMixin {
   String version(Object? version) =>
       fluent.getMessage('version', {'version': version}) ?? 'version';
 
-  String get configuration =>
-      fluent.getMessage('configuration') ?? 'configuration';
-
   String get imgbbApiKey =>
       fluent.getMessage('imgbb-api-key') ?? 'imgbb-api-key';
 

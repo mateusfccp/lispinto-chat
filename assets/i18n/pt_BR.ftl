@@ -23,7 +23,6 @@ privacy-policy = Política de Privacidade
 version = Versão { $version }
 
 # Configurations Screen
-configuration = Configuração
 imgbb-api-key = Chave da API ImgBB
 imgbb-api-key-description = O upload de imagens requer uma chave da API do ImgBB. Você pode obter uma gratuitamente no site do ImgBB. Se você não fornecer uma chave, o upload de imagens será desativado.
 get-api-key = Obter Chave da API

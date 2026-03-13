@@ -23,7 +23,6 @@ privacy-policy = Política de Privacidad
 version = Versión { $version }
 
 # Configurations Screen
-configuration = Configuración
 imgbb-api-key = Clave de API ImgBB
 imgbb-api-key-description = Subir imágenes requiere una clave de API de ImgBB. Podés conseguir una gratis en el sitio web de ImgBB. Si no proveés una clave, subir imágenes estará desactivado.
 get-api-key = Conseguir Clave de API

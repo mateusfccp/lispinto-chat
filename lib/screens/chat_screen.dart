@@ -461,25 +461,22 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         PopupMenuItem(
           value: () => _provider.sendMessage('/whois $user'),
-          child:
-              isSelf
-                  ? Text(AppLocalizations.of(context).whoAmI)
-                  : Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: AppLocalizations.of(context).whoIs(''),
+          child: isSelf
+              ? Text(AppLocalizations.of(context).whoAmI)
+              : Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: AppLocalizations.of(context).whoIs('')),
+                      TextSpan(
+                        text: user,
+                        style: TextStyle(
+                          color: getNicknameColor(user),
+                          fontWeight: FontWeight.bold,
                         ),
-                        TextSpan(
-                          text: user,
-                          style: TextStyle(
-                            color: getNicknameColor(user),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
         ),
       ],
     );
@@ -549,9 +546,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 setState(() => _mobileDrawerType = _MobileDrawerType.users);
                 Scaffold.of(context).openEndDrawer();
               },
-              tooltip: AppLocalizations.of(
-                context,
-              ).onlineUsers(_provider.usersFuture?.result?.asValue?.value.length ?? 0),
+              tooltip: AppLocalizations.of(context).onlineUsers(
+                _provider.usersFuture?.result?.asValue?.value.length ?? 0,
+              ),
             );
           },
         ),

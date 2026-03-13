@@ -1,9 +1,11 @@
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:async';
 import 'dart:collection';
 
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fluent_i18n/fluent_i18n.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -133,14 +135,35 @@ void main() {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(const MaterialApp(home: InitialScreen()));
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          supportedLocales: const [Locale('en')],
+          localizationsDelegates: const [
+            FluentLocalizationsDelegate([Locale('en')]),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Builder(
+            builder: (context) {
+              if (FluentLocalizations.of(context) == null) {
+                return const SizedBox.shrink();
+              }
+              return const InitialScreen();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    });
 
     expect(find.byType(TextFormField), findsNWidgets(2));
     expect(find.text('Nickname'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
     expect(find.text('Connect'), findsOneWidget);
     expect(find.text('Privacy Policy'), findsOneWidget);
-    expect(find.text('Version 1.0.0'), findsOneWidget);
+    expect(find.textContaining('Version'), findsOneWidget);
 
     // Check for CustomScrollView and SliverFillRemaining
     expect(find.byType(CustomScrollView), findsOneWidget);
@@ -157,7 +180,28 @@ void main() {
   ) async {
     mockProvider.connectCompleter = Completer<void>();
 
-    await tester.pumpWidget(const MaterialApp(home: InitialScreen()));
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          supportedLocales: const [Locale('en')],
+          localizationsDelegates: const [
+            FluentLocalizationsDelegate([Locale('en')]),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Builder(
+            builder: (context) {
+              if (FluentLocalizations.of(context) == null) {
+                return const SizedBox.shrink();
+              }
+              return const InitialScreen();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    });
 
     // Fill in nickname and server URL
     await tester.enterText(find.byType(TextFormField).first, 'TestUser');

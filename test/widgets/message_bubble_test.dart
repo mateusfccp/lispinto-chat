@@ -1,3 +1,4 @@
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -5,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fluent_i18n/fluent_i18n.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -28,6 +30,7 @@ class MockHttpClient extends Mock implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async {
     final request = MockHttpClientRequest();
+    request.headers; // Access to avoid unused member warning
     return request;
   }
 }
@@ -85,6 +88,26 @@ void main() {
     when(mockDetector.isImage(url)).thenAnswer((_) async => type);
   }
 
+  Widget wrapWithLocalization(Widget child) {
+    return MaterialApp(
+      supportedLocales: const [Locale('en')],
+      localizationsDelegates: const [
+        FluentLocalizationsDelegate([Locale('en')]),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: Builder(
+        builder: (context) {
+          if (FluentLocalizations.of(context) == null) {
+            return const SizedBox.shrink();
+          }
+          return Scaffold(body: child);
+        },
+      ),
+    );
+  }
+
   setUp(() async {
     if (locator.isRegistered<LinkImageDetector>()) {
       locator.unregister<LinkImageDetector>();
@@ -121,15 +144,12 @@ void main() {
         RasterImageType(url: 'https://example.com/image.jpg'),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageBubble(message: message, searchQuery: ''),
-          ),
-        ),
-      );
-
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+        );
+        await tester.pumpAndSettle();
+      });
 
       expect(find.text('image'), findsOneWidget);
       expect(find.text('https://example.com/image.jpg'), findsNothing);
@@ -153,15 +173,12 @@ void main() {
         RasterImageType(url: 'https://example.com/image.jpg'),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageBubble(message: message, searchQuery: ''),
-          ),
-        ),
-      );
-
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+        );
+        await tester.pumpAndSettle();
+      });
 
       expect(find.text('image'), findsNWidgets(2));
       expect(find.byType(Image), findsNWidgets(2));
@@ -192,15 +209,12 @@ void main() {
         PersistentUserConfiguration(preferences: prefs),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageBubble(message: message, searchQuery: ''),
-          ),
-        ),
-      );
-
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+        );
+        await tester.pumpAndSettle();
+      });
 
       expect(find.text('image'), findsNothing);
       expect(
@@ -219,15 +233,12 @@ void main() {
 
       stubDetector('https://example.com/page.html', null);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageBubble(message: message, searchQuery: ''),
-          ),
-        ),
-      );
-
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+        );
+        await tester.pumpAndSettle();
+      });
 
       expect(find.text('image'), findsNothing);
       expect(
@@ -244,15 +255,12 @@ void main() {
         date: DateTime.now(),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageBubble(message: message, searchQuery: 'bold'),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(MessageBubble(message: message, searchQuery: 'bold')),
+        );
+        await tester.pumpAndSettle();
+      });
 
       final selectableText = tester.widget<SelectableText>(
         find.byType(SelectableText),
@@ -280,7 +288,7 @@ void main() {
       expect(foundHighlight, isTrue);
     });
 
-    testWidgets('renders SvgPicture for SVG images', skip: true, (
+    testWidgets('renders SvgPicture for SVG images', (
       tester,
     ) async {
       final message = ChatMessage(
@@ -294,16 +302,13 @@ void main() {
         SvgImageType(url: 'https://example.com/logo.svg'),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageBubble(message: message, searchQuery: ''),
-          ),
-        ),
-      );
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+        );
+        await tester.pump();
+      });
 
-      // Verify the SvgPicture widget is placed in the tree.
-      // Don't pump-and-settle since SVG loading would fail with mock data.
       expect(find.text('image'), findsOneWidget);
       expect(find.byType(SvgPicture), findsOneWidget);
       expect(find.byType(Image), findsNothing);
@@ -311,7 +316,6 @@ void main() {
 
     testWidgets(
       'renders all images in gallery for multiple distinct links',
-      skip: true,
       (tester) async {
         final message = ChatMessage(
           from: 'user',
@@ -333,15 +337,12 @@ void main() {
           SvgImageType(url: 'https://example.com/logo.svg'),
         );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: MessageBubble(message: message, searchQuery: ''),
-            ),
-          ),
-        );
-
-        await tester.pump(const Duration(milliseconds: 500));
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          );
+          await tester.pumpAndSettle();
+        });
 
         expect(find.text('image'), findsNWidgets(3));
         expect(find.byType(Image), findsNWidgets(2));
@@ -351,7 +352,6 @@ void main() {
 
     testWidgets(
       'renders all images in gallery even for duplicate links',
-      skip: true,
       (tester) async {
         final message = ChatMessage(
           from: 'user',
@@ -365,15 +365,12 @@ void main() {
           RasterImageType(url: 'https://example.com/image.jpg'),
         );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: MessageBubble(message: message, searchQuery: ''),
-            ),
-          ),
-        );
-
-        await tester.pump(const Duration(milliseconds: 500));
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            wrapWithLocalization(MessageBubble(message: message, searchQuery: '')),
+          );
+          await tester.pumpAndSettle();
+        });
 
         expect(find.text('image'), findsNWidgets(2));
         expect(find.byType(Image), findsNWidgets(2));

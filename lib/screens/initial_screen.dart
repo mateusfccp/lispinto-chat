@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/constants.dart';
 import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/router.dart';
@@ -10,7 +11,6 @@ import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// The initial screen shown when the app starts.
 final class InitialScreen extends StatefulWidget {

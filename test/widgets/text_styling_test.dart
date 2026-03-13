@@ -1,3 +1,5 @@
+import 'package:fluent_i18n/fluent_i18n.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,21 +28,32 @@ void main() {
   group('Stylized Text Verification', () {
     testWidgets('renders bold correctly', (tester) async {
       late List<InlineSpan> result;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                result = buildStylizedText(
-                  context: context,
-                  text: 'This is **bold text**',
-                );
-                return RichText(text: TextSpan(children: result));
-              },
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: const [Locale('en')],
+            localizationsDelegates: const [
+              FluentLocalizationsDelegate([Locale('en')]),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  if (FluentLocalizations.of(context) == null) return Container();
+                  result = buildStylizedText(
+                    context: context,
+                    text: 'This is **bold text**',
+                  );
+                  return RichText(text: TextSpan(children: result));
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
+        await tester.pumpAndSettle();
+      });
 
       // result:
       //  0: "This is "
@@ -54,21 +67,32 @@ void main() {
       tester,
     ) async {
       late List<InlineSpan> result;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                result = buildStylizedText(
-                  context: context,
-                  text: 'Hey @user check this',
-                );
-                return RichText(text: TextSpan(children: result));
-              },
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: const [Locale('en')],
+            localizationsDelegates: const [
+              FluentLocalizationsDelegate([Locale('en')]),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  if (FluentLocalizations.of(context) == null) return Container();
+                  result = buildStylizedText(
+                    context: context,
+                    text: 'Hey @user check this',
+                  );
+                  return RichText(text: TextSpan(children: result));
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
+        await tester.pumpAndSettle();
+      });
 
       // result:
       //   0: "Hey "
@@ -82,24 +106,35 @@ void main() {
 
     testWidgets('search highlight works inside stylized text', (tester) async {
       late List<InlineSpan> result;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                final stylized = buildStylizedText(
-                  context: context,
-                  text: 'This is **bold text**',
-                );
-                result = stylized
-                    .expand((s) => buildHighlightedSearchText(s, 'bold'))
-                    .toList();
-                return RichText(text: TextSpan(children: result));
-              },
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: const [Locale('en')],
+            localizationsDelegates: const [
+              FluentLocalizationsDelegate([Locale('en')]),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  if (FluentLocalizations.of(context) == null) return Container();
+                  final stylized = buildStylizedText(
+                    context: context,
+                    text: 'This is **bold text**',
+                  );
+                  result = stylized
+                      .expand((s) => buildHighlightedSearchText(s, 'bold'))
+                      .toList();
+                  return RichText(text: TextSpan(children: result));
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
+        await tester.pumpAndSettle();
+      });
 
       // Verify "bold" is highlighted somewhere in the tree
       bool foundHighlight = false;
@@ -121,27 +156,39 @@ void main() {
       }
       expect(foundHighlight, isTrue);
     });
+
     testWidgets('renders flat link correctly', (tester) async {
       late List<InlineSpan> result;
       final recognizer = TapGestureRecognizer();
       addTearDown(recognizer.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                result = buildStylizedText(
-                  context: context,
-                  text: 'Check https://google.com',
-                  linkRecognizerFactory: (_) => recognizer,
-                );
-                return RichText(text: TextSpan(children: result));
-              },
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: const [Locale('en')],
+            localizationsDelegates: const [
+              FluentLocalizationsDelegate([Locale('en')]),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  if (FluentLocalizations.of(context) == null) return Container();
+                  result = buildStylizedText(
+                    context: context,
+                    text: 'Check https://google.com',
+                    linkRecognizerFactory: (_) => recognizer,
+                  );
+                  return RichText(text: TextSpan(children: result));
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
+        await tester.pumpAndSettle();
+      });
 
       // result:
       //  0: "Check "
@@ -163,28 +210,37 @@ void main() {
       final recognizer = TapGestureRecognizer();
       addTearDown(recognizer.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                final stylized = buildStylizedText(
-                  context: context,
-                  text: 'Check $url for more',
-                  linkRecognizerFactory: (_) => recognizer,
-                );
-                // Highlight 'google' which is part of the URL
-                result = stylized
-                    .expand((s) => buildHighlightedSearchText(s, 'google'))
-                    .toList();
-                return RichText(text: TextSpan(children: result));
-              },
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: const [Locale('en')],
+            localizationsDelegates: const [
+              FluentLocalizationsDelegate([Locale('en')]),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  if (FluentLocalizations.of(context) == null) return Container();
+                  final stylized = buildStylizedText(
+                    context: context,
+                    text: 'Check $url for more',
+                    linkRecognizerFactory: (_) => recognizer,
+                  );
+                  // Highlight 'google' which is part of the URL
+                  result = stylized
+                      .expand((s) => buildHighlightedSearchText(s, 'google'))
+                      .toList();
+                  return RichText(text: TextSpan(children: result));
+                },
+              ),
             ),
           ),
-        ),
-      );
-
-      await tester.pump();
+        );
+        await tester.pumpAndSettle();
+      });
 
       bool foundLinkWithRecognizer = false;
       void check(InlineSpan span) {

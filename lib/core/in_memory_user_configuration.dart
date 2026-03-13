@@ -5,7 +5,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   /// Creates an [InMemoryUserConfiguration] with optional initial values.
   InMemoryUserConfiguration({
     String nickname = '',
-    String serverUrl = 'wss://chat.manoel.dev/ws',
+    String serverUrl = 'https://chat.manoel.dev',
     bool pushNotificationsEnabled = false,
     bool mentionNotificationsEnabled = false,
     bool autoConnect = false,

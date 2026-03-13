@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Builds a [TextSpan] for a mention.
@@ -235,7 +236,7 @@ List<InlineSpan> buildStylizedText({
         spans.add(
           WidgetSpan(
             child: _ImagePill(
-              pillText: 'image',
+              pillText: AppLocalizations.of(context).image,
               onTap: () async {
                 final uri = Uri.tryParse(url);
                 if (uri != null && await canLaunchUrl(uri)) {

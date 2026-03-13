@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// A dialog that allows the user to input a channel name to join or create.
 final class JoinChannelDialog extends StatefulWidget {
@@ -35,17 +36,19 @@ class _JoinChannelDialogState extends State<JoinChannelDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Join channel'),
+      title: Text(AppLocalizations.of(context).joinChannel),
       content: Form(
         key: _formKey,
         child: TextFormField(
           controller: _controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Channel Name'),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context).channelName,
+          ),
           onFieldSubmitted: (_) => _submit(),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Please enter a channel name';
+              return AppLocalizations.of(context).pleaseEnterChannelName;
             }
             return null;
           },
@@ -54,9 +57,12 @@ class _JoinChannelDialogState extends State<JoinChannelDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context).cancel),
         ),
-        ElevatedButton(onPressed: _submit, child: const Text('Join')),
+        ElevatedButton(
+          onPressed: _submit,
+          child: Text(AppLocalizations.of(context).join),
+        ),
       ],
     );
   }

@@ -16,6 +16,7 @@ import 'package:lispinto_chat/widgets/message_list.dart';
 import 'package:lispinto_chat/widgets/search_input.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:lispinto_chat/widgets/user_list_drawers.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// Intent to trigger the search bar from keyboard shortcuts.
 class SearchIntent extends Intent {
@@ -290,18 +291,16 @@ class _ChatScreenState extends State<ChatScreen> {
             context: context,
             builder: (context) {
               return AlertDialog(
-                title: const Text('Quit Chat?'),
-                content: const Text(
-                  'You will be disconnected from the chat. Are you sure you want to quit?',
-                ),
+                title: Text(AppLocalizations.of(context).quitChat),
+                content: Text(AppLocalizations.of(context).quitChatDescription),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
+                    child: Text(AppLocalizations.of(context).cancel),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Quit'),
+                    child: Text(AppLocalizations.of(context).quit),
                   ),
                 ],
               );
@@ -546,7 +545,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 setState(() => _mobileDrawerType = _MobileDrawerType.users);
                 Scaffold.of(context).openEndDrawer();
               },
-              tooltip: 'Online Users',
+              tooltip: AppLocalizations.of(context).onlineUsers(''),
             );
           },
         ),
@@ -558,7 +557,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 setState(() => _mobileDrawerType = _MobileDrawerType.options);
                 Scaffold.of(context).openEndDrawer();
               },
-              tooltip: 'Options',
+              tooltip: AppLocalizations.of(context).options,
             );
           },
         ),
@@ -577,7 +576,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               width: double.infinity,
               child: Text(
-                'Options',
+                AppLocalizations.of(context).options,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -589,7 +588,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 listenable: _provider,
                 builder: (context, _) {
                   return SwitchListTile(
-                    title: const Text('Private Channel'),
+                    title: Text(AppLocalizations.of(context).privateChannel),
                     value: _provider.isCurrentChannelPrivate,
                     onChanged: (value) {
                       _provider.setPrivateChannel(value);
@@ -599,7 +598,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
+              title: Text(AppLocalizations.of(context).settings),
               onTap: () {
                 Navigator.pop(context);
                 _openConfigurations();
@@ -607,7 +606,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.privacy_tip),
-              title: const Text('Privacy Policy'),
+              title: Text(AppLocalizations.of(context).privacyPolicy),
               onTap: () {
                 Navigator.pop(context);
                 const PrivacyPolicyRoute().go(context);
@@ -615,7 +614,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.description),
-              title: const Text('Licenses'),
+              title: Text(AppLocalizations.of(context).licenses),
               onTap: () {
                 Navigator.pop(context);
                 const LicensesRoute().go(context);
@@ -623,7 +622,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.exit_to_app),
-              title: const Text('Quit'),
+              title: Text(AppLocalizations.of(context).quit),
               onTap: () {
                 Navigator.pop(context);
                 _quit();
@@ -650,7 +649,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: const EdgeInsets.all(16.0),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Text(
-                    'Online Users (${users.length})',
+                    AppLocalizations.of(context).onlineUsers(users.length),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

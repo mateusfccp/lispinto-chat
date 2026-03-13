@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:http/http.dart' as http;
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
@@ -241,10 +242,13 @@ Future<void> _showImageContextMenu(
       position.dy,
     ),
     items: [
-      const PopupMenuItem(value: 'copy_image', child: Text('Copy image')),
-      const PopupMenuItem(
+      PopupMenuItem(
+        value: 'copy_image',
+        child: Text(AppLocalizations.of(context).copyImage),
+      ),
+      PopupMenuItem(
         value: 'copy_address',
-        child: Text('Copy image address'),
+        child: Text(AppLocalizations.of(context).copyImageAddress),
       ),
     ],
   );
@@ -254,9 +258,11 @@ Future<void> _showImageContextMenu(
   if (action == 'copy_address') {
     await Clipboard.setData(ClipboardData(text: imageType.url));
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Image address copied!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).imageAddressCopied),
+        ),
+      );
     }
   } else if (action == 'copy_image') {
     try {
@@ -272,9 +278,9 @@ Future<void> _showImageContextMenu(
           }
           await clipboard.write([item]);
           if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Image copied!')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context).imageCopied)),
+            );
           }
         }
       } else {
@@ -282,9 +288,11 @@ Future<void> _showImageContextMenu(
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to copy image.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).failedToCopyImage),
+          ),
+        );
       }
     }
   }

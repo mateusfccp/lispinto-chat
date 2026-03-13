@@ -10,9 +10,12 @@ environment:
 dependencies:
   ansicolor: ^2.0.3
   async: ^2.13.0
+  fluent_i18n: ^2.1.0
   flutter:
     sdk: flutter
   flutter_local_notifications: ^20.1.0
+  flutter_localizations:
+    sdk: flutter
   flutter_markdown_plus: ^1.0.7
   flutter_svg: ^2.2.3
   gap: ^3.0.1
@@ -33,9 +36,13 @@ dependencies:
   web_socket_channel: ^3.0.3
 
 dev_dependencies:
+  analyzer: ^9.0.0
   args: ^2.7.0
-  build_runner: ^2.11.1
+  build: ^4.0.4
+  build_runner: ^2.12.2
+  code_builder: ^4.11.1
   fake_async: ^1.3.3
+  fluent: ^2.0.3
   flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
   flutter_test:
@@ -45,8 +52,14 @@ dev_dependencies:
     sdk: flutter
   mockito: ^5.6.3
   path: ^1.9.1
+  recase: ^4.1.0
+  source_gen: ^4.2.0
 
 flutter:
   uses-material-design: true
   assets:
     - PRIVACY_POLICY.md
+    - assets/i18n/
+
+dependency_overrides:
+  intl: ^0.20.2

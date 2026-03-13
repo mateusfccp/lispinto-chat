@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import '../core/responsive.dart';
 
 /// A widget that provides a search input field with an animated toggle.
@@ -36,7 +37,9 @@ class SearchInput extends StatelessWidget {
     final iconButton = IconButton(
       icon: const Icon(Icons.search),
       onPressed: onToggleSearch,
-      tooltip: isSearchActive ? 'Close search' : 'Search messages',
+      tooltip: isSearchActive
+          ? AppLocalizations.of(context).closeSearch
+          : AppLocalizations.of(context).searchMessages,
     );
 
     return Align(
@@ -74,7 +77,9 @@ class SearchInput extends StatelessWidget {
                         focusNode: searchFocusNode,
                         onChanged: onSearchChanged,
                         decoration: InputDecoration(
-                          hintText: 'Search messages...',
+                          hintText: AppLocalizations.of(
+                            context,
+                          ).searchMessagesHint,
                           isDense: context.isDesktop,
                           border: InputBorder.none,
                           fillColor: Colors.transparent,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// A widget that shows the current connection status with a colored dot and tooltip.
 final class ConnectionStatusIndicator extends StatelessWidget {
@@ -20,14 +21,26 @@ final class ConnectionStatusIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label) = switch (state) {
-      ChatConnectionState.disconnected => (Colors.red, 'Disconnected'),
-      ChatConnectionState.connecting => (Colors.orange, 'Connecting...'),
+      ChatConnectionState.disconnected => (
+        Colors.red,
+        AppLocalizations.of(context).disconnected,
+      ),
+      ChatConnectionState.connecting => (
+        Colors.orange,
+        AppLocalizations.of(context).connectingStatus,
+      ),
       ChatConnectionState.connected => (
         Colors.yellow,
-        'Connected (Logging in...)',
+        AppLocalizations.of(context).connectedLoggingIn,
       ),
-      ChatConnectionState.loggedIn => (Colors.green, 'Online'),
-      ChatConnectionState.reconnecting => (Colors.orange, 'Reconnecting...'),
+      ChatConnectionState.loggedIn => (
+        Colors.green,
+        AppLocalizations.of(context).online,
+      ),
+      ChatConnectionState.reconnecting => (
+        Colors.orange,
+        AppLocalizations.of(context).reconnecting,
+      ),
     };
 
     return Tooltip(

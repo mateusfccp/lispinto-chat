@@ -15,6 +15,7 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'package:super_clipboard/super_clipboard.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 import '../core/get_nickname_color.dart';
 
@@ -62,21 +63,21 @@ class _InputAreaState extends State<InputArea> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('ImgBB API Key Required'),
-            content: const Text(
-              'To upload images, please configure your ImgBB API Key in the settings.',
+            title: Text(AppLocalizations.of(context).imgbbApiKeyRequired),
+            content: Text(
+              AppLocalizations.of(context).imgbbApiKeyRequiredDescription,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   widget.openConfigurations();
                 },
-                child: const Text('Go to Settings'),
+                child: Text(AppLocalizations.of(context).goToSettings),
               ),
             ],
           ),
@@ -99,7 +100,13 @@ class _InputAreaState extends State<InputArea> {
     } catch (exception) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload image: $exception')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).failedToUploadImage(exception.toString()),
+            ),
+          ),
         );
       }
     } finally {
@@ -198,7 +205,7 @@ class _InputAreaState extends State<InputArea> {
         builder: (context, child) {
           final sendButton = IconButton(
             icon: const Icon(Icons.send),
-            tooltip: 'Send message',
+            tooltip: AppLocalizations.of(context).sendMessage,
             onPressed: (widget.provider.isConnected && !_isUploading)
                 ? widget.onSend
                 : null,
@@ -228,7 +235,7 @@ class _InputAreaState extends State<InputArea> {
                   prototype: sendButton,
                   child: PopupMenuButton<_AttachmentOption>(
                     icon: const Icon(Icons.add),
-                    tooltip: 'Add attachment',
+                    tooltip: AppLocalizations.of(context).addAttachment,
                     onOpened: (widget.provider.isConnected && !_isUploading)
                         ? null
                         : () => Navigator.of(context).pop(),
@@ -242,21 +249,31 @@ class _InputAreaState extends State<InputArea> {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('ImgBB API Key Required'),
-                              content: const Text(
-                                'To upload images, please configure your ImgBB API Key in the settings.',
+                              title: Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).imgbbApiKeyRequired,
+                              ),
+                              content: Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).imgbbApiKeyRequiredDescription,
                               ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Cancel'),
+                                  child: Text(
+                                    AppLocalizations.of(context).cancel,
+                                  ),
                                 ),
                                 TextButton(
                                   onPressed: () {
                                     Navigator.of(context).pop();
                                     widget.openConfigurations();
                                   },
-                                  child: const Text('Go to Settings'),
+                                  child: Text(
+                                    AppLocalizations.of(context).goToSettings,
+                                  ),
                                 ),
                               ],
                             ),
@@ -268,9 +285,9 @@ class _InputAreaState extends State<InputArea> {
                     },
                     itemBuilder: (context) {
                       return [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: _AttachmentOption.uploadPhoto,
-                          child: Text('Upload photo'),
+                          child: Text(AppLocalizations.of(context).uploadPhoto),
                         ),
                       ];
                     },
@@ -372,7 +389,7 @@ class _InputAreaState extends State<InputArea> {
                             minHeight: 0.0,
                           ),
                           isDense: context.isDesktop,
-                          hintText: 'Type a message...',
+                          hintText: AppLocalizations.of(context).typeAMessage,
                           border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(
                               Radius.circular(32.0),

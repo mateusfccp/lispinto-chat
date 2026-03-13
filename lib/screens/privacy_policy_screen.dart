@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// A screen that displays the app's privacy policy.
 ///
@@ -28,7 +29,7 @@ final class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy Policy')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).privacyPolicy)),
       body: FutureBuilder<String>(
         future: _markdownFuture,
         builder: (context, snapshot) {
@@ -37,7 +38,11 @@ final class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Failed to load privacy policy.'));
+            return Center(
+              child: Text(
+                AppLocalizations.of(context).failedToLoadPrivacyPolicy,
+              ),
+            );
           }
 
           return ScrollableScreen(

@@ -13,6 +13,7 @@ import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// A screen that allows the user to configure their settings.
 final class ConfigurationsScreen extends StatefulWidget {
@@ -101,7 +102,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Configuration')),
+        appBar: AppBar(title: Text(AppLocalizations.of(context).configuration)),
         body: ScrollableScreen(
           maxWidth: 600.0,
           mainChild: Form(
@@ -115,14 +116,16 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                   children: [
                     TextFormField(
                       controller: _nicknameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nickname',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).nickname,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a nickname';
+                          return AppLocalizations.of(
+                            context,
+                          ).pleaseEnterNickname;
                         }
                         return null;
                       },
@@ -131,17 +134,19 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     const Gap(16.0),
                     TextFormField(
                       controller: _serverUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Server URL',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.link),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).serverUrl,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.link),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a server URL';
+                          return AppLocalizations.of(
+                            context,
+                          ).pleaseEnterServerUrl;
                         }
                         if (!value.startsWith(httpUrlPattern)) {
-                          return 'URL must start with http:// or httpss://';
+                          return AppLocalizations.of(context).urlMustStart;
                         }
                         return null;
                       },
@@ -151,7 +156,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     TextFormField(
                       controller: _imgbbApiKeyController,
                       decoration: InputDecoration(
-                        labelText: 'ImgBB API Key',
+                        labelText: AppLocalizations.of(context).imgbbApiKey,
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.key),
                         suffixIcon: IconButton(
@@ -161,11 +166,13 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               context: context,
                               builder: (context) {
                                 return AlertDialog(
-                                  title: const Text('ImgBB API Key'),
-                                  content: const Text(
-                                    'Image uploading requires an ImgBB API key. '
-                                    'You can get one for free at the ImgBB website. '
-                                    'If you don\'t provide a key, image uploading will be disabled.',
+                                  title: Text(
+                                    AppLocalizations.of(context).imgbbApiKey,
+                                  ),
+                                  content: Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).imgbbApiKeyDescription,
                                   ),
                                   actions: [
                                     TextButton(
@@ -174,32 +181,42 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                           'https://api.imgbb.com/',
                                         );
                                       },
-                                      child: const Text('Get API Key'),
+                                      child: Text(
+                                        AppLocalizations.of(context).getApiKey,
+                                      ),
                                     ),
                                     TextButton(
                                       onPressed: () {
                                         Navigator.of(context).pop();
                                       },
-                                      child: const Text('OK'),
+                                      child: Text(
+                                        AppLocalizations.of(context).ok,
+                                      ),
                                     ),
                                   ],
                                 );
                               },
                             );
                           },
-                          tooltip: 'Learn about ImgBB API key',
+                          tooltip: AppLocalizations.of(context).learnAboutImgbb,
                         ),
                       ),
                     ),
                     if (shouldShowNotificationsArea) ...[
                       const Gap(16.0),
                       _ConfigurationSection(
-                        title: Text('Push Notifications'),
+                        title: Text(
+                          AppLocalizations.of(context).pushNotifications,
+                        ),
                         children: [
                           SwitchListTile(
-                            title: const Text('Server Messages'),
-                            subtitle: const Text(
-                              'Receive generic notifications pushed by the server',
+                            title: Text(
+                              AppLocalizations.of(context).serverMessages,
+                            ),
+                            subtitle: Text(
+                              AppLocalizations.of(
+                                context,
+                              ).serverMessagesDescription,
                             ),
                             value: _newConfiguration.pushNotificationsEnabled,
                             onChanged: (value) async {
@@ -211,9 +228,11 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                       true;
                                 } else if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Notification permissions disabled or denied.',
+                                        AppLocalizations.of(
+                                          context,
+                                        ).notificationPermissionsDisabled,
                                       ),
                                     ),
                                   );
@@ -226,9 +245,9 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                           ),
                           const Divider(),
                           SwitchListTile(
-                            title: const Text('Mentions (@nickname)'),
-                            subtitle: const Text(
-                              'Targeted notifications when someone tags you',
+                            title: Text(AppLocalizations.of(context).mentions),
+                            subtitle: Text(
+                              AppLocalizations.of(context).mentionsDescription,
                             ),
                             value:
                                 _newConfiguration.mentionNotificationsEnabled,
@@ -242,9 +261,11 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                       true;
                                 } else if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Notification permissions disabled or denied.',
+                                        AppLocalizations.of(
+                                          context,
+                                        ).notificationPermissionsDisabled,
                                       ),
                                     ),
                                   );
@@ -260,14 +281,20 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     ],
                     const Gap(16.0),
                     _ConfigurationSection(
-                      title: const Text('Messages appearance'),
+                      title: Text(
+                        AppLocalizations.of(context).messagesAppearance,
+                      ),
                       children: [
                         _MessagePreview(configuration: _newConfiguration),
                         const Divider(),
                         SwitchListTile(
-                          title: const Text('Show time seconds'),
-                          subtitle: const Text(
-                            'Show seconds in message timestamps',
+                          title: Text(
+                            AppLocalizations.of(context).showTimeSeconds,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).showTimeSecondsDescription,
                           ),
                           value: _newConfiguration.showTimeSeconds,
                           onChanged: (value) {
@@ -276,9 +303,13 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         ),
                         const Divider(),
                         SwitchListTile(
-                          title: const Text('In-line Image Previews'),
-                          subtitle: const Text(
-                            'Automatically render images from URLs',
+                          title: Text(
+                            AppLocalizations.of(context).inlineImagePreviews,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).inlineImagePreviewsDescription,
                           ),
                           value: _newConfiguration.showImagePreviews,
                           onChanged: (value) {
@@ -287,9 +318,13 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         ),
                         const Divider(),
                         SwitchListTile(
-                          title: const Text('Enable Markdown'),
-                          subtitle: const Text(
-                            'Support bold, italic, strike and code formatting',
+                          title: Text(
+                            AppLocalizations.of(context).enableMarkdown,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).enableMarkdownDescription,
                           ),
                           value: _newConfiguration.showMarkdown,
                           onChanged: (value) {
@@ -298,9 +333,15 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         ),
                         const Divider(),
                         SwitchListTile(
-                          title: const Text('Group sequential messages'),
-                          subtitle: const Text(
-                            'Join multiple messages from the same user at the same time',
+                          title: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).groupSequentialMessages,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).groupSequentialMessagesDescription,
                           ),
                           value: _newConfiguration.groupMessages,
                           onChanged: (value) {
@@ -311,12 +352,16 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     ),
                     const Gap(16.0),
                     _ConfigurationSection(
-                      title: const Text('Channels'),
+                      title: Text(AppLocalizations.of(context).channels),
                       children: [
                         SwitchListTile(
-                          title: const Text('Show empty channels'),
-                          subtitle: const Text(
-                            'Include channels with no active users in the list',
+                          title: Text(
+                            AppLocalizations.of(context).showEmptyChannels,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).showEmptyChannelsDescription,
                           ),
                           value: _newConfiguration.showEmptyChannels,
                           onChanged: (value) {
@@ -327,11 +372,13 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                     ),
                     const Gap(16.0),
                     _ConfigurationSection(
-                      title: const Text('About'),
+                      title: Text(AppLocalizations.of(context).about),
                       children: [
                         ListTile(
                           leading: const Icon(Icons.privacy_tip),
-                          title: const Text('Privacy Policy'),
+                          title: Text(
+                            AppLocalizations.of(context).privacyPolicy,
+                          ),
                           onTap: () {
                             const PrivacyPolicyRoute().push(context);
                           },
@@ -339,7 +386,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         const Divider(),
                         ListTile(
                           leading: const Icon(Icons.description),
-                          title: const Text('Licenses'),
+                          title: Text(AppLocalizations.of(context).licenses),
                           onTap: () {
                             const LicensesRoute().push(context);
                           },
@@ -347,10 +394,10 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         const Divider(),
                         ListTile(
                           leading: const Icon(Icons.info),
-                          title: const Text('Version'),
-                          trailing: Text(
-                            locator<PackageInfo>().version,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                          title: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).version(locator<PackageInfo>().version),
                           ),
                         ),
                       ],

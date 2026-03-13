@@ -10,6 +10,7 @@ import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// The initial screen shown when the app starts.
 final class InitialScreen extends StatefulWidget {
@@ -64,8 +65,8 @@ final class _InitialScreenState extends State<InitialScreen> {
             'Failed to connect: Provider not connected after explicitly awaiting connection.',
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to connect. Please check your settings.'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).failedToConnect),
             ),
           );
         }
@@ -78,7 +79,13 @@ final class _InitialScreenState extends State<InitialScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection error: ${exception.toString()}')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).connectionError(exception.toString()),
+            ),
+          ),
         );
       }
     }
@@ -118,14 +125,14 @@ final class _InitialScreenState extends State<InitialScreen> {
                   TextFormField(
                     enabled: !_isConnecting,
                     controller: _nicknameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nickname',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).nickname,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.person),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a nickname';
+                        return AppLocalizations.of(context).pleaseEnterNickname;
                       }
                       return null;
                     },
@@ -135,17 +142,19 @@ final class _InitialScreenState extends State<InitialScreen> {
                   TextFormField(
                     enabled: !_isConnecting,
                     controller: _serverUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Server URL',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.link),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).serverUrl,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.link),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a server URL';
+                        return AppLocalizations.of(
+                          context,
+                        ).pleaseEnterServerUrl;
                       }
                       if (!value.startsWith(httpUrlPattern)) {
-                        return 'URL must start with http:// or https://';
+                        return AppLocalizations.of(context).urlMustStart;
                       }
                       return null;
                     },
@@ -170,15 +179,15 @@ final class _InitialScreenState extends State<InitialScreen> {
                                 ),
                               ),
                               const Gap(12.0),
-                              const Text(
-                                'Connecting',
-                                style: TextStyle(fontSize: 16.0),
+                              Text(
+                                AppLocalizations.of(context).connecting,
+                                style: const TextStyle(fontSize: 16.0),
                               ),
                             ],
                           )
-                        : const Text(
-                            'Connect',
-                            style: TextStyle(fontSize: 16.0),
+                        : Text(
+                            AppLocalizations.of(context).connect,
+                            style: const TextStyle(fontSize: 16.0),
                           ),
                   ),
                 ],
@@ -193,13 +202,15 @@ final class _InitialScreenState extends State<InitialScreen> {
                       const InitialPrivacyPolicyRoute().go(context);
                     },
                     icon: const Icon(Icons.privacy_tip_outlined),
-                    label: const Text('Privacy Policy'),
+                    label: Text(AppLocalizations.of(context).privacyPolicy),
                   ),
                 ),
                 const Gap(4.0),
                 Center(
                   child: Text(
-                    'Version ${locator<PackageInfo>().version}',
+                    AppLocalizations.of(
+                      context,
+                    ).version(locator<PackageInfo>().version),
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey),

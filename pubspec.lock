@@ -10,7 +10,7 @@ packages:
     source: hosted
     version: "92.0.0"
   analyzer:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: analyzer
       sha256: "70e4b1ef8003c64793a9e268a551a82869a8a96f39deb73dea28084b0e8bf75e"
@@ -58,7 +58,7 @@ packages:
     source: hosted
     version: "2.1.2"
   build:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: build
       sha256: "275bf6bb2a00a9852c28d4e0b410da1d833a734d57d39d44f94bfc895a484ec3"
@@ -69,10 +69,10 @@ packages:
     dependency: transitive
     description:
       name: build_config
-      sha256: "4f64382b97504dc2fcdf487d5aae33418e08b4703fc21249e4db6d804a4d0187"
+      sha256: "4070d2a59f8eec34c97c86ceb44403834899075f66e8a9d59706f8e7834f6f71"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "1.3.0"
   build_daemon:
     dependency: transitive
     description:
@@ -85,10 +85,10 @@ packages:
     dependency: "direct dev"
     description:
       name: build_runner
-      sha256: "39ad4ca8a2876779737c60e4228b4bcd35d4352ef7e14e47514093edc012c734"
+      sha256: "7981eb922842c77033026eb4341d5af651562008cdb116bdfa31fc46516b6462"
       url: "https://pub.dev"
     source: hosted
-    version: "2.11.1"
+    version: "2.12.2"
   built_collection:
     dependency: transitive
     description:
@@ -146,7 +146,7 @@ packages:
     source: hosted
     version: "1.0.0"
   code_builder:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: code_builder
       sha256: "6a6cab2ba4680d6423f34a9b972a4c9a94ebe1b62ecec4e1a1f2cba91fd1319d"
@@ -281,6 +281,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  fluent:
+    dependency: "direct dev"
+    description:
+      name: fluent
+      sha256: db24ad7dc99cd999df3b01d4a1de61aa802523a4216afbf0e4e40f81b65a0879
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.3"
+  fluent_i18n:
+    dependency: "direct main"
+    description:
+      name: fluent_i18n
+      sha256: c765bde8383444e0a7a6c29a256b7ea4ef5eb701c22511c0e97b178a148cbd30
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -339,6 +355,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
+  flutter_localizations:
+    dependency: "direct main"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_markdown_plus:
     dependency: "direct main"
     description:
@@ -543,6 +564,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  intl:
+    dependency: "direct overridden"
+    description:
+      name: intl
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.20.2"
   io:
     dependency: transitive
     description:
@@ -847,6 +876,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  recase:
+    dependency: "direct dev"
+    description:
+      name: recase
+      sha256: e4eb4ec2dcdee52dcf99cb4ceabaffc631d7424ee55e56f280bc039737f89213
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   retry:
     dependency: "direct main"
     description:
@@ -933,7 +970,7 @@ packages:
     source: sdk
     version: "0.0.0"
   source_gen:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: source_gen
       sha256: "1d562a3c1f713904ebbed50d2760217fd8a51ca170ac4b05b0db490699dbac17"

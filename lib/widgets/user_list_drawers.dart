@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/responsive.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 
@@ -207,7 +208,7 @@ class _VerticalUserListState extends State<VerticalUserList> {
                       icon: const Icon(Icons.add_box, size: 18.0),
                       padding: EdgeInsets.zero,
                       onPressed: widget.onAddChannel,
-                      tooltip: 'Join channel',
+                      tooltip: AppLocalizations.of(context).joinChannel,
                     ),
                   ],
                 ),
@@ -232,7 +233,11 @@ class _VerticalUserListState extends State<VerticalUserList> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     children: [
-                      const Expanded(child: Text('Private Channel')),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).privateChannel,
+                        ),
+                      ),
                       Switch(
                         value: widget.provider.isCurrentChannelPrivate,
                         onChanged: widget.provider.setPrivateChannel,
@@ -429,7 +434,7 @@ class MobileChannelSheet extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.add_box),
                     onPressed: onAddChannel,
-                    tooltip: 'Join channel',
+                    tooltip: AppLocalizations.of(context).joinChannel,
                   ),
                 ],
               ),
@@ -441,7 +446,11 @@ class MobileChannelSheet extends StatelessWidget {
                     ListTile(
                       selected: channelEntry.key == provider.activeChannel,
                       title: Text(channelEntry.key),
-                      trailing: Text('${channelEntry.value} users'),
+                      trailing: Text(
+                        AppLocalizations.of(
+                          context,
+                        ).userCount(channelEntry.value),
+                      ),
                       onTap: () => onChannelSelected(channelEntry.key),
                     ),
                 ],

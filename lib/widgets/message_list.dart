@@ -6,6 +6,7 @@ import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 
 import '../core/message_grouper.dart';
 
@@ -64,8 +65,12 @@ final class MessageList extends StatelessWidget {
                     const Gap(16.0),
                     Text(
                       provider.searchQuery.isEmpty
-                          ? 'No messages yet in ${provider.activeChannel}'
-                          : 'No messages found for "${provider.searchQuery}"',
+                          ? AppLocalizations.of(
+                              context,
+                            ).noMessagesYet(provider.activeChannel)
+                          : AppLocalizations.of(
+                              context,
+                            ).noMessagesFound(provider.searchQuery),
                       style: TextStyle(
                         color: Colors.grey.withValues(alpha: 0.8),
                         fontSize: 16.0,
@@ -75,7 +80,7 @@ final class MessageList extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          'Start the conversation!',
+                          AppLocalizations.of(context).startTheConversation,
                           style: TextStyle(
                             color: Colors.grey.withValues(alpha: 0.5),
                             fontSize: 12.0,
@@ -248,7 +253,7 @@ final class _NotificationPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Notification',
+      label: AppLocalizations.of(context).notification,
       container: true,
       child: Material(
         borderRadius: BorderRadius.circular(32.0),

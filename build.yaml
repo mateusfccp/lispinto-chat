@@ -1,0 +1,8 @@
+builders:
+  localization_builder:
+    import: "tool/builder.dart"
+    builder_factories: ["localizationBuilder"]
+    build_extensions: {".dart": [".localization.g.part"]}
+    auto_apply: root_package
+    build_to: cache
+    applies_builders: ["source_gen|combining_builder"]

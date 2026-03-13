@@ -1,6 +1,8 @@
+import 'package:fluent_i18n/fluent_i18n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'core/logging.dart';
@@ -34,6 +36,33 @@ class _AppState extends State<App> {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Lispinto Chat',
+      localizationsDelegates: const [
+        FluentLocalizationsDelegate([
+          Locale('en'),
+          Locale('pt', 'BR'),
+          Locale('es', 'AR'),
+        ]),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('pt', 'BR'),
+        Locale('es', 'AR'),
+      ],
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) return supportedLocales.first;
+        for (final supportedLocale in supportedLocales) {
+          if (supportedLocale == locale) return supportedLocale;
+        }
+        for (final supportedLocale in supportedLocales) {
+          if (supportedLocale.languageCode == locale.languageCode) {
+            return supportedLocale;
+          }
+        }
+        return supportedLocales.first;
+      },
       darkTheme: ThemeData.dark().copyWith(
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         iconButtonTheme: IconButtonThemeData(

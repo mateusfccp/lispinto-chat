@@ -480,7 +480,8 @@ interface class ChatService {
     final requestData = <String, Object?>{};
     if (args != null) requestData['args'] = args;
     if (kwargs != null) requestData['kwargs'] = kwargs;
-    if (channel != null) requestData['channel'] = channel;
+    // TODO: remove hash from channel name when server is updated to not require it
+    if (channel != null) requestData['channel'] = '#$channel';
 
     final requestBody = jsonEncode(requestData);
 

@@ -110,19 +110,21 @@ class _VerticalUserListState extends State<VerticalUserList> {
                   children: [
                     Expanded(
                       child: usersFuture != null && usersFuture.result == null
-                          ? const Row(
+                          ? Row(
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Online Users',
-                                    style: TextStyle(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).onlineUsers(''),
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                Gap(8.0),
-                                SizedBox(
+                                const Gap(8.0),
+                                const SizedBox(
                                   width: 12,
                                   height: 12,
                                   child: CircularProgressIndicator(
@@ -132,7 +134,9 @@ class _VerticalUserListState extends State<VerticalUserList> {
                               ],
                             )
                           : Text(
-                              'Online Users (${users.length})',
+                              AppLocalizations.of(
+                                context,
+                              ).onlineUsers(users.length),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -177,18 +181,20 @@ class _VerticalUserListState extends State<VerticalUserList> {
                 child: Row(
                   children: [
                     if (channelsFuture != null && channelsFuture.result == null)
-                      const Expanded(
+                      Expanded(
                         child: Row(
                           children: [
                             Expanded(
                               child: Text(
-                                'Channels',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                AppLocalizations.of(context).channels,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Gap(8.0),
-                            SizedBox(
+                            const Gap(8.0),
+                            const SizedBox(
                               width: 12,
                               height: 12,
                               child: CircularProgressIndicator(strokeWidth: 2),
@@ -199,7 +205,7 @@ class _VerticalUserListState extends State<VerticalUserList> {
                     else
                       Expanded(
                         child: Text(
-                          'Channels (${channels.length})',
+                          '${AppLocalizations.of(context).channels} (${channels.length})',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -410,7 +416,7 @@ class MobileChannelSheet extends StatelessWidget {
                         ? Row(
                             children: [
                               Text(
-                                'Channels',
+                                AppLocalizations.of(context).channels,
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
@@ -425,7 +431,7 @@ class MobileChannelSheet extends StatelessWidget {
                             ],
                           )
                         : Text(
-                            'Channels (${channels.length})',
+                            '${AppLocalizations.of(context).channels} (${channels.length})',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,

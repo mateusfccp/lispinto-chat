@@ -404,7 +404,9 @@ class _InputAreaState extends State<InputArea> {
                           ),
                           isDense: context.isDesktop,
                           hintMaxLines: 1,
-                          hintText: AppLocalizations.of(context).typeAMessage,
+                          hintText: AppLocalizations.of(
+                            context,
+                          ).inputAreaHintText,
                           border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(
                               Radius.circular(32.0),

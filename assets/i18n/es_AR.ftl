@@ -7,7 +7,12 @@ failed-to-copy-image = Error al copiar la imagen.
 
 # User List Drawers
 private-channel = Canal Privado
-user-count = { NUMBER($count) } usuarios
+user-count =
+    { $count ->
+    [0] Ningún usuario
+    [one] 1 usuario
+    *[other] { $count } usuarios
+}
 
 # Initial Screen
 failed-to-connect = Error al conectarse. Por favor, verifica tus ajustes.
@@ -69,7 +74,7 @@ imgbb-api-key-required-description = Para subir imágenes, por favor configurá 
 go-to-settings = Ir a Ajustes
 failed-to-upload-image = Error al subir imagen: { $error }
 upload-photo = Subir foto
-type-a-message = Escribí un mensaje...
+input-area-hint-text = Mensaje
 
 # Missing UI Strings
 disconnected = Desconectado

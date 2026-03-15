@@ -3,13 +3,16 @@ import 'dart:io';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
-import 'package:fluent/fluent.dart';
 import 'package:lispinto_chat/core/generate_localizations_annotation.dart';
 import 'package:recase/recase.dart';
 import 'package:source_gen/source_gen.dart';
 
-Builder localizationBuilder(BuilderOptions options) =>
-    SharedPartBuilder([LocalizationGenerator()], 'localization');
+import 'ftl_parser.dart';
+
+/// The function that registers the [LocalizationGenerator] to the build system.
+Builder localizationBuilder(BuilderOptions options) {
+  return SharedPartBuilder([LocalizationGenerator()], 'localization_builder');
+}
 
 /// A code generator that reads localization files and generates a Dart class.
 final class LocalizationGenerator
@@ -20,8 +23,7 @@ final class LocalizationGenerator
     ConstantReader annotation,
     BuildStep buildStep,
   ) async {
-    final package = buildStep.inputId.package;
-    final enAsset = AssetId(package, 'assets/i18n/en.ftl');
+    final enAsset = AssetId(buildStep.inputId.package, 'assets/i18n/en.ftl');
 
     if (!await buildStep.canRead(enAsset)) {
       throw Exception(
@@ -30,7 +32,8 @@ final class LocalizationGenerator
     }
 
     final enContent = await buildStep.readAsString(enAsset);
-    final parsedContent = _parseFtl(enContent);
+    final parser = const FluentParser();
+    final parsedContent = parser.parse(enContent);
 
     // We can confidently read the other languages to output warnings,
     final i18nDir = Directory('assets/i18n');
@@ -48,7 +51,7 @@ final class LocalizationGenerator
       for (final file in otherFiles) {
         final lang = file.uri.pathSegments.last;
         final content = await file.readAsString();
-        final parsedOther = _parseFtl(content);
+        final parsedOther = parser.parse(content);
 
         for (final key in parsedContent.keys) {
           if (!parsedOther.containsKey(key)) {
@@ -60,7 +63,7 @@ final class LocalizationGenerator
 
       if (hasWarnings) {
         stdout.writeln(
-          '\\nSome keys are missing in translations. Please add them.\\n',
+          '\nSome keys are missing in translations. Please add them.\n',
         );
       }
     }
@@ -74,44 +77,7 @@ final class LocalizationGenerator
     return _generateDartCode(element.name!, parsedContent);
   }
 
-  Map<String, List<String>> _parseFtl(String content) {
-    final bundle = FluentBundle('en');
-    bundle.addMessages(content);
-
-    final map = <String, List<String>>{};
-    for (final MapEntry(:key, :value) in bundle.messages.entries) {
-      final elements = value.value?.elements;
-      final List<String> arguments;
-
-      if (elements == null) {
-        arguments = [];
-      } else {
-        // This is flaky, but the FluentBundle doesn't export their internal AST, so we have to rely on dynamic and string checks.
-        arguments = [
-          for (final element in elements)
-            if (element.runtimeType.toString() == 'VariableReference')
-              (element as dynamic).name
-            else if (element.runtimeType.toString() == 'FunctionReference')
-              for (final argument in (element as dynamic).arguments)
-                if (argument.runtimeType.toString() == 'NamedArgument')
-                  (argument as dynamic).name
-                else if (argument.runtimeType.toString() ==
-                    'PositionalArgument')
-                  if ((argument as dynamic).value.runtimeType.toString() ==
-                      'VariableReference')
-                    (argument as dynamic).value.name,
-        ];
-      }
-
-      map[key] = arguments;
-    }
-
-    // print('Parsed keys and arguments: $map');
-
-    return map;
-  }
-
-  String _generateDartCode(String className, Map<String, List<String>> keys) {
+  String _generateDartCode(String className, Map<String, FluentMessage> keys) {
     final mixin = Mixin((builder) {
       builder.name = '_\$${className}Mixin';
 
@@ -124,10 +90,10 @@ final class LocalizationGenerator
         }),
       );
 
-      for (final MapEntry(:key, value: arguments) in keys.entries) {
+      for (final MapEntry(:key, value: message) in keys.entries) {
         final camelCaseKey = ReCase(key).camelCase;
 
-        if (arguments.isEmpty) {
+        if (message.arguments.isEmpty) {
           builder.methods.add(
             Method((builder) {
               builder
@@ -148,10 +114,10 @@ final class LocalizationGenerator
                 ..name = camelCaseKey
                 ..returns = refer('String')
                 ..requiredParameters.addAll([
-                  for (final argument in arguments)
+                  for (final argument in message.arguments)
                     Parameter((builder) {
-                      builder.type = refer('Object?');
-                      builder.name = argument;
+                      builder.type = refer(argument.type);
+                      builder.name = argument.name;
                     }),
                 ])
                 ..body = refer('fluent')
@@ -159,8 +125,8 @@ final class LocalizationGenerator
                     .call([
                       literalString(key),
                       literalMap({
-                        for (final argument in arguments)
-                          argument: refer(argument),
+                        for (final argument in message.arguments)
+                          argument.name: refer(argument.name),
                       }),
                     ])
                     .ifNullThen(literalString(key))

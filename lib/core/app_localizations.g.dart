@@ -176,8 +176,8 @@ mixin _$AppLocalizationsMixin {
 
   String get uploadPhoto => fluent.getMessage('upload-photo') ?? 'upload-photo';
 
-  String get typeAMessage =>
-      fluent.getMessage('type-a-message') ?? 'type-a-message';
+  String get inputAreaHintText =>
+      fluent.getMessage('input-area-hint-text') ?? 'input-area-hint-text';
 
   String get disconnected =>
       fluent.getMessage('disconnected') ?? 'disconnected';

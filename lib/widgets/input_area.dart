@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/responsive.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
@@ -15,7 +16,6 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'package:super_clipboard/super_clipboard.dart';
-import 'package:lispinto_chat/core/app_localizations.dart';
 
 import '../core/get_nickname_color.dart';
 
@@ -389,6 +389,7 @@ class _InputAreaState extends State<InputArea> {
                             minHeight: 0.0,
                           ),
                           isDense: context.isDesktop,
+                          hintMaxLines: 1,
                           hintText: AppLocalizations.of(context).typeAMessage,
                           border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(

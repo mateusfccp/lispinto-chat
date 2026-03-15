@@ -1,6 +1,6 @@
 # Lispinto Chat
 
-A chat app that connects to a [https://github.com/ryukinix/lisp-chat](lisp-chat) server.
+A chat app that connects to a [lisp-chat](https://github.com/ryukinix/lisp-chat) server.
 
 ## Support
 

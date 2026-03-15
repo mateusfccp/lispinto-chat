@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/delete_aware_text_controller.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/responsive.dart';
@@ -16,7 +17,6 @@ import 'package:lispinto_chat/widgets/message_list.dart';
 import 'package:lispinto_chat/widgets/search_input.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:lispinto_chat/widgets/user_list_drawers.dart';
-import 'package:lispinto_chat/core/app_localizations.dart';
 
 /// Intent to trigger the search bar from keyboard shortcuts.
 class SearchIntent extends Intent {
@@ -392,6 +392,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 notifications: _activeNotifications,
                 listKey: listKey,
                 onRemoveNotification: _removeNotification,
+                inputArea: InputArea.prototype(controller: _controller),
               ),
               Positioned(
                 left: 0.0,

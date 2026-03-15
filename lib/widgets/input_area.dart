@@ -29,10 +29,22 @@ final class InputArea extends StatefulWidget {
     super.key,
     required this.controller,
     required this.focusNode,
-    required this.provider,
+    required ChatProvider this.provider,
     required this.onSend,
     required this.openConfigurations,
   });
+
+  /// Creates an [InputArea] without provider and callbacks.
+  ///
+  /// This can be used in contexts where the input area is needed for layout
+  /// purposes but not for actual message sending.
+  InputArea.prototype({super.key, required this.controller})
+    : focusNode = FocusNode(),
+      provider = null,
+      onSend = _noop,
+      openConfigurations = _noop;
+
+  static void _noop() {}
 
   /// The controller for the text field.
   final TextEditingController controller;
@@ -41,7 +53,7 @@ final class InputArea extends StatefulWidget {
   final FocusNode focusNode;
 
   /// The provider that manages the chat state.
-  final ChatProvider provider;
+  final ChatProvider? provider;
 
   /// Callback when a message is sent.
   final VoidCallback onSend;
@@ -199,31 +211,33 @@ class _InputAreaState extends State<InputArea> {
 
   @override
   Widget build(BuildContext context) {
+    final listenable = widget.provider ?? ValueNotifier(null);
+
     return SafeArea(
       child: ListenableBuilder(
-        listenable: widget.provider,
+        listenable: listenable,
         builder: (context, child) {
+          final enabled =
+              (widget.provider?.isConnected ?? false) && !_isUploading;
           final sendButton = IconButton(
             icon: const Icon(Icons.send),
             tooltip: AppLocalizations.of(context).sendMessage,
-            onPressed: (widget.provider.isConnected && !_isUploading)
-                ? widget.onSend
-                : null,
+            onPressed: enabled ? widget.onSend : null,
           );
 
           final onlineUsers = [
-            ...?widget.provider.usersFuture?.result?.asValue?.value,
+            ...?widget.provider?.usersFuture?.result?.asValue?.value,
           ];
           final users = [
             for (final user in onlineUsers)
-              if (user != widget.provider.configuration.nickname) user,
+              if (user != widget.provider?.configuration.nickname) user,
           ];
 
           final channelsMap = {
-            ...?widget.provider.channelsFuture?.result?.asValue?.value,
+            ...?widget.provider?.channelsFuture?.result?.asValue?.value,
           };
           final channels = [...channelsMap.keys];
-          final currentDmNickname = widget.provider.currentDmNickname;
+          final currentDmNickname = widget.provider?.currentDmNickname;
 
           return Padding(
             padding: const EdgeInsets.all(8.0),
@@ -236,10 +250,10 @@ class _InputAreaState extends State<InputArea> {
                   child: PopupMenuButton<_AttachmentOption>(
                     icon: const Icon(Icons.add),
                     tooltip: AppLocalizations.of(context).addAttachment,
-                    onOpened: (widget.provider.isConnected && !_isUploading)
+                    onOpened: enabled
                         ? null
                         : () => Navigator.of(context).pop(),
-                    enabled: widget.provider.isConnected && !_isUploading,
+                    enabled: enabled,
                     onSelected: (value) {
                       if (value == _AttachmentOption.uploadPhoto) {
                         final imgbbApiKey = locator<UserConfiguration>()
@@ -269,7 +283,7 @@ class _InputAreaState extends State<InputArea> {
                                 TextButton(
                                   onPressed: () {
                                     Navigator.of(context).pop();
-                                    widget.openConfigurations();
+                                    widget.openConfigurations.call();
                                   },
                                   child: Text(
                                     AppLocalizations.of(context).goToSettings,
@@ -336,7 +350,7 @@ class _InputAreaState extends State<InputArea> {
                       child: TextField(
                         controller: widget.controller,
                         focusNode: widget.focusNode,
-                        enabled: widget.provider.isConnected && !_isUploading,
+                        enabled: enabled,
                         maxLines: null,
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
@@ -369,7 +383,7 @@ class _InputAreaState extends State<InputArea> {
                               : _DmIndicator(
                                   user: currentDmNickname,
                                   onTap: () {
-                                    widget.provider.setDmMode(null);
+                                    widget.provider?.setDmMode(null);
                                     widget.focusNode.requestFocus();
                                   },
                                 ),

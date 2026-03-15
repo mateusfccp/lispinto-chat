@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
-import 'package:prototype_constrained_box/prototype_constrained_box.dart';
-import 'package:lispinto_chat/core/app_localizations.dart';
 
 import '../core/message_grouper.dart';
 
@@ -20,6 +19,7 @@ final class MessageList extends StatelessWidget {
     required this.notifications,
     required this.listKey,
     required this.onRemoveNotification,
+    required this.inputArea,
   });
 
   /// The provider that manages the chat state.
@@ -36,6 +36,9 @@ final class MessageList extends StatelessWidget {
 
   /// Callback when a notification is tapped or timed out.
   final ValueSetter<String> onRemoveNotification;
+
+  /// The input area to be used for spacing and layout purposes.
+  final Widget inputArea;
 
   @override
   Widget build(BuildContext context) {
@@ -102,12 +105,12 @@ final class MessageList extends StatelessWidget {
               itemCount: displayedMessages.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return const PrototypeConstrainedBox.tight(
-                    prototype: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: TextField(),
-                    ),
-                    child: SizedBox(),
+                  return Visibility(
+                    visible: false,
+                    maintainState: true,
+                    maintainAnimation: true,
+                    maintainSize: true,
+                    child: inputArea,
                   );
                 }
 

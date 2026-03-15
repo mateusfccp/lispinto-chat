@@ -1,7 +1,7 @@
 import 'package:fluent_i18n/fluent_i18n.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:lispinto_chat/services/link_image_detector.dart';
@@ -41,8 +41,9 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null)
+                  if (FluentLocalizations.of(context) == null) {
                     return Container();
+                  }
                   result = buildStylizedText(
                     context: context,
                     text: 'This is **bold text**',
@@ -81,8 +82,9 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null)
+                  if (FluentLocalizations.of(context) == null) {
                     return Container();
+                  }
                   result = buildStylizedText(
                     context: context,
                     text: 'Hey @user check this',
@@ -121,8 +123,9 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null)
+                  if (FluentLocalizations.of(context) == null) {
                     return Container();
+                  }
                   final stylized = buildStylizedText(
                     context: context,
                     text: 'This is **bold text**',
@@ -178,8 +181,9 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null)
+                  if (FluentLocalizations.of(context) == null) {
                     return Container();
+                  }
                   result = buildStylizedText(
                     context: context,
                     text: 'Check https://google.com',
@@ -227,8 +231,9 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  if (FluentLocalizations.of(context) == null)
+                  if (FluentLocalizations.of(context) == null) {
                     return Container();
+                  }
                   final stylized = buildStylizedText(
                     context: context,
                     text: 'Check $url for more',

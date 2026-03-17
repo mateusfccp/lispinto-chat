@@ -98,9 +98,44 @@ class FakeChatService extends Fake implements ChatService {
   Stream<Map<String, int>> get channels => const Stream.empty();
 
   @override
-  Stream<bool> get connectionState => Stream.value(true);
+  Stream<bool> get connectionState => _connectionStateController.stream;
+  final _connectionStateController = StreamController<bool>.broadcast();
+
+  @override
+  Stream<ChatConnectionState> get stateStream => _stateController.stream;
+  final _stateController = StreamController<ChatConnectionState>.broadcast();
+
+  @override
+  ChatConnectionState get state {
+    if (!_isConnected) return ChatConnectionState.disconnected;
+    if (_isLoggedIn) return ChatConnectionState.loggedIn;
+    return ChatConnectionState.connected;
+  }
+
+  @override
+  bool get isLoggedIn => state == ChatConnectionState.loggedIn;
+
+  @override
+  bool get isConnected =>
+      state == ChatConnectionState.connected ||
+      state == ChatConnectionState.loggedIn;
+
+  bool _isLoggedIn = true;
+  bool _isConnected = true;
+
   @override
   Stream<String> get nickChanges => const Stream.empty();
+
+  void setConnectionState(bool connected) {
+    _isConnected = connected;
+    _connectionStateController.add(connected);
+    _stateController.add(state);
+  }
+
+  void setLoggedIn(bool loggedIn) {
+    _isLoggedIn = loggedIn;
+    _stateController.add(state);
+  }
 
   @override
   Future<Map<String, int>> requestChannelsList() async {
@@ -114,7 +149,9 @@ class FakeChatService extends Fake implements ChatService {
 
   @override
   void sendMessage(String message) {
-    sentMessages.add(message);
+    if (_isLoggedIn) {
+      sentMessages.add(message);
+    }
   }
 
   @override
@@ -140,6 +177,9 @@ void main() {
         localNotifications: mockNotifications,
         chatService: fakeChatService,
       );
+
+      // Initialize state for traditional tests
+      fakeChatService.setConnectionState(true);
     });
 
     tearDown(() {
@@ -199,6 +239,34 @@ void main() {
       provider.setPrivateChannel(false);
       expect(provider.isCurrentChannelPrivate, isFalse);
       expect(fakeChatService.sentMessages, contains('/private off'));
+    });
+
+    test('reconnectInNonDefaultChannel: sends /join after login, not just connection', () async {
+      // 1. Setup: be in a non-default channel
+      fakeChatService.setLoggedIn(true);
+      provider.joinChannel('#testing');
+      fakeChatService.sentMessages.clear();
+
+      // 2. Simulate disconnect
+      fakeChatService.setConnectionState(false);
+      fakeChatService.setLoggedIn(false);
+
+      // 3. Simulate reconnect - only socket connects, not yet logged in
+      fakeChatService.setConnectionState(true);
+      // We must wait for the connectionState event to be processed by ChatProvider
+      // BEFORE it becomes logged in, to confirm that the /join attempt is dropped.
+      await Future<void>.delayed(Duration.zero);
+
+      // Verify that /join was NOT sent yet (because it would be dropped by ChatService)
+      expect(fakeChatService.sentMessages, isNot(contains('/join #testing')),
+          reason: 'Should not send /join before login because it will be dropped');
+
+      // 4. Simulate login complete
+      fakeChatService.setLoggedIn(true);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeChatService.sentMessages, contains('/join #testing'),
+          reason: 'Should send /join after login to ensure correct channel');
     });
   });
 

@@ -114,6 +114,10 @@ interface class ChatService {
   Stream<bool> get connectionState => _connectionStateController.stream;
   final _connectionStateController = StreamController<bool>.broadcast();
 
+  /// A stream of the detailed connection state.
+  Stream<ChatConnectionState> get stateStream => _stateController.stream;
+  final _stateController = StreamController<ChatConnectionState>.broadcast();
+
   /// A stream of the current user's nick changes.
   ///
   /// The UI can listen to this stream to update the displayed nickname when the
@@ -209,16 +213,13 @@ interface class ChatService {
     try {
       final Uri connectionUrl;
 
-      if (initialChannel case final channelName?) {
-        connectionUrl = websocketUrl.replace(
-          queryParameters: {
-            ...websocketUrl.queryParameters,
-            'channel': channelName,
-          },
-        );
-      } else {
-        connectionUrl = websocketUrl;
-      }
+      final channelName = currentChannel;
+      connectionUrl = websocketUrl.replace(
+        queryParameters: {
+          ...websocketUrl.queryParameters,
+          'channel': channelName,
+        },
+      );
 
       final channel = _channel =
           mockChannel ?? webSocketFactory.create(connectionUrl);
@@ -229,6 +230,7 @@ interface class ChatService {
           .then((_) {
             _logger.info('WebSocket channel ready.');
             _connectionStateController.add(true);
+            _stateController.add(state);
           })
           .catchError((error, stackTrace) {
             _logger.severe(
@@ -309,6 +311,7 @@ interface class ChatService {
         _logger.info('Successfully logged in as $nickname.');
         channel.sink.add(nickname);
         _loggedIn = true;
+        _stateController.add(state);
         channel.sink.add('/session');
         continue;
       }
@@ -654,6 +657,7 @@ interface class ChatService {
     _channel = null;
 
     _connectionStateController.add(false);
+    _stateController.add(state);
 
     if (wasLoggedIn && !_isReconnecting) {
       _notificationsController.add(
@@ -711,6 +715,7 @@ interface class ChatService {
       disconnect();
     } finally {
       _isReconnecting = false;
+      _stateController.add(state);
     }
   }
 
@@ -725,6 +730,7 @@ interface class ChatService {
     _nickChangeController.close();
     _channelsController.close();
     _currentChannelController.close();
+    _stateController.close();
   }
 
   @visibleForTesting

@@ -218,12 +218,10 @@ class ChatProvider with ChangeNotifier {
     );
 
     _subscriptions.add(
-      _chatService.connectionState.listen((connected) {
-        _isConnected = connected;
-        // On reconnect, we might get a flood of history. We could clear messages here
-        // but it's better to just let the server send the recent history if the connection drops.
+      _chatService.stateStream.listen((state) {
+        _isConnected = _chatService.isConnected;
 
-        if (connected) {
+        if (state == ChatConnectionState.loggedIn) {
           // Send /join to ensure the connection gets associated with the currently
           // expected channel on reconnect (or login defaults).
           _chatService.sendMessage('/join $activeChannel');

@@ -2,7 +2,7 @@ name: lispinto_chat
 description: "A Flutter client for lisp-chat."
 publish_to: 'none'
 
-version: 2026.03.2-rc.4+7
+version: 2026.03.2-rc.5+8
 
 environment:
   sdk: ^3.11.0
@@ -13,7 +13,7 @@ dependencies:
   fluent_i18n: ^2.1.0
   flutter:
     sdk: flutter
-  flutter_local_notifications: ^20.1.0
+  flutter_local_notifications: ^21.0.0
   flutter_localizations:
     sdk: flutter
   flutter_markdown_plus: ^1.0.7

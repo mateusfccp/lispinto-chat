@@ -13,7 +13,7 @@ import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/image_upload_service.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
 import 'package:logging/logging.dart';
 import 'package:mockito/mockito.dart';
@@ -125,13 +125,17 @@ void main() {
           buildNumber: '1',
         ),
       );
-      locator.registerSingleton<LinkImageDetector>(LinkImageDetector());
+      locator.registerSingleton<LinkPreviewService>(LinkPreviewService());
       locator.registerSingleton<MessageGrouper>(const MessageGrouper());
       locator.registerSingleton<ImageUploadService>(MockImageUploadService());
     });
 
     tearDown(() {
-      locator.popScope();
+      try {
+        locator.popScope();
+      } catch (_) {
+        // Ignore if no scope to pop
+      }
     });
 
     testWidgets('preserves text selection when tapping a user to DM', (

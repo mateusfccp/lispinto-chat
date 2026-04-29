@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,12 +9,15 @@ import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/responsive.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/link_metadata.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/image_upload_service.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
+import 'package:lispinto_chat/widgets/link_preview.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
@@ -41,10 +45,12 @@ final class InputArea extends StatefulWidget {
   InputArea.prototype({super.key, required this.controller})
     : focusNode = FocusNode(),
       provider = null,
-      onSend = _noop,
-      openConfigurations = _noop;
+      onSend = _onSendNoop,
+      openConfigurations = _voidNoop;
 
-  static void _noop() {}
+  static void _onSendNoop() {}
+
+  static void _voidNoop() {}
 
   /// The controller for the text field.
   final TextEditingController controller;
@@ -67,6 +73,79 @@ final class InputArea extends StatefulWidget {
 
 class _InputAreaState extends State<InputArea> {
   bool _isUploading = false;
+  bool _isLoadingPreview = false;
+  LinkMetadata? _currentPreview;
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    final text = widget.controller.text;
+    final urlPattern = RegExp(r'https?://\S+');
+    final match = urlPattern.firstMatch(text);
+
+    if (match == null) {
+      if (_currentPreview != null || _isLoadingPreview) {
+        setState(() {
+          _currentPreview = null;
+          _isLoadingPreview = false;
+        });
+      }
+      return;
+    }
+
+    final url = match.group(0)!;
+    if (_currentPreview?.url == url) return;
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _fetchPreview(url);
+    });
+  }
+
+  Future<void> _fetchPreview(String url) async {
+    final showPreviews = locator<UserConfiguration>().showLinkPreviews;
+    if (!showPreviews) return;
+
+    setState(() {
+      _isLoadingPreview = true;
+      _currentPreview = null;
+    });
+
+    try {
+      final previewService = locator<LinkPreviewService>();
+      final info = await previewService.fetchInfo(url);
+      if (mounted &&
+          widget.controller.text.contains(url) &&
+          info is MetadataLinkPreviewInfo) {
+        setState(() {
+          _currentPreview = info.metadata;
+          _isLoadingPreview = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoadingPreview = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingPreview = false;
+        });
+      }
+    }
+  }
 
   Future<void> _uploadImage(Uint8List imageBytes) async {
     final imgbbApiKey = locator<UserConfiguration>().imgbbApiKey.trim();
@@ -219,10 +298,18 @@ class _InputAreaState extends State<InputArea> {
         builder: (context, child) {
           final enabled =
               (widget.provider?.isConnected ?? false) && !_isUploading;
+
           final sendButton = IconButton(
             icon: const Icon(Icons.send),
             tooltip: AppLocalizations.of(context).sendMessage,
-            onPressed: enabled ? widget.onSend : null,
+            onPressed: enabled
+                ? () {
+                    widget.onSend();
+                    setState(() {
+                      _currentPreview = null;
+                    });
+                  }
+                : null,
           );
 
           final onlineUsers = [
@@ -324,101 +411,143 @@ class _InputAreaState extends State<InputArea> {
                         suggestions: users,
                       ),
                     ],
-                    child: Focus(
-                      onKeyEvent: (node, event) {
-                        if (event is KeyDownEvent) {
-                          final isEnter =
-                              event.logicalKey == LogicalKeyboardKey.enter ||
-                              event.logicalKey ==
-                                  LogicalKeyboardKey.numpadEnter;
-
-                          if (isEnter &&
-                              !HardwareKeyboard.instance.isShiftPressed) {
-                            widget.onSend();
-                            return KeyEventResult.handled;
-                          }
-
-                          if (event.logicalKey == LogicalKeyboardKey.keyV &&
-                              (HardwareKeyboard.instance.isMetaPressed ||
-                                  HardwareKeyboard.instance.isControlPressed)) {
-                            _handleSuperClipboardPaste();
-                            return KeyEventResult.handled;
-                          }
-                        }
-                        return KeyEventResult.ignored;
-                      },
-                      child: TextField(
-                        controller: widget.controller,
-                        focusNode: widget.focusNode,
-                        enabled: enabled,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        contextMenuBuilder: (context, editableTextState) {
-                          final buttonItems =
-                              editableTextState.contextMenuButtonItems;
-                          final pasteButton = ContextMenuButtonItem(
-                            type: ContextMenuButtonType.paste,
-                            onPressed: () {
-                              _handleSuperClipboardPaste();
-                              editableTextState.hideToolbar();
-                            },
-                          );
-                          final index = buttonItems.indexWhere(
-                            (item) => item.type == ContextMenuButtonType.paste,
-                          );
-                          if (index >= 0) {
-                            buttonItems[index] = pasteButton;
-                          } else {
-                            buttonItems.add(pasteButton);
-                          }
-                          return AdaptiveTextSelectionToolbar.buttonItems(
-                            anchors: editableTextState.contextMenuAnchors,
-                            buttonItems: buttonItems,
-                          );
-                        },
-                        decoration: InputDecoration(
-                          prefixIcon: currentDmNickname == null
-                              ? null
-                              : _DmIndicator(
-                                  user: currentDmNickname,
-                                  onTap: () {
-                                    widget.provider?.setDmMode(null);
-                                    widget.focusNode.requestFocus();
-                                  },
-                                ),
-                          suffixIcon: _isUploading
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12.0),
-                                  child: SizedBox.square(
-                                    dimension: 16.0,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(24.0),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      clipBehavior: Clip.hardEdge,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_currentPreview != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8.0,
+                                left: 8.0,
+                                right: 8.0,
+                              ),
+                              child: Stack(
+                                children: [
+                                  LinkPreview(metadata: _currentPreview!),
+                                  Positioned(
+                                    top: 0.0,
+                                    right: 0.0,
+                                    child: IconButton.filled(
+                                      visualDensity: VisualDensity.compact,
+                                      iconSize: 16.0,
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        setState(() {
+                                          _currentPreview = null;
+                                        });
+                                      },
                                     ),
                                   ),
-                                )
-                              : null,
-                          prefixIconConstraints: const BoxConstraints(
-                            minWidth: 0.0,
-                            minHeight: 0.0,
-                          ),
-                          isDense: context.isDesktop,
-                          hintMaxLines: 1,
-                          hintText: AppLocalizations.of(
-                            context,
-                          ).inputAreaHintText,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(32.0),
+                                ],
+                              ),
+                            ),
+                          Focus(
+                            onKeyEvent: (node, event) {
+                              if (event is KeyDownEvent) {
+                                final isEnter =
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.enter ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.numpadEnter;
+
+                                if (isEnter &&
+                                    !HardwareKeyboard.instance.isShiftPressed) {
+                                  widget.onSend();
+                                  setState(() {
+                                    _currentPreview = null;
+                                  });
+                                  return KeyEventResult.handled;
+                                }
+
+                                if (event.logicalKey ==
+                                        LogicalKeyboardKey.keyV &&
+                                    (HardwareKeyboard.instance.isMetaPressed ||
+                                        HardwareKeyboard
+                                            .instance
+                                            .isControlPressed)) {
+                                  _handleSuperClipboardPaste();
+                                  return KeyEventResult.handled;
+                                }
+                              }
+                              return KeyEventResult.ignored;
+                            },
+                            child: TextField(
+                              controller: widget.controller,
+                              focusNode: widget.focusNode,
+                              enabled: enabled,
+                              maxLines: null,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              contextMenuBuilder: (context, editableTextState) {
+                                final buttonItems =
+                                    editableTextState.contextMenuButtonItems;
+                                final pasteButton = ContextMenuButtonItem(
+                                  type: ContextMenuButtonType.paste,
+                                  onPressed: () {
+                                    _handleSuperClipboardPaste();
+                                    editableTextState.hideToolbar();
+                                  },
+                                );
+                                final index = buttonItems.indexWhere(
+                                  (item) =>
+                                      item.type == ContextMenuButtonType.paste,
+                                );
+                                if (index >= 0) {
+                                  buttonItems[index] = pasteButton;
+                                } else {
+                                  buttonItems.add(pasteButton);
+                                }
+                                return AdaptiveTextSelectionToolbar.buttonItems(
+                                  anchors: editableTextState.contextMenuAnchors,
+                                  buttonItems: buttonItems,
+                                );
+                              },
+                              decoration: InputDecoration(
+                                prefixIcon: currentDmNickname == null
+                                    ? null
+                                    : _DmIndicator(
+                                        user: currentDmNickname,
+                                        onTap: () {
+                                          widget.provider?.setDmMode(null);
+                                          widget.focusNode.requestFocus();
+                                        },
+                                      ),
+                                suffixIcon: _isUploading || _isLoadingPreview
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12.0),
+                                        child: SizedBox.square(
+                                          dimension: 16.0,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.0,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                                prefixIconConstraints: const BoxConstraints(
+                                  minWidth: 0.0,
+                                  minHeight: 0.0,
+                                ),
+                                isDense: context.isDesktop,
+                                hintText: AppLocalizations.of(
+                                  context,
+                                ).inputAreaHintText,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                  vertical: 12.0,
+                                ),
+                              ),
                             ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20.0,
-                            vertical: 12.0,
-                          ),
-                          fillColor: Colors.black87,
-                          filled: true,
-                        ),
+                        ],
                       ),
                     ),
                   ),

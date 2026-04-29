@@ -1,6 +1,8 @@
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 /// Represents a single chat message.
+@immutable
 final class ChatMessage {
   static final _logger = Logger('ChatMessage');
 
@@ -18,7 +20,7 @@ final class ChatMessage {
   final String content;
 
   /// Creates a [ChatMessage].
-  ChatMessage({this.date, required this.from, required this.content});
+  const ChatMessage({this.date, required this.from, required this.content});
 
   /// Whether the message is a system message.
   ///

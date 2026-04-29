@@ -33,6 +33,9 @@ abstract class UserConfiguration with ChangeNotifier {
   /// Whether to show image previews for URLs.
   abstract bool showImagePreviews;
 
+  /// Whether to show link previews for URLs.
+  abstract bool showLinkPreviews;
+
   /// Whether to show empty channels in the channel list.
   abstract bool showEmptyChannels;
 
@@ -70,6 +73,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
       _autoConnect = preferences.getBool(_keyAutoConnect) ?? false,
       _showTimeSeconds = preferences.getBool(_keyShowTimeSeconds) ?? false,
       _showImagePreviews = preferences.getBool(_keyShowImagePreviews) ?? true,
+      _showLinkPreviews = preferences.getBool(_keyShowLinkPreviews) ?? true,
       _showEmptyChannels = preferences.getBool(_keyShowEmptyChannels) ?? false,
       _showMarkdown = preferences.getBool(_keyShowMarkdown) ?? true,
       _groupMessages = preferences.getBool(_keyGroupMessages) ?? true,
@@ -83,6 +87,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
   static const String _keyAutoConnect = 'auto_connect';
   static const String _keyShowTimeSeconds = 'show_time_seconds';
   static const String _keyShowImagePreviews = 'show_image_previews';
+  static const String _keyShowLinkPreviews = 'show_link_previews';
   static const String _keyShowEmptyChannels = 'show_empty_channels';
   static const String _keyShowMarkdown = 'show_markdown';
   static const String _keyGroupMessages = 'group_messages';
@@ -197,6 +202,17 @@ final class PersistentUserConfiguration extends UserConfiguration {
   }
 
   @override
+  bool get showLinkPreviews => _showLinkPreviews;
+  bool _showLinkPreviews;
+
+  @override
+  set showLinkPreviews(bool value) {
+    _showLinkPreviews = value;
+    unawaited(_preferences.setBool(_keyShowLinkPreviews, value));
+    notifyListeners();
+  }
+
+  @override
   bool get showEmptyChannels => _showEmptyChannels;
   bool _showEmptyChannels;
 
@@ -272,6 +288,9 @@ final class PersistentUserConfiguration extends UserConfiguration {
 
     _showImagePreviews = other.showImagePreviews;
     unawaited(_preferences.setBool(_keyShowImagePreviews, _showImagePreviews));
+
+    _showLinkPreviews = other.showLinkPreviews;
+    unawaited(_preferences.setBool(_keyShowLinkPreviews, _showLinkPreviews));
 
     _showEmptyChannels = other.showEmptyChannels;
     unawaited(_preferences.setBool(_keyShowEmptyChannels, _showEmptyChannels));

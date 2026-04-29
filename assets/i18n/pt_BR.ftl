@@ -68,6 +68,10 @@ settings = Configurações
 # Privacy Policy Screen
 failed-to-load-privacy-policy = Falha ao carregar a política de privacidade.
 
+# Link Preview
+show-link-previews = Mostrar Prévias de Links
+show-link-previews-description = Exibir um cartão de prévia para links nas mensagens
+
 # Input Area
 imgbb-api-key-required = Chave da API ImgBB Requerida
 imgbb-api-key-required-description = Para fazer upload de imagens, configure sua Chave da API ImgBB nas configurações.

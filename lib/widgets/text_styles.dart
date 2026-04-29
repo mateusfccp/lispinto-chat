@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -231,8 +231,8 @@ List<InlineSpan> buildStylizedText({
 
     if (match.namedGroup('url') != null) {
       final url = match.group(0)!;
-      final getImageType = locator<LinkImageDetector>().getCachedStatus;
-      if (buildImagePills && getImageType.call(url) != null) {
+      final info = locator<LinkPreviewService>().getCachedInfo(url);
+      if (buildImagePills && info is ImageLinkPreviewInfo) {
         spans.add(
           WidgetSpan(
             child: _ImagePill(

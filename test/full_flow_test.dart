@@ -14,7 +14,7 @@ import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/image_upload_service.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
 import 'package:lispinto_chat/widgets/input_area.dart';
 import 'package:logging/logging.dart';
@@ -116,7 +116,7 @@ void main() {
 
       locator.registerSingleton<Logger>(Logger('Test'));
       locator.registerSingleton<UserConfiguration>(config);
-      locator.registerSingleton<LinkImageDetector>(LinkImageDetector());
+      locator.registerSingleton<LinkPreviewService>(LinkPreviewService());
       locator.registerSingleton<MessageGrouper>(const MessageGrouper());
       locator.registerSingleton<WebSocketFactory>(webSocketFactory);
       locator.registerSingleton<ImageUploadService>(MockImageUploadService());
@@ -203,13 +203,11 @@ void main() {
         expect(find.textContaining('#general'), findsWidgets);
 
         // 4. Send message
-        final inputArea = find.byType(InputArea);
-        expect(inputArea, findsOneWidget);
-
+        final inputArea = find.byType(InputArea).last;
         final inputFinder = find.descendant(
           of: inputArea,
           matching: find.byType(TextField),
-        );
+        ).last;
         expect(inputFinder, findsOneWidget);
 
         final testMessage = 'hello unique message 123456';

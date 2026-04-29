@@ -8,7 +8,7 @@ import '../providers/chat_provider.dart';
 import '../services/chat_service.dart';
 import '../services/image_upload_service.dart';
 import '../services/imgbb_upload_service.dart';
-import '../services/link_image_detector.dart';
+import '../services/link_preview_service.dart';
 import '../services/websocket_factory.dart';
 import 'message_grouper.dart';
 import 'user_configuration.dart';
@@ -28,12 +28,13 @@ Future<void> setupServiceLocator() async {
   final configuration = await UserConfiguration.load();
   locator.registerSingleton<UserConfiguration>(configuration);
 
-  final detector = LinkImageDetector();
-  locator.registerSingleton<LinkImageDetector>(detector);
+  locator.registerSingleton<http.Client>(http.Client());
+
+  locator.registerSingleton<LinkPreviewService>(
+    LinkPreviewService(client: locator()),
+  );
 
   locator.registerSingleton<MessageGrouper>(const MessageGrouper());
-
-  locator.registerSingleton<http.Client>(http.Client());
 
   locator.registerSingleton<WebSocketFactory>(
     DefaultWebSocketFactory(appVersion),

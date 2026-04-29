@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 import 'text_styling_test.mocks.dart';
 
-@GenerateMocks([LinkImageDetector])
+@GenerateMocks([LinkPreviewService])
 void main() {
   final locator = GetIt.instance;
 
   setUp(() {
-    final mockDetector = MockLinkImageDetector();
-    when(mockDetector.getCachedStatus(any)).thenReturn(null);
-    locator.registerSingleton<LinkImageDetector>(mockDetector);
+    final mockService = MockLinkPreviewService();
+    when(mockService.getCachedInfo(any)).thenReturn(null);
+    locator.registerSingleton<LinkPreviewService>(mockService);
   });
 
   tearDown(() {

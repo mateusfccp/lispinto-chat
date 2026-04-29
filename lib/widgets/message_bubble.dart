@@ -9,8 +9,11 @@ import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/image_type.dart';
+import 'package:lispinto_chat/models/link_metadata.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
+import 'package:lispinto_chat/widgets/link_preview.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -39,7 +42,6 @@ final class MessageBubble extends StatefulWidget {
 }
 
 class _MessageBubbleState extends State<MessageBubble> {
-  List<ImageType> _imageTypes = [];
   final Map<String, TapGestureRecognizer> _linkRecognizers = {};
   final Map<String, TapGestureRecognizer> _channelRecognizers = {};
 
@@ -73,12 +75,6 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _detectImages();
-  }
-
-  @override
   void didUpdateWidget(MessageBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.message.content != widget.message.content) {
@@ -90,39 +86,6 @@ class _MessageBubbleState extends State<MessageBubble> {
         recognizer.dispose();
       }
       _channelRecognizers.clear();
-      _detectImages();
-    }
-  }
-
-  Future<void> _detectImages() async {
-    final pattern = RegExp(r'https?://\S+');
-    final urls = [
-      for (final match in pattern.allMatches(widget.message.content))
-        ?match.group(0),
-    ];
-    if (urls.isEmpty) {
-      if (mounted) setState(() => _imageTypes = []);
-      return;
-    }
-
-    final detector = locator<LinkImageDetector>();
-
-    // Check if we already have these cached to avoid flicker
-    final cachedResults = [
-      for (final url in urls) ?detector.getCachedStatus(url),
-    ];
-
-    if (cachedResults.length == urls.length) {
-      if (mounted) setState(() => _imageTypes = cachedResults);
-      return;
-    }
-
-    final results = await [for (final url in urls) detector.isImage(url)].wait;
-
-    if (mounted) {
-      setState(() {
-        _imageTypes = [for (final result in results) ?result];
-      });
     }
   }
 
@@ -130,10 +93,15 @@ class _MessageBubbleState extends State<MessageBubble> {
   Widget build(BuildContext context) {
     final effectiveConfig =
         widget.configuration ?? locator<UserConfiguration>();
+    final pattern = RegExp(r'https?://\S+');
+    final matches = pattern.allMatches(widget.message.content);
+    final urls = [...matches.map((match) => match.group(0)!)];
+
     return ListenableBuilder(
       listenable: effectiveConfig,
       builder: (context, _) {
         final showImagePreviews = effectiveConfig.showImagePreviews;
+        final showLinkPreviews = effectiveConfig.showLinkPreviews;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,8 +129,13 @@ class _MessageBubbleState extends State<MessageBubble> {
                 child: _buildContent(context),
               ),
             ),
-            if (_imageTypes.isNotEmpty && showImagePreviews)
-              _ImageGallery(imageTypes: _imageTypes, onImageTap: _launchUrl),
+            if (urls.isNotEmpty && (showImagePreviews || showLinkPreviews))
+              _EnrichedContent(
+                urls: urls,
+                showImagePreviews: showImagePreviews,
+                showLinkPreviews: showLinkPreviews,
+                onImageTap: _launchUrl,
+              ),
           ],
         );
       },
@@ -225,6 +198,57 @@ class _MessageBubbleState extends State<MessageBubble> {
     } else {
       return '$hour:$minute ';
     }
+  }
+}
+
+final class _EnrichedContent extends StatelessWidget {
+  const _EnrichedContent({
+    required this.urls,
+    required this.showImagePreviews,
+    required this.showLinkPreviews,
+    this.onImageTap,
+  });
+
+  final List<String> urls;
+  final bool showImagePreviews;
+  final bool showLinkPreviews;
+  final ValueSetter<String>? onImageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final service = locator<LinkPreviewService>();
+
+    return FutureBuilder<List<LinkPreviewInfo?>>(
+      future: Future.wait([for (final url in urls) service.fetchInfo(url)]),
+      initialData: [for (final url in urls) service.getCachedInfo(url)],
+      builder: (context, snapshot) {
+        final results = snapshot.data;
+        if (results == null || results.every((r) => r == null)) {
+          return const SizedBox.shrink();
+        }
+
+        final images = <ImageType>[];
+        LinkMetadata? metadata;
+
+        for (final info in results) {
+          if (info is ImageLinkPreviewInfo) {
+            images.add(info.imageType);
+          } else if (info is MetadataLinkPreviewInfo && metadata == null) {
+            metadata = info.metadata;
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (images.isNotEmpty && showImagePreviews)
+              _ImageGallery(imageTypes: images, onImageTap: onImageTap),
+            if (metadata != null && showLinkPreviews)
+              LinkPreview(metadata: metadata),
+          ],
+        );
+      },
+    );
   }
 }
 

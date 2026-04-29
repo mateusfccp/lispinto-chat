@@ -5,7 +5,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
 
-import 'package:lispinto_chat/services/link_image_detector.dart' as _i2;
+import 'package:lispinto_chat/models/link_metadata.dart' as _i4;
+import 'package:lispinto_chat/services/link_preview_service.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 
 // ignore_for_file: type=lint
@@ -23,32 +24,33 @@ import 'package:mockito/mockito.dart' as _i1;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
-/// A class which mocks [LinkImageDetector].
+/// A class which mocks [LinkPreviewService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLinkImageDetector extends _i1.Mock implements _i2.LinkImageDetector {
-  MockLinkImageDetector() {
+class MockLinkPreviewService extends _i1.Mock
+    implements _i2.LinkPreviewService {
+  MockLinkPreviewService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<_i2.ImageType?> isImage(String? url) =>
+  _i3.Future<_i2.LinkPreviewInfo?> fetchInfo(String? url) =>
       (super.noSuchMethod(
-            Invocation.method(#isImage, [url]),
-            returnValue: _i3.Future<_i2.ImageType?>.value(),
+            Invocation.method(#fetchInfo, [url]),
+            returnValue: _i3.Future<_i2.LinkPreviewInfo?>.value(),
           )
-          as _i3.Future<_i2.ImageType?>);
+          as _i3.Future<_i2.LinkPreviewInfo?>);
 
   @override
-  bool isKnown(String? url) =>
-      (super.noSuchMethod(
-            Invocation.method(#isKnown, [url]),
-            returnValue: false,
-          )
-          as bool);
+  _i2.LinkPreviewInfo? getCachedInfo(String? url) =>
+      (super.noSuchMethod(Invocation.method(#getCachedInfo, [url]))
+          as _i2.LinkPreviewInfo?);
 
   @override
-  _i2.ImageType? getCachedStatus(String? url) =>
-      (super.noSuchMethod(Invocation.method(#getCachedStatus, [url]))
-          as _i2.ImageType?);
+  _i3.Future<_i4.LinkMetadata?> fetchMetadata(String? url) =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchMetadata, [url]),
+            returnValue: _i3.Future<_i4.LinkMetadata?>.value(),
+          )
+          as _i3.Future<_i4.LinkMetadata?>);
 }

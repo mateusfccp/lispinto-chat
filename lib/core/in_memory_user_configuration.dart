@@ -11,6 +11,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
     bool autoConnect = false,
     bool showTimeSeconds = false,
     bool showImagePreviews = true,
+    bool showLinkPreviews = true,
     bool showEmptyChannels = false,
     bool showMarkdown = true,
     bool groupMessages = true,
@@ -23,6 +24,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
        _autoConnect = autoConnect,
        _showTimeSeconds = showTimeSeconds,
        _showImagePreviews = showImagePreviews,
+       _showLinkPreviews = showLinkPreviews,
        _showEmptyChannels = showEmptyChannels,
        _showMarkdown = showMarkdown,
        _groupMessages = groupMessages,
@@ -38,6 +40,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
       _autoConnect = config.autoConnect,
       _showTimeSeconds = config.showTimeSeconds,
       _showImagePreviews = config.showImagePreviews,
+      _showLinkPreviews = config.showLinkPreviews,
       _showEmptyChannels = config.showEmptyChannels,
       _showMarkdown = config.showMarkdown,
       _groupMessages = config.groupMessages,
@@ -51,6 +54,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   bool _autoConnect;
   bool _showTimeSeconds;
   bool _showImagePreviews;
+  bool _showLinkPreviews;
   bool _showEmptyChannels;
   bool _showMarkdown;
   bool _groupMessages;
@@ -133,6 +137,15 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   }
 
   @override
+  bool get showLinkPreviews => _showLinkPreviews;
+
+  @override
+  set showLinkPreviews(bool value) {
+    _showLinkPreviews = value;
+    notifyListeners();
+  }
+
+  @override
   bool get showEmptyChannels => _showEmptyChannels;
 
   @override
@@ -178,6 +191,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
     _autoConnect = other.autoConnect;
     _showTimeSeconds = other.showTimeSeconds;
     _showImagePreviews = other.showImagePreviews;
+    _showLinkPreviews = other.showLinkPreviews;
     _showEmptyChannels = other.showEmptyChannels;
     _showMarkdown = other.showMarkdown;
     _groupMessages = other.groupMessages;

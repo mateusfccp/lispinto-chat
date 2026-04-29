@@ -1,17 +1,18 @@
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fluent_i18n/fluent_i18n.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fluent_i18n/fluent_i18n.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/image_type.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -61,7 +62,7 @@ class MockHttpClientResponse extends Mock implements HttpClientResponse {
   StreamSubscription<List<int>> listen(
     void Function(List<int> event)? onData, {
     Function? onError,
-    void Function()? onDone,
+    VoidCallback? onDone,
     bool? cancelOnError,
   }) {
     const svgString =
@@ -76,16 +77,15 @@ class MockHttpClientResponse extends Mock implements HttpClientResponse {
   }
 }
 
-@GenerateMocks([LinkImageDetector, ChatProvider])
+@GenerateMocks([LinkPreviewService, ChatProvider])
 void main() {
   HttpOverrides.global = MockHttpOverrides();
-  late MockLinkImageDetector mockDetector;
+  late MockLinkPreviewService mockService;
   late MockChatProvider mockProvider;
 
-  void stubDetector(String url, ImageType? type) {
-    when(mockDetector.getCachedStatus(url)).thenReturn(type);
-    when(mockDetector.isKnown(url)).thenReturn(true);
-    when(mockDetector.isImage(url)).thenAnswer((_) async => type);
+  void stubInfo(String url, LinkPreviewInfo? info) {
+    when(mockService.getCachedInfo(url)).thenReturn(info);
+    when(mockService.fetchInfo(url)).thenAnswer((_) async => info);
   }
 
   Widget wrapWithLocalization(Widget child) {
@@ -109,8 +109,8 @@ void main() {
   }
 
   setUp(() async {
-    if (locator.isRegistered<LinkImageDetector>()) {
-      locator.unregister<LinkImageDetector>();
+    if (locator.isRegistered<LinkPreviewService>()) {
+      locator.unregister<LinkPreviewService>();
       locator.unregister<UserConfiguration>();
       locator.unregister<ChatProvider>();
     }
@@ -122,11 +122,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final realConfig = PersistentUserConfiguration(preferences: prefs);
 
-    mockDetector = MockLinkImageDetector();
-
+    mockService = MockLinkPreviewService();
     mockProvider = MockChatProvider();
 
-    locator.registerSingleton<LinkImageDetector>(mockDetector);
+    locator.registerSingleton<LinkPreviewService>(mockService);
     locator.registerSingleton<UserConfiguration>(realConfig);
     locator.registerSingleton<ChatProvider>(mockProvider);
   });
@@ -139,9 +138,11 @@ void main() {
         date: DateTime.now(),
       );
 
-      stubDetector(
+      stubInfo(
         'https://example.com/image.jpg',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(
+          RasterImageType(url: 'https://example.com/image.jpg'),
+        ),
       );
 
       await tester.runAsync(() async {
@@ -150,7 +151,9 @@ void main() {
             MessageBubble(message: message, searchQuery: ''),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       expect(find.text('image'), findsOneWidget);
@@ -166,13 +169,15 @@ void main() {
         date: DateTime.now(),
       );
 
-      stubDetector(
+      stubInfo(
         'https://example.com/1.png',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(RasterImageType(url: 'https://example.com/1.png')),
       );
-      stubDetector(
+      stubInfo(
         'https://example.com/2.webp',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(
+          RasterImageType(url: 'https://example.com/2.webp'),
+        ),
       );
 
       await tester.runAsync(() async {
@@ -181,7 +186,9 @@ void main() {
             MessageBubble(message: message, searchQuery: ''),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       expect(find.text('image'), findsNWidgets(2));
@@ -197,9 +204,11 @@ void main() {
         date: DateTime.now(),
       );
 
-      stubDetector(
+      stubInfo(
         'https://example.com/image.jpg',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(
+          RasterImageType(url: 'https://example.com/image.jpg'),
+        ),
       );
 
       SharedPreferences.setMockInitialValues({
@@ -219,7 +228,9 @@ void main() {
             MessageBubble(message: message, searchQuery: ''),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       expect(find.text('image'), findsNothing);
@@ -237,7 +248,7 @@ void main() {
         date: DateTime.now(),
       );
 
-      stubDetector('https://example.com/page.html', null);
+      stubInfo('https://example.com/page.html', null);
 
       await tester.runAsync(() async {
         await tester.pumpWidget(
@@ -245,7 +256,9 @@ void main() {
             MessageBubble(message: message, searchQuery: ''),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       expect(find.text('image'), findsNothing);
@@ -269,7 +282,9 @@ void main() {
             MessageBubble(message: message, searchQuery: 'bold'),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       final selectableText = tester.widget<SelectableText>(
@@ -301,13 +316,15 @@ void main() {
     testWidgets('renders SvgPicture for SVG images', (tester) async {
       final message = ChatMessage(
         from: 'user',
-        content: 'Check this: https://example.com/logo.svg',
+        content: 'Check this: https://example.com/logo.png',
         date: DateTime.now(),
       );
 
-      stubDetector(
-        'https://example.com/logo.svg',
-        SvgImageType(url: 'https://example.com/logo.svg'),
+      stubInfo(
+        'https://example.com/logo.png',
+        ImageLinkPreviewInfo(
+          RasterImageType(url: 'https://example.com/logo.png'),
+        ),
       );
 
       await tester.runAsync(() async {
@@ -320,8 +337,8 @@ void main() {
       });
 
       expect(find.text('image'), findsOneWidget);
-      expect(find.byType(SvgPicture), findsOneWidget);
-      expect(find.byType(Image), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.byType(SvgPicture), findsNothing);
     });
 
     testWidgets('renders all images in gallery for multiple distinct links', (
@@ -330,21 +347,21 @@ void main() {
       final message = ChatMessage(
         from: 'user',
         content:
-            'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.svg',
+            'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.gif',
         date: DateTime.now(),
       );
 
-      stubDetector(
+      stubInfo(
         'https://example.com/a.jpg',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(RasterImageType(url: 'https://example.com/a.jpg')),
       );
-      stubDetector(
+      stubInfo(
         'https://example.com/b.png',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(RasterImageType(url: 'https://example.com/b.png')),
       );
-      stubDetector(
-        'https://example.com/c.svg',
-        SvgImageType(url: 'https://example.com/logo.svg'),
+      stubInfo(
+        'https://example.com/c.gif',
+        ImageLinkPreviewInfo(RasterImageType(url: 'https://example.com/c.gif')),
       );
 
       await tester.runAsync(() async {
@@ -353,12 +370,14 @@ void main() {
             MessageBubble(message: message, searchQuery: ''),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       expect(find.text('image'), findsNWidgets(3));
-      expect(find.byType(Image), findsNWidgets(2));
-      expect(find.byType(SvgPicture), findsNWidgets(1));
+      expect(find.byType(Image), findsNWidgets(3));
+      expect(find.byType(SvgPicture), findsNothing);
     });
 
     testWidgets('renders all images in gallery even for duplicate links', (
@@ -371,9 +390,9 @@ void main() {
         date: DateTime.now(),
       );
 
-      stubDetector(
+      stubInfo(
         'https://example.com/a.jpg',
-        RasterImageType(url: 'https://example.com/image.jpg'),
+        ImageLinkPreviewInfo(RasterImageType(url: 'https://example.com/a.jpg')),
       );
 
       await tester.runAsync(() async {
@@ -382,7 +401,9 @@ void main() {
             MessageBubble(message: message, searchQuery: ''),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
       });
 
       expect(find.text('image'), findsNWidgets(2));

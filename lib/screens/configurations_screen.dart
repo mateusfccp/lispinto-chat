@@ -78,6 +78,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
         _newConfiguration.showTimeSeconds != _configuration.showTimeSeconds ||
         _newConfiguration.showImagePreviews !=
             _configuration.showImagePreviews ||
+        _newConfiguration.showLinkPreviews != _configuration.showLinkPreviews ||
         _newConfiguration.showMarkdown != _configuration.showMarkdown ||
         _newConfiguration.showEmptyChannels !=
             _configuration.showEmptyChannels ||
@@ -319,6 +320,21 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         const Divider(),
                         SwitchListTile(
                           title: Text(
+                            AppLocalizations.of(context).showLinkPreviews,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).showLinkPreviewsDescription,
+                          ),
+                          value: _newConfiguration.showLinkPreviews,
+                          onChanged: (value) {
+                            _newConfiguration.showLinkPreviews = value;
+                          },
+                        ),
+                        const Divider(),
+                        SwitchListTile(
+                          title: Text(
                             AppLocalizations.of(context).enableMarkdown,
                           ),
                           subtitle: Text(
@@ -470,9 +486,12 @@ final class _MessagePreview extends StatelessWidget {
       ),
       ChatMessage(
         from: 'User1',
-        content: 'Hey, @User2 ! What do you think about grouping message',
+        content:
+            'Hey, @User2 ! Did you ever hear about the awesome Flutter? '
+            'Check it out: https://flutter.dev',
         date: messageTime,
       ),
+      ChatMessage(from: 'User1', content: "It's so pica!", date: messageTime),
       ChatMessage(
         from: 'User2',
         content:
@@ -489,6 +508,9 @@ final class _MessagePreview extends StatelessWidget {
                   ? messageGrouper.group(messages)
                   : messages)
             MessageBubble(
+              key: ValueKey(
+                '${message.content}_${configuration.showLinkPreviews}',
+              ),
               message: message,
               searchQuery: '',
               configuration: configuration,

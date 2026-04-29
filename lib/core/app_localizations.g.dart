@@ -8,6 +8,7 @@ part of 'app_localizations.dart';
 
 mixin _$AppLocalizationsMixin {
   FluentLocalizations get fluent;
+
   String get copyImage => fluent.getMessage('copy-image') ?? 'copy-image';
 
   String get copyImageAddress =>
@@ -159,6 +160,13 @@ mixin _$AppLocalizationsMixin {
   String get failedToLoadPrivacyPolicy =>
       fluent.getMessage('failed-to-load-privacy-policy') ??
       'failed-to-load-privacy-policy';
+
+  String get showLinkPreviews =>
+      fluent.getMessage('show-link-previews') ?? 'show-link-previews';
+
+  String get showLinkPreviewsDescription =>
+      fluent.getMessage('show-link-previews-description') ??
+      'show-link-previews-description';
 
   String get imgbbApiKeyRequired =>
       fluent.getMessage('imgbb-api-key-required') ?? 'imgbb-api-key-required';

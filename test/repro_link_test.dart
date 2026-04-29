@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
-import 'package:lispinto_chat/services/link_image_detector.dart';
+import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:mockito/mockito.dart';
@@ -13,18 +13,18 @@ import 'widgets/message_bubble_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  late MockLinkImageDetector mockDetector;
+  late MockLinkPreviewService mockService;
 
   setUp(() async {
-    if (locator.isRegistered<LinkImageDetector>()) {
-      locator.unregister<LinkImageDetector>();
+    if (locator.isRegistered<LinkPreviewService>()) {
+      locator.unregister<LinkPreviewService>();
     }
-    mockDetector = MockLinkImageDetector();
-    locator.registerSingleton<LinkImageDetector>(mockDetector);
+    mockService = MockLinkPreviewService();
+    locator.registerSingleton<LinkPreviewService>(mockService);
 
-    // Stub detector to return null for repro link
-    when(mockDetector.getCachedStatus(any)).thenReturn(null);
-    when(mockDetector.isImage(any)).thenAnswer((_) async => null);
+    // Stub service to return null for repro link
+    when(mockService.getCachedInfo(any)).thenReturn(null);
+    when(mockService.fetchInfo(any)).thenAnswer((_) async => null);
 
     SharedPreferences.setMockInitialValues({
       'nickname': 'testuser',

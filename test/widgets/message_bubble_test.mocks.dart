@@ -5,15 +5,16 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:collection' as _i3;
-import 'dart:ui' as _i10;
+import 'dart:ui' as _i11;
 
 import 'package:lispinto_chat/core/user_configuration.dart' as _i2;
-import 'package:lispinto_chat/models/chat_message.dart' as _i8;
-import 'package:lispinto_chat/providers/chat_provider.dart' as _i6;
-import 'package:lispinto_chat/services/chat_service.dart' as _i9;
-import 'package:lispinto_chat/services/link_image_detector.dart' as _i4;
+import 'package:lispinto_chat/models/chat_message.dart' as _i9;
+import 'package:lispinto_chat/models/link_metadata.dart' as _i6;
+import 'package:lispinto_chat/providers/chat_provider.dart' as _i7;
+import 'package:lispinto_chat/services/chat_service.dart' as _i10;
+import 'package:lispinto_chat/services/link_preview_service.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:mockito/src/dummies.dart' as _i8;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -42,40 +43,41 @@ class _FakeUnmodifiableListView_1<E> extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-/// A class which mocks [LinkImageDetector].
+/// A class which mocks [LinkPreviewService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLinkImageDetector extends _i1.Mock implements _i4.LinkImageDetector {
-  MockLinkImageDetector() {
+class MockLinkPreviewService extends _i1.Mock
+    implements _i4.LinkPreviewService {
+  MockLinkPreviewService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i5.Future<_i4.ImageType?> isImage(String? url) =>
+  _i5.Future<_i4.LinkPreviewInfo?> fetchInfo(String? url) =>
       (super.noSuchMethod(
-            Invocation.method(#isImage, [url]),
-            returnValue: _i5.Future<_i4.ImageType?>.value(),
+            Invocation.method(#fetchInfo, [url]),
+            returnValue: _i5.Future<_i4.LinkPreviewInfo?>.value(),
           )
-          as _i5.Future<_i4.ImageType?>);
+          as _i5.Future<_i4.LinkPreviewInfo?>);
 
   @override
-  bool isKnown(String? url) =>
-      (super.noSuchMethod(
-            Invocation.method(#isKnown, [url]),
-            returnValue: false,
-          )
-          as bool);
+  _i4.LinkPreviewInfo? getCachedInfo(String? url) =>
+      (super.noSuchMethod(Invocation.method(#getCachedInfo, [url]))
+          as _i4.LinkPreviewInfo?);
 
   @override
-  _i4.ImageType? getCachedStatus(String? url) =>
-      (super.noSuchMethod(Invocation.method(#getCachedStatus, [url]))
-          as _i4.ImageType?);
+  _i5.Future<_i6.LinkMetadata?> fetchMetadata(String? url) =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchMetadata, [url]),
+            returnValue: _i5.Future<_i6.LinkMetadata?>.value(),
+          )
+          as _i5.Future<_i6.LinkMetadata?>);
 }
 
 /// A class which mocks [ChatProvider].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
+class MockChatProvider extends _i1.Mock implements _i7.ChatProvider {
   MockChatProvider() {
     _i1.throwOnMissingStub(this);
   }
@@ -95,7 +97,7 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
   String get appVersion =>
       (super.noSuchMethod(
             Invocation.getter(#appVersion),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i8.dummyValue<String>(
               this,
               Invocation.getter(#appVersion),
             ),
@@ -103,15 +105,15 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
           as String);
 
   @override
-  _i3.UnmodifiableListView<_i8.ChatMessage> get messages =>
+  _i3.UnmodifiableListView<_i9.ChatMessage> get messages =>
       (super.noSuchMethod(
             Invocation.getter(#messages),
-            returnValue: _FakeUnmodifiableListView_1<_i8.ChatMessage>(
+            returnValue: _FakeUnmodifiableListView_1<_i9.ChatMessage>(
               this,
               Invocation.getter(#messages),
             ),
           )
-          as _i3.UnmodifiableListView<_i8.ChatMessage>);
+          as _i3.UnmodifiableListView<_i9.ChatMessage>);
 
   @override
   bool get isConnected =>
@@ -124,12 +126,12 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
           as bool);
 
   @override
-  _i9.ChatConnectionState get connectionState =>
+  _i10.ChatConnectionState get connectionState =>
       (super.noSuchMethod(
             Invocation.getter(#connectionState),
-            returnValue: _i9.ChatConnectionState.disconnected,
+            returnValue: _i10.ChatConnectionState.disconnected,
           )
-          as _i9.ChatConnectionState);
+          as _i10.ChatConnectionState);
 
   @override
   bool get isConnecting =>
@@ -140,7 +142,7 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
   String get activeChannel =>
       (super.noSuchMethod(
             Invocation.getter(#activeChannel),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i8.dummyValue<String>(
               this,
               Invocation.getter(#activeChannel),
             ),
@@ -159,7 +161,7 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
   String get searchQuery =>
       (super.noSuchMethod(
             Invocation.getter(#searchQuery),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i8.dummyValue<String>(
               this,
               Invocation.getter(#searchQuery),
             ),
@@ -199,10 +201,15 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
           as _i5.Future<void>);
 
   @override
-  void sendMessage(String? message) => super.noSuchMethod(
-    Invocation.method(#sendMessage, [message]),
-    returnValueForMissingStub: null,
-  );
+  void sendMessage(String? message, {_i6.LinkMetadata? linkMetadata}) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #sendMessage,
+          [message],
+          {#linkMetadata: linkMetadata},
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   void setDmMode(String? user) => super.noSuchMethod(
@@ -262,13 +269,13 @@ class MockChatProvider extends _i1.Mock implements _i6.ChatProvider {
   );
 
   @override
-  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

@@ -214,10 +214,12 @@ interface class ChatService {
       final Uri connectionUrl;
 
       final channelName = currentChannel;
+      final timezoneOffset = DateTime.now().timeZoneOffset.inHours;
       connectionUrl = websocketUrl.replace(
         queryParameters: {
           ...websocketUrl.queryParameters,
           'channel': channelName,
+          'tz': '$timezoneOffset',
         },
       );
 

@@ -24,6 +24,9 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
   ResultFuture<Map<String, int>>? get channelsFuture => null;
 
   @override
+  bool get isGeneralChannel => false;
+
+  @override
   ChatConnectionState connectionState = ChatConnectionState.disconnected;
 
   @override

@@ -586,7 +586,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
-            if (_provider.activeChannel != 'general' &&
+            if (!_provider.isGeneralChannel &&
                 _provider.currentDmNickname == null)
               ListenableBuilder(
                 listenable: _provider,

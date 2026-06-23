@@ -87,6 +87,9 @@ class ChatProvider with ChangeNotifier {
   /// The currently active channel.
   String get activeChannel => _chatService.currentChannel;
 
+  /// Whether the currently active channel is the general channel.
+  bool get isGeneralChannel => activeChannel == '#general';
+
   /// Whether the current channel is private.
   bool get isCurrentChannelPrivate => _isCurrentChannelPrivate;
   bool _isCurrentChannelPrivate = false;
@@ -176,6 +179,13 @@ class ChatProvider with ChangeNotifier {
           if (privateActivated != null) {
             final isDeactivated = privateActivated.group(1) == 'de';
             _isCurrentChannelPrivate = !isDeactivated;
+          }
+
+          final privateRejected = RegExp(
+            r'This mode cannot be activated in the (#.+) channel\.',
+          ).firstMatch(message.content);
+          if (privateRejected != null) {
+            _isCurrentChannelPrivate = false;
           }
         }
 

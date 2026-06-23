@@ -86,7 +86,8 @@ class FakeChatService extends Fake implements ChatService {
   Stream<String> get currentChannelStream => _currentChannelController.stream;
 
   @override
-  Stream<ChatMessage> get messages => const Stream.empty();
+  Stream<ChatMessage> get messages => _messagesController.stream;
+  final _messagesController = StreamController<ChatMessage>.broadcast();
 
   @override
   Stream<ChatMessage> get notifications => const Stream.empty();
@@ -135,6 +136,10 @@ class FakeChatService extends Fake implements ChatService {
   void setLoggedIn(bool loggedIn) {
     _isLoggedIn = loggedIn;
     _stateController.add(state);
+  }
+
+  void simulateIncomingMessage(ChatMessage message) {
+    _messagesController.add(message);
   }
 
   @override
@@ -239,6 +244,23 @@ void main() {
       provider.setPrivateChannel(false);
       expect(provider.isCurrentChannelPrivate, isFalse);
       expect(fakeChatService.sentMessages, contains('/private off'));
+    });
+
+    test('reverts private channel state when server rejects it', () async {
+      provider.setPrivateChannel(true);
+      expect(provider.isCurrentChannelPrivate, isTrue);
+
+      fakeChatService.simulateIncomingMessage(
+        ChatMessage(
+          content: 'This mode cannot be activated in the #general channel.',
+          from: '@server',
+        ),
+      );
+
+      // Yield to let the stream emit and provider process the message
+      await Future<void>.delayed(Duration.zero);
+
+      expect(provider.isCurrentChannelPrivate, isFalse);
     });
 
     test(

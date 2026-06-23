@@ -41,6 +41,11 @@ interface class ChatService {
     required this.webSocketFactory,
   }) : _configuration = configuration,
        _httpClient = httpClient,
+       _currentChannel = initialChannel == null
+           ? '#general'
+           : initialChannel.startsWith('#')
+           ? initialChannel
+           : '#$initialChannel',
        _url = url,
        _wsUrl = deriveWebSocketUrl(url);
 
@@ -76,13 +81,14 @@ interface class ChatService {
   String get currentChannel => _currentChannel;
 
   set currentChannel(String value) {
-    if (_currentChannel != value) {
-      _currentChannel = value;
-      _currentChannelController.add(value);
+    final normalized = value.startsWith('#') ? value : '#$value';
+    if (_currentChannel != normalized) {
+      _currentChannel = normalized;
+      _currentChannelController.add(_currentChannel);
     }
   }
 
-  late String _currentChannel = initialChannel ?? 'general';
+  String _currentChannel;
 
   /// A stream of the current active channel we are focused on.
   Stream<String> get currentChannelStream => _currentChannelController.stream;

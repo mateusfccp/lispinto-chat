@@ -234,7 +234,7 @@ class _VerticalUserListState extends State<VerticalUserList> {
                   ],
                 ),
               ),
-              if (widget.provider.activeChannel != 'general')
+              if (!widget.provider.isGeneralChannel)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(

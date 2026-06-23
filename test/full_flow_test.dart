@@ -204,10 +204,9 @@ void main() {
 
         // 4. Send message
         final inputArea = find.byType(InputArea).last;
-        final inputFinder = find.descendant(
-          of: inputArea,
-          matching: find.byType(TextField),
-        ).last;
+        final inputFinder = find
+            .descendant(of: inputArea, matching: find.byType(TextField))
+            .last;
         expect(inputFinder, findsOneWidget);
 
         final testMessage = 'hello unique message 123456';

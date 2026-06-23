@@ -73,7 +73,7 @@ void main() {
 
     test('resolves relative URLs for images', () {
       final uri = Uri.parse('https://example.com/blog/post');
-      
+
       const html = '''
         <html>
           <head>
@@ -87,7 +87,7 @@ void main() {
       expect(metadata, isNotNull);
       // Absolute path from host
       expect(metadata!.imageUrl, 'https://example.com/images/preview.jpg');
-      
+
       const html2 = '''
         <html>
           <head>
@@ -99,8 +99,11 @@ void main() {
       final metadata2 = parser.parse(uri, html2);
       expect(metadata2, isNotNull);
       // Relative path resolution
-      expect(metadata2!.imageUrl, 'https://example.com/blog/assets/preview.png');
-      
+      expect(
+        metadata2!.imageUrl,
+        'https://example.com/blog/assets/preview.png',
+      );
+
       const html3 = '''
         <html>
           <head>

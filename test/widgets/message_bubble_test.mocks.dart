@@ -201,15 +201,10 @@ class MockChatProvider extends _i1.Mock implements _i7.ChatProvider {
           as _i5.Future<void>);
 
   @override
-  void sendMessage(String? message, {_i6.LinkMetadata? linkMetadata}) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #sendMessage,
-          [message],
-          {#linkMetadata: linkMetadata},
-        ),
-        returnValueForMissingStub: null,
-      );
+  void sendMessage(String? message) => super.noSuchMethod(
+    Invocation.method(#sendMessage, [message]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void setDmMode(String? user) => super.noSuchMethod(

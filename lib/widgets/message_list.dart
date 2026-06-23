@@ -229,7 +229,7 @@ class _NotificationsAreaState extends State<_NotificationsArea> {
                 parent: animation,
                 curve: Curves.easeOut,
               ),
-              axisAlignment: 0.0,
+              alignment: Alignment(-1.0, 0.0),
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Center(

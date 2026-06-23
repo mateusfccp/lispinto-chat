@@ -241,33 +241,43 @@ void main() {
       expect(fakeChatService.sentMessages, contains('/private off'));
     });
 
-    test('reconnectInNonDefaultChannel: sends /join after login, not just connection', () async {
-      // 1. Setup: be in a non-default channel
-      fakeChatService.setLoggedIn(true);
-      provider.joinChannel('#testing');
-      fakeChatService.sentMessages.clear();
+    test(
+      'reconnectInNonDefaultChannel: sends /join after login, not just connection',
+      () async {
+        // 1. Setup: be in a non-default channel
+        fakeChatService.setLoggedIn(true);
+        provider.joinChannel('#testing');
+        fakeChatService.sentMessages.clear();
 
-      // 2. Simulate disconnect
-      fakeChatService.setConnectionState(false);
-      fakeChatService.setLoggedIn(false);
+        // 2. Simulate disconnect
+        fakeChatService.setConnectionState(false);
+        fakeChatService.setLoggedIn(false);
 
-      // 3. Simulate reconnect - only socket connects, not yet logged in
-      fakeChatService.setConnectionState(true);
-      // We must wait for the connectionState event to be processed by ChatProvider
-      // BEFORE it becomes logged in, to confirm that the /join attempt is dropped.
-      await Future<void>.delayed(Duration.zero);
+        // 3. Simulate reconnect - only socket connects, not yet logged in
+        fakeChatService.setConnectionState(true);
+        // We must wait for the connectionState event to be processed by ChatProvider
+        // BEFORE it becomes logged in, to confirm that the /join attempt is dropped.
+        await Future<void>.delayed(Duration.zero);
 
-      // Verify that /join was NOT sent yet (because it would be dropped by ChatService)
-      expect(fakeChatService.sentMessages, isNot(contains('/join #testing')),
-          reason: 'Should not send /join before login because it will be dropped');
+        // Verify that /join was NOT sent yet (because it would be dropped by ChatService)
+        expect(
+          fakeChatService.sentMessages,
+          isNot(contains('/join #testing')),
+          reason:
+              'Should not send /join before login because it will be dropped',
+        );
 
-      // 4. Simulate login complete
-      fakeChatService.setLoggedIn(true);
-      await Future<void>.delayed(Duration.zero);
+        // 4. Simulate login complete
+        fakeChatService.setLoggedIn(true);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(fakeChatService.sentMessages, contains('/join #testing'),
-          reason: 'Should send /join after login to ensure correct channel');
-    });
+        expect(
+          fakeChatService.sentMessages,
+          contains('/join #testing'),
+          reason: 'Should send /join after login to ensure correct channel',
+        );
+      },
+    );
   });
 
   group('hasMention', () {

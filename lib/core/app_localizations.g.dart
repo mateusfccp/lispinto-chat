@@ -8,7 +8,6 @@ part of 'app_localizations.dart';
 
 mixin _$AppLocalizationsMixin {
   FluentLocalizations get fluent;
-
   String get copyImage => fluent.getMessage('copy-image') ?? 'copy-image';
 
   String get copyImageAddress =>

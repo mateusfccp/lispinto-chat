@@ -9,38 +9,38 @@ environment:
 
 dependencies:
   ansicolor: ^2.0.3
-  async: ^2.13.0
+  async: ^2.13.1
   fluent_i18n: ^2.1.0
   flutter:
     sdk: flutter
-  flutter_local_notifications: ^21.0.0
+  flutter_local_notifications: ^22.0.1
   flutter_localizations:
     sdk: flutter
   flutter_markdown_plus: ^1.0.7
-  flutter_svg: ^2.2.3
+  flutter_svg: ^2.3.0
   gap: ^3.0.1
   get_it: ^9.2.1
-  go_router: ^17.1.0
-  google_fonts: ^8.0.2
+  go_router: ^17.3.0
+  google_fonts: ^8.1.0
   html: ^0.15.5
   http: ^1.6.0
-  image_picker: ^1.2.1
+  image_picker: ^1.2.2
   logging: ^1.3.0
-  meta: ^1.17.0
-  package_info_plus: ^9.0.0
+  meta: ^1.18.0
+  package_info_plus: ^9.0.1
   prototype_constrained_box: ^2.0.3+1
   retry: ^3.1.2
   shared_preferences: ^2.5.4
-  shared_preferences_platform_interface: ^2.4.1
+  shared_preferences_platform_interface: ^2.4.2
   super_clipboard: ^0.9.1
   url_launcher: ^6.3.2
   web_socket_channel: ^3.0.3
 
 dev_dependencies:
-  analyzer: ^9.0.0
+  analyzer: ^12.0.0
   args: ^2.7.0
-  build: ^4.0.4
-  build_runner: ^2.13.0
+  build: ^4.0.6
+  build_runner: ^2.15.0
   code_builder: ^4.11.1
   fake_async: ^1.3.3
   fluent: ^2.0.3
@@ -48,13 +48,13 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
-  go_router_builder: ^4.2.0
+  go_router_builder: ^4.3.0
   integration_test:
     sdk: flutter
-  mockito: ^5.6.3
+  mockito: ^5.6.4
   path: ^1.9.1
   recase: ^4.1.0
-  source_gen: ^4.2.0
+  source_gen: ^4.2.3
 
 flutter:
   uses-material-design: true

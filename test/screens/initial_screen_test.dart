@@ -6,6 +6,7 @@ import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fluent_i18n/fluent_i18n.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
@@ -21,7 +22,7 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
   ResultFuture<List<String>>? get usersFuture => null;
 
   @override
-  ResultFuture<Map<String, int>>? get channelsFuture => null;
+  ResultFuture<Map<ChannelName, int>>? get channelsFuture => null;
 
   @override
   bool get isGeneralChannel => false;
@@ -63,7 +64,7 @@ class MockChatProvider extends ChangeNotifier implements ChatProvider {
   UnmodifiableListView<ChatMessage> get messages => UnmodifiableListView([]);
 
   @override
-  String get activeChannel => '#general';
+  ChannelName get activeChannel => const ChannelName.general();
 
   @override
   bool get isCurrentChannelPrivate => false;

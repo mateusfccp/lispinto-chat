@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
@@ -58,10 +59,10 @@ class FakeUserConfiguration extends Fake implements UserConfiguration {
   String get serverUrl => 'ws://localhost';
 
   @override
-  String get lastChannel => 'general';
+  ChannelName get lastChannel => const ChannelName.general();
 
   @override
-  set lastChannel(String value) {}
+  set lastChannel(ChannelName value) {}
 
   @override
   bool get autoConnect => false;
@@ -231,7 +232,7 @@ void main() {
 
 class FakeTestChatService extends Fake implements ChatService {
   @override
-  Stream<String> get currentChannelStream => const Stream.empty();
+  Stream<ChannelName> get currentChannelStream => const Stream.empty();
 
   @override
   Stream<ChatMessage> get messages => const Stream.empty();
@@ -240,7 +241,7 @@ class FakeTestChatService extends Fake implements ChatService {
   Stream<List<String>> get users => const Stream.empty();
 
   @override
-  Stream<Map<String, int>> get channels => const Stream.empty();
+  Stream<Map<ChannelName, int>> get channels => const Stream.empty();
 
   @override
   Stream<String> get nickChanges => const Stream.empty();
@@ -258,7 +259,7 @@ class FakeTestChatService extends Fake implements ChatService {
   Stream<bool> get connectionState => Stream.value(true);
 
   @override
-  String get currentChannel => '#general';
+  ChannelName get currentChannel => const ChannelName.general();
 
   @override
   void sendMessage(String text, {params}) {}
@@ -269,9 +270,7 @@ class FakeTestChatService extends Fake implements ChatService {
   }
 
   @override
-  Future<Map<String, int>> requestChannelsList() async {
-    return {};
-  }
+  Future<Map<ChannelName, int>> requestChannelsList() async => {};
 
   @override
   void dispose() {}

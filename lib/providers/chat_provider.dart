@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import '../models/channel_name.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/web_notifications.dart';
 import 'package:logging/logging.dart';
@@ -68,8 +69,8 @@ class ChatProvider with ChangeNotifier {
   ResultFuture<List<String>>? _usersFuture;
 
   /// A future containing the result of the current channels list fetch.
-  ResultFuture<Map<String, int>>? get channelsFuture => _channelsFuture;
-  ResultFuture<Map<String, int>>? _channelsFuture;
+  ResultFuture<Map<ChannelName, int>>? get channelsFuture => _channelsFuture;
+  ResultFuture<Map<ChannelName, int>>? _channelsFuture;
 
   /// Whether the client is currently connected to the chat server.
   bool get isConnected => _isConnected;
@@ -85,10 +86,10 @@ class ChatProvider with ChangeNotifier {
   bool get isConnecting => _chatService.isConnecting;
 
   /// The currently active channel.
-  String get activeChannel => _chatService.currentChannel;
+  ChannelName get activeChannel => _chatService.currentChannel;
 
   /// Whether the currently active channel is the general channel.
-  bool get isGeneralChannel => activeChannel == '#general';
+  bool get isGeneralChannel => activeChannel == const ChannelName.general();
 
   /// Whether the current channel is private.
   bool get isCurrentChannelPrivate => _isCurrentChannelPrivate;
@@ -167,7 +168,7 @@ class ChatProvider with ChangeNotifier {
             r'Private mode for (#.+) is currently (ON|OFF)',
           ).firstMatch(message.content);
           if (privateStatus != null) {
-            final targetChannel = privateStatus.group(1);
+            final targetChannel = ChannelName(privateStatus.group(1)!);
             if (targetChannel == activeChannel) {
               _isCurrentChannelPrivate = privateStatus.group(2) == 'ON';
             }
@@ -215,11 +216,8 @@ class ChatProvider with ChangeNotifier {
       _chatService.channels.listen((channels) {
         final currentUsersCount =
             _usersFuture?.result?.asValue?.value.length ?? 0;
-        final displayActiveChannel = activeChannel.startsWith('#')
-            ? activeChannel
-            : '#$activeChannel';
         final channelMap = {
-          displayActiveChannel: currentUsersCount,
+          activeChannel: currentUsersCount,
           ...channels,
         };
         _channelsFuture = ResultFuture(Future.value(channelMap));
@@ -307,7 +305,7 @@ class ChatProvider with ChangeNotifier {
       _channelsFuture = null;
       _isConnected = false;
       _currentDmUser = null;
-      _chatService.currentChannel = 'general';
+      _chatService.currentChannel = ChannelName('#general');
       _isCurrentChannelPrivate = false;
 
       _fetchUsersAndChannelsList();
@@ -344,7 +342,8 @@ class ChatProvider with ChangeNotifier {
         }
       } else if (message.startsWith('/join ')) {
         if (message.split(' ') case final split when split.length > 1) {
-          final targetChannel = split[1].trim();
+          final target = split[1].trim();
+          final targetChannel = ChannelName(target.startsWith('#') ? target : '#$target');
           joinChannel(targetChannel);
           return;
         }
@@ -382,15 +381,16 @@ class ChatProvider with ChangeNotifier {
   ///
   /// If the specified [channel] is the same as the current one, this method
   /// does nothing.
-  void joinChannel(String channel) {
+  void joinChannel(ChannelName channel) {
     if (activeChannel == channel) return;
 
     _currentDmUser = null;
     _searchQuery = '';
     _isCurrentChannelPrivate = false;
     _messages.clear();
+
     _chatService.currentChannel = channel;
-    configuration.lastChannel = channel.replaceFirst('#', '');
+    configuration.lastChannel = channel;
     notifyListeners();
 
     _chatService.sendMessage('/join $channel');

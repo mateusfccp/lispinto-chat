@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -19,7 +20,7 @@ void main() {
       expect(config.showEmptyChannels, isFalse);
       expect(config.showMarkdown, isTrue);
       expect(config.groupMessages, isTrue);
-      expect(config.lastChannel, 'general');
+      expect(config.lastChannel, const ChannelName.general());
       expect(config.hasNickname, isFalse);
     });
 

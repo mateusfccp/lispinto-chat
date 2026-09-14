@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Manages user configuration such as nickname and server URL.
+/// A class that manages user configuration such as nickname and server URL.
 abstract class UserConfiguration with ChangeNotifier {
   /// Gets the nickname from shared preferences.
   abstract String nickname;
@@ -46,7 +47,7 @@ abstract class UserConfiguration with ChangeNotifier {
   abstract bool groupMessages;
 
   /// Gets the last joined channel.
-  abstract String lastChannel;
+  abstract ChannelName lastChannel;
 
   /// Loads the persistent user configuration.
   static Future<UserConfiguration> load() => PersistentUserConfiguration.load();
@@ -77,7 +78,10 @@ final class PersistentUserConfiguration extends UserConfiguration {
       _showEmptyChannels = preferences.getBool(_keyShowEmptyChannels) ?? false,
       _showMarkdown = preferences.getBool(_keyShowMarkdown) ?? true,
       _groupMessages = preferences.getBool(_keyGroupMessages) ?? true,
-      _lastChannel = preferences.getString(_keyLastChannel) ?? 'general',
+      _lastChannel = (() {
+        final val = preferences.getString(_keyLastChannel) ?? '#general';
+        return ChannelName(val.startsWith('#') ? val : '#$val');
+      })(),
       _imgbbApiKey = preferences.getString(_keyImgbbApiKey) ?? '';
 
   static const String _keyNickname = 'nickname';
@@ -246,11 +250,11 @@ final class PersistentUserConfiguration extends UserConfiguration {
   }
 
   @override
-  String get lastChannel => _lastChannel;
-  String _lastChannel;
+  ChannelName get lastChannel => _lastChannel;
+  ChannelName _lastChannel;
 
   @override
-  set lastChannel(String value) {
+  set lastChannel(ChannelName value) {
     _lastChannel = value;
     unawaited(_preferences.setString(_keyLastChannel, value));
     notifyListeners();

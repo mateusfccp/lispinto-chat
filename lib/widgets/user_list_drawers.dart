@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/responsive.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 
 import '../core/get_nickname_color.dart';
@@ -344,7 +345,7 @@ class VerticalChannelListItem extends StatelessWidget {
   });
 
   /// The name of the channel.
-  final String channel;
+  final ChannelName channel;
 
   /// The number of online users in the channel.
   final int userCount;
@@ -382,7 +383,7 @@ class MobileChannelSheet extends StatelessWidget {
   final ChatProvider provider;
 
   /// Called when a channel is selected.
-  final ValueChanged<String> onChannelSelected;
+  final ValueChanged<ChannelName> onChannelSelected;
 
   /// Called to join or add a new channel.
   final VoidCallback onAddChannel;

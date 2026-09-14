@@ -1,3 +1,4 @@
+import '../models/channel_name.dart';
 import 'user_configuration.dart';
 
 /// In-memory implementation of [UserConfiguration] for preview and testing.
@@ -15,7 +16,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
     bool showEmptyChannels = false,
     bool showMarkdown = true,
     bool groupMessages = true,
-    String lastChannel = 'general',
+    ChannelName lastChannel = const ChannelName.general(),
     String imgbbApiKey = '',
   }) : _nickname = nickname,
        _serverUrl = serverUrl,
@@ -58,7 +59,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   bool _showEmptyChannels;
   bool _showMarkdown;
   bool _groupMessages;
-  String _lastChannel;
+  ChannelName _lastChannel;
   String _imgbbApiKey;
 
   @override
@@ -173,10 +174,10 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   }
 
   @override
-  String get lastChannel => _lastChannel;
+  ChannelName get lastChannel => _lastChannel;
 
   @override
-  set lastChannel(String value) {
+  set lastChannel(ChannelName value) {
     _lastChannel = value;
     notifyListeners();
   }

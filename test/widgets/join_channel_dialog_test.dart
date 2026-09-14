@@ -1,6 +1,7 @@
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/widgets/join_channel_dialog.dart';
 import 'package:fluent_i18n/fluent_i18n.dart';
 
@@ -8,7 +9,7 @@ void main() {
   testWidgets('JoinChannelDialog shows and submits channel name', (
     WidgetTester tester,
   ) async {
-    String? joinedChannel;
+    ChannelName? joinedChannel;
 
     await tester.runAsync(() async {
       await tester.pumpWidget(
@@ -44,14 +45,14 @@ void main() {
     await tester.tap(find.text('Join'));
     await tester.pumpAndSettle();
 
-    expect(joinedChannel, 'test-channel');
+    expect(joinedChannel, ChannelName('#test-channel'));
     expect(find.byType(JoinChannelDialog), findsNothing);
   });
 
   testWidgets('JoinChannelDialog validation works', (
     WidgetTester tester,
   ) async {
-    String? joinedChannel;
+    ChannelName? joinedChannel;
 
     await tester.runAsync(() async {
       await tester.pumpWidget(

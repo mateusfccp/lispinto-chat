@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lispinto_chat/core/app_localizations.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 
 /// A dialog that allows the user to input a channel name to join or create.
 final class JoinChannelDialog extends StatefulWidget {
@@ -7,7 +8,7 @@ final class JoinChannelDialog extends StatefulWidget {
   const JoinChannelDialog({required this.onJoin, super.key});
 
   /// Called when the user submits a channel name.
-  final ValueChanged<String> onJoin;
+  final ValueChanged<ChannelName> onJoin;
 
   @override
   State<JoinChannelDialog> createState() => _JoinChannelDialogState();
@@ -27,7 +28,7 @@ class _JoinChannelDialogState extends State<JoinChannelDialog> {
     if (_formKey.currentState?.validate() ?? false) {
       final name = _controller.text.trim();
       if (name.isNotEmpty) {
-        widget.onJoin(name);
+        widget.onJoin(ChannelName(name.startsWith('#') ? name : '#$name'));
         Navigator.of(context).pop();
       }
     }

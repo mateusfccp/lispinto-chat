@@ -5,9 +5,10 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:collection' as _i3;
-import 'dart:ui' as _i11;
+import 'dart:ui' as _i12;
 
 import 'package:lispinto_chat/core/user_configuration.dart' as _i2;
+import 'package:lispinto_chat/models/channel_name.dart' as _i11;
 import 'package:lispinto_chat/models/chat_message.dart' as _i9;
 import 'package:lispinto_chat/models/link_metadata.dart' as _i6;
 import 'package:lispinto_chat/providers/chat_provider.dart' as _i7;
@@ -139,7 +140,7 @@ class MockChatProvider extends _i1.Mock implements _i7.ChatProvider {
           as bool);
 
   @override
-  String get activeChannel =>
+  _i11.ChannelName get activeChannel =>
       (super.noSuchMethod(
             Invocation.getter(#activeChannel),
             returnValue: _i8.dummyValue<String>(
@@ -147,7 +148,15 @@ class MockChatProvider extends _i1.Mock implements _i7.ChatProvider {
               Invocation.getter(#activeChannel),
             ),
           )
-          as String);
+          as _i11.ChannelName);
+
+  @override
+  bool get isGeneralChannel =>
+      (super.noSuchMethod(
+            Invocation.getter(#isGeneralChannel),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   bool get isCurrentChannelPrivate =>
@@ -213,7 +222,7 @@ class MockChatProvider extends _i1.Mock implements _i7.ChatProvider {
   );
 
   @override
-  void joinChannel(String? channel) => super.noSuchMethod(
+  void joinChannel(_i11.ChannelName? channel) => super.noSuchMethod(
     Invocation.method(#joinChannel, [channel]),
     returnValueForMissingStub: null,
   );
@@ -264,13 +273,13 @@ class MockChatProvider extends _i1.Mock implements _i7.ChatProvider {
   );
 
   @override
-  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i12.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i12.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

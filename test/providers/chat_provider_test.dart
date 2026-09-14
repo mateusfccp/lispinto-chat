@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
@@ -50,10 +51,10 @@ class FakeUserConfiguration extends Fake implements UserConfiguration {
   bool get pushNotificationsEnabled => true;
 
   @override
-  String get lastChannel => 'general';
+  ChannelName get lastChannel => const ChannelName.general();
 
   @override
-  set lastChannel(String value) {}
+  set lastChannel(ChannelName value) {}
 
   @override
   bool get showImagePreviews => true;
@@ -65,25 +66,25 @@ class FakeUserConfiguration extends Fake implements UserConfiguration {
 class FakeChatService extends Fake implements ChatService {
   final List<String> sentMessages = [];
 
-  final _currentChannelController = StreamController<String>.broadcast();
+  @override
+  ChannelName get currentChannel => _currentChannel;
+
+  ChannelName _currentChannel = const ChannelName.general();
 
   @override
-  WebSocketFactory get webSocketFactory =>
-      const DefaultWebSocketFactory('test');
-
-  @override
-  String get currentChannel => _currentChannel;
-
-  @override
-  set currentChannel(String value) {
+  set currentChannel(ChannelName value) {
     _currentChannel = value;
     _currentChannelController.add(value);
   }
 
-  String _currentChannel = '#general';
+  final _currentChannelController = StreamController<ChannelName>.broadcast();
 
   @override
-  Stream<String> get currentChannelStream => _currentChannelController.stream;
+  Stream<ChannelName> get currentChannelStream => _currentChannelController.stream;
+
+  @override
+  WebSocketFactory get webSocketFactory =>
+      const DefaultWebSocketFactory('test');
 
   @override
   Stream<ChatMessage> get messages => _messagesController.stream;
@@ -96,7 +97,7 @@ class FakeChatService extends Fake implements ChatService {
   Stream<List<String>> get users => const Stream.empty();
 
   @override
-  Stream<Map<String, int>> get channels => const Stream.empty();
+  Stream<Map<ChannelName, int>> get channels => const Stream.empty();
 
   @override
   Stream<bool> get connectionState => _connectionStateController.stream;
@@ -143,9 +144,7 @@ class FakeChatService extends Fake implements ChatService {
   }
 
   @override
-  Future<Map<String, int>> requestChannelsList() async {
-    return {};
-  }
+  Future<Map<ChannelName, int>> requestChannelsList() async => {};
 
   @override
   Future<List<String>> requestUsersList({required String targetChannel}) async {
@@ -213,8 +212,8 @@ void main() {
     });
 
     test('joinChannel resets channel state and sends appropriate commands', () {
-      provider.joinChannel('#testchannel');
-      expect(provider.activeChannel, '#testchannel');
+      provider.joinChannel(ChannelName('#testchannel'));
+      expect(provider.activeChannel, ChannelName('#testchannel'));
       expect(provider.isCurrentChannelPrivate, isFalse);
 
       expect(
@@ -268,7 +267,7 @@ void main() {
       () async {
         // 1. Setup: be in a non-default channel
         fakeChatService.setLoggedIn(true);
-        provider.joinChannel('#testing');
+        provider.joinChannel(ChannelName('#testing'));
         fakeChatService.sentMessages.clear();
 
         // 2. Simulate disconnect

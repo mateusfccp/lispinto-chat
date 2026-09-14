@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -33,7 +34,7 @@ class FakeUserConfiguration extends Fake implements UserConfiguration {
   bool get showEmptyChannels => true;
 
   @override
-  String get lastChannel => '#general';
+  ChannelName get lastChannel => const ChannelName.general();
 }
 
 class MockWebSocketChannel extends Fake implements WebSocketChannel {
@@ -97,7 +98,7 @@ void main() {
     service = ChatService(
       url: Uri.parse('http://localhost:8080'),
       nickname: 'tester',
-      initialChannel: '#test',
+      initialChannel: ChannelName('#test'),
       webSocketFactory: factory,
       httpClient: httpClient,
       configuration: FakeUserConfiguration(),
@@ -149,7 +150,7 @@ void main() {
 
       final usersFuture = service.users.first;
       httpClient.responseBody = '{"result": "users: alice, bob, charlie"}';
-      await service.requestUsersList(targetChannel: '#general');
+      await service.requestUsersList(targetChannel: ChannelName('#general'));
 
       final users = await usersFuture;
       expect(users, containsAll(['alice', 'bob', 'charlie']));

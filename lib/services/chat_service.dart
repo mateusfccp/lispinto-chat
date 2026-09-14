@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:logging/logging.dart';
 import 'package:retry/retry.dart';
@@ -41,11 +42,7 @@ interface class ChatService {
     required this.webSocketFactory,
   }) : _configuration = configuration,
        _httpClient = httpClient,
-       _currentChannel = initialChannel == null
-           ? '#general'
-           : initialChannel.startsWith('#')
-           ? initialChannel
-           : '#$initialChannel',
+       _currentChannel = initialChannel ?? ChannelName('#general'),
        _url = url,
        _wsUrl = deriveWebSocketUrl(url);
 
@@ -66,7 +63,7 @@ interface class ChatService {
   String nickname;
 
   /// The initial channel to join on connection.
-  final String? initialChannel;
+  final ChannelName? initialChannel;
 
   final UserConfiguration _configuration;
 
@@ -78,21 +75,20 @@ interface class ChatService {
   static final _logger = Logger('ChatService');
 
   /// The current active channel we are focused on.
-  String get currentChannel => _currentChannel;
+  ChannelName get currentChannel => _currentChannel;
 
-  set currentChannel(String value) {
-    final normalized = value.startsWith('#') ? value : '#$value';
-    if (_currentChannel != normalized) {
-      _currentChannel = normalized;
+  set currentChannel(ChannelName value) {
+    if (_currentChannel != value) {
+      _currentChannel = value;
       _currentChannelController.add(_currentChannel);
     }
   }
 
-  String _currentChannel;
+  ChannelName _currentChannel;
 
   /// A stream of the current active channel we are focused on.
-  Stream<String> get currentChannelStream => _currentChannelController.stream;
-  final _currentChannelController = StreamController<String>.broadcast();
+  Stream<ChannelName> get currentChannelStream => _currentChannelController.stream;
+  final _currentChannelController = StreamController<ChannelName>.broadcast();
 
   /// A stream of incoming chat messages to be displayed in the UI.
   Stream<ChatMessage> get messages => _messageController.stream;
@@ -107,8 +103,8 @@ interface class ChatService {
   final _usersController = StreamController<List<String>>.broadcast();
 
   /// A stream of the current active channels list to be displayed in the UI.
-  Stream<Map<String, int>> get channels => _channelsController.stream;
-  final _channelsController = StreamController<Map<String, int>>.broadcast();
+  Stream<Map<ChannelName, int>> get channels => _channelsController.stream;
+  final _channelsController = StreamController<Map<ChannelName, int>>.broadcast();
 
   bool _isDisposed = false;
 
@@ -182,7 +178,7 @@ interface class ChatService {
   final List<String> _currentUsers = [];
   final DateTime _appStartTime = DateTime.now();
 
-  final Map<String, _ChannelPingData> _currentChannels = {};
+  final Map<ChannelName, _ChannelPingData> _currentChannels = {};
   int _channelPingId = 0;
 
   /// Connects to the chat server and starts listening for messages.
@@ -478,7 +474,7 @@ interface class ChatService {
     String command, {
     List<String>? args,
     Map<String, Object?>? kwargs,
-    String? channel,
+    ChannelName? channel,
     bool requiresSession = false,
   }) async {
     var apiUrl = url;
@@ -549,8 +545,8 @@ interface class ChatService {
   }
 
   /// Commands the server to join a new channel for this session.
-  Future<void> requestJoin(String channelName) async {
-    await _makeApiRequest('join', args: [channelName], requiresSession: true);
+  Future<void> requestJoin(ChannelName channelName) async {
+    await _makeApiRequest('/join', args: [channelName], requiresSession: true);
   }
 
   /// Requests the message history for the current channel.
@@ -564,7 +560,7 @@ interface class ChatService {
   }
 
   /// Requests the list of channels from the server via HTTP API.
-  Future<Map<String, int>> requestChannelsList() async {
+  Future<Map<ChannelName, int>> requestChannelsList() async {
     if (!_loggedIn) return {};
 
     _channelPingId++;
@@ -576,13 +572,13 @@ interface class ChatService {
       );
       final result = data['result'] as String;
 
-      final currentChannels = <String, int>{};
+      final currentChannels = <ChannelName, int>{};
       for (final line in LineSplitter.split(result)) {
         final match = RegExp(
           r'^#([A-Za-z0-9_\-]+): (\d+) users?$',
         ).firstMatch(line);
         if (match != null) {
-          final channel = '#${match.group(1)}';
+          final channel = ChannelName('#${match.group(1)}');
           final count = int.parse(match.group(2)!);
           currentChannels[channel] = count;
           _currentChannels[channel] = _ChannelPingData(count, _channelPingId);
@@ -603,7 +599,7 @@ interface class ChatService {
   }
 
   /// Requests the list of users from the server via HTTP API.
-  Future<List<String>> requestUsersList({required String targetChannel}) async {
+  Future<List<String>> requestUsersList({required ChannelName targetChannel}) async {
     if (!_loggedIn) return [];
 
     try {

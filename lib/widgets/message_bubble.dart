@@ -8,6 +8,7 @@ import 'package:lispinto_chat/core/app_localizations.dart';
 import 'package:lispinto_chat/core/get_nickname_color.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/models/image_type.dart';
 import 'package:lispinto_chat/models/link_metadata.dart';
@@ -70,7 +71,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       channel,
       () =>
           TapGestureRecognizer()
-            ..onTap = () => locator<ChatProvider>().joinChannel(channel),
+            ..onTap = () => locator<ChatProvider>().joinChannel(ChannelName(channel)),
     );
   }
 

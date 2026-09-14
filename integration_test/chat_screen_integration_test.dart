@@ -8,6 +8,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:lispinto_chat/core/message_grouper.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
@@ -59,7 +60,7 @@ class MockChatService extends Mock implements ChatService {
   Stream<String> get nickChanges => const Stream.empty();
 
   @override
-  Stream<Map<String, int>> get channels => const Stream.empty();
+  Stream<Map<ChannelName, int>> get channels => const Stream.empty();
 
   @override
   ChatConnectionState get state => ChatConnectionState.loggedIn;

@@ -5,32 +5,20 @@ import 'user_configuration.dart';
 final class InMemoryUserConfiguration extends UserConfiguration {
   /// Creates an [InMemoryUserConfiguration] with optional initial values.
   InMemoryUserConfiguration({
-    String nickname = '',
-    String serverUrl = 'https://chat.manoel.dev',
-    bool pushNotificationsEnabled = false,
-    bool mentionNotificationsEnabled = false,
-    bool autoConnect = false,
-    bool showTimeSeconds = false,
-    bool showImagePreviews = true,
-    bool showLinkPreviews = true,
-    bool showEmptyChannels = false,
-    bool showMarkdown = true,
-    bool groupMessages = true,
-    ChannelName lastChannel = const ChannelName.general(),
-    String imgbbApiKey = '',
-  }) : _nickname = nickname,
-       _serverUrl = serverUrl,
-       _pushNotificationsEnabled = pushNotificationsEnabled,
-       _mentionNotificationsEnabled = mentionNotificationsEnabled,
-       _autoConnect = autoConnect,
-       _showTimeSeconds = showTimeSeconds,
-       _showImagePreviews = showImagePreviews,
-       _showLinkPreviews = showLinkPreviews,
-       _showEmptyChannels = showEmptyChannels,
-       _showMarkdown = showMarkdown,
-       _groupMessages = groupMessages,
-       _lastChannel = lastChannel,
-       _imgbbApiKey = imgbbApiKey;
+    this._nickname = '',
+    this._serverUrl = 'https://chat.manoel.dev',
+    this._pushNotificationsEnabled = false,
+    this._mentionNotificationsEnabled = false,
+    this._autoConnect = false,
+    this._showTimeSeconds = false,
+    this._showImagePreviews = true,
+    this._showLinkPreviews = true,
+    this._showEmptyChannels = false,
+    this._showMarkdown = true,
+    this._groupMessages = true,
+    this._lastChannel = const ChannelName.general(),
+    this._imgbbApiKey = '',
+  });
 
   /// Creates an [InMemoryUserConfiguration] from another [UserConfiguration].
   InMemoryUserConfiguration.fromConfiguration(UserConfiguration config)

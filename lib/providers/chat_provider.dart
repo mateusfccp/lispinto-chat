@@ -7,10 +7,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
-import '../models/channel_name.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/web_notifications.dart';
 import 'package:logging/logging.dart';
+
+import '../models/channel_name.dart';
 
 /// A provider that manages chat state.
 ///
@@ -22,10 +23,9 @@ class ChatProvider with ChangeNotifier {
   ChatProvider(
     this.configuration, {
     required this.appVersion,
-    required FlutterLocalNotificationsPlugin localNotifications,
-    required ChatService chatService,
-  }) : _localNotifications = localNotifications,
-       _chatService = chatService {
+    required this._localNotifications,
+    required this._chatService,
+  }) {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
         _chatService.setAppBackgroundState(false);
@@ -216,10 +216,7 @@ class ChatProvider with ChangeNotifier {
       _chatService.channels.listen((channels) {
         final currentUsersCount =
             _usersFuture?.result?.asValue?.value.length ?? 0;
-        final channelMap = {
-          activeChannel: currentUsersCount,
-          ...channels,
-        };
+        final channelMap = {activeChannel: currentUsersCount, ...channels};
         _channelsFuture = ResultFuture(Future.value(channelMap));
         notifyListeners();
       }),
@@ -343,7 +340,9 @@ class ChatProvider with ChangeNotifier {
       } else if (message.startsWith('/join ')) {
         if (message.split(' ') case final split when split.length > 1) {
           final target = split[1].trim();
-          final targetChannel = ChannelName(target.startsWith('#') ? target : '#$target');
+          final targetChannel = ChannelName(
+            target.startsWith('#') ? target : '#$target',
+          );
           joinChannel(targetChannel);
           return;
         }

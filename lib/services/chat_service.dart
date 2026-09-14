@@ -37,12 +37,10 @@ interface class ChatService {
     required Uri url,
     required this.nickname,
     this.initialChannel,
-    required UserConfiguration configuration,
-    required http.Client httpClient,
+    required this._configuration,
+    required this._httpClient,
     required this.webSocketFactory,
-  }) : _configuration = configuration,
-       _httpClient = httpClient,
-       _currentChannel = initialChannel ?? ChannelName('#general'),
+  }) : _currentChannel = initialChannel ?? ChannelName('#general'),
        _url = url,
        _wsUrl = deriveWebSocketUrl(url);
 
@@ -87,7 +85,8 @@ interface class ChatService {
   ChannelName _currentChannel;
 
   /// A stream of the current active channel we are focused on.
-  Stream<ChannelName> get currentChannelStream => _currentChannelController.stream;
+  Stream<ChannelName> get currentChannelStream =>
+      _currentChannelController.stream;
   final _currentChannelController = StreamController<ChannelName>.broadcast();
 
   /// A stream of incoming chat messages to be displayed in the UI.
@@ -104,7 +103,8 @@ interface class ChatService {
 
   /// A stream of the current active channels list to be displayed in the UI.
   Stream<Map<ChannelName, int>> get channels => _channelsController.stream;
-  final _channelsController = StreamController<Map<ChannelName, int>>.broadcast();
+  final _channelsController =
+      StreamController<Map<ChannelName, int>>.broadcast();
 
   bool _isDisposed = false;
 
@@ -257,7 +257,7 @@ interface class ChatService {
         },
       );
 
-      return loginCompleter.future
+      return await loginCompleter.future
           .then((_) => _loginCompleter = null)
           .catchError((exception, stackTrace) {
             _logger.severe('Login completer error', exception, stackTrace);
@@ -405,9 +405,8 @@ interface class ChatService {
       final isNickChangeBroadcast = content.contains('is now known as @');
 
       if (isNickChangeBroadcast) {
-        final match = RegExp(
-          r'User @(.*) is now known as @(.*)',
-        ).firstMatch(content);
+        final match = RegExp(r'User @(.*) is now known as @(.*)')
+            .firstMatch(content);
         if (match != null) {
           final oldNick = match.group(1)!;
           final newNick = match.group(2)!;
@@ -420,9 +419,8 @@ interface class ChatService {
       }
 
       if (isJoin) {
-        final match = RegExp(
-          r'The user @(.*) joined to the party!',
-        ).firstMatch(content);
+        final match = RegExp(r'The user @(.*) joined to the party!')
+            .firstMatch(content);
         if (match != null) {
           final joinedUser = match.group(1)!;
           if (!_currentUsers.contains(joinedUser)) {
@@ -433,9 +431,8 @@ interface class ChatService {
         _notificationsController.add(message);
         requestChannelsList();
       } else if (isExit) {
-        final match = RegExp(
-          r'The user @(.*) exited from the party :\(',
-        ).firstMatch(content);
+        final match = RegExp(r'The user @(.*) exited from the party :\(')
+            .firstMatch(content);
         if (match != null) {
           final exitedUser = match.group(1)!;
           _currentUsers.remove(exitedUser);
@@ -574,9 +571,8 @@ interface class ChatService {
 
       final currentChannels = <ChannelName, int>{};
       for (final line in LineSplitter.split(result)) {
-        final match = RegExp(
-          r'^#([A-Za-z0-9_\-]+): (\d+) users?$',
-        ).firstMatch(line);
+        final match = RegExp(r'^#([A-Za-z0-9_\-]+): (\d+) users?$')
+            .firstMatch(line);
         if (match != null) {
           final channel = ChannelName('#${match.group(1)}');
           final count = int.parse(match.group(2)!);
@@ -599,7 +595,9 @@ interface class ChatService {
   }
 
   /// Requests the list of users from the server via HTTP API.
-  Future<List<String>> requestUsersList({required ChannelName targetChannel}) async {
+  Future<List<String>> requestUsersList({
+    required ChannelName targetChannel,
+  }) async {
     if (!_loggedIn) return [];
 
     try {
@@ -711,8 +709,7 @@ interface class ChatService {
       _notificationsController.add(
         ChatMessage(
           from: 'system',
-          content:
-              'Failed to connect. Please try again later or reach out to the server administrator.',
+          content: 'Failed to connect. Please try again later or reach out to the server administrator.',
           date: DateTime.now(),
         ),
       );

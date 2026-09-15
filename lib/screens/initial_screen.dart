@@ -6,6 +6,7 @@ import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
@@ -91,9 +92,31 @@ final class _InitialScreenState extends State<InitialScreen> {
     }
   }
 
+  void _showNicknameRulesDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context).nicknameRulesTitle),
+          content: Text(
+            AppLocalizations.of(context).nicknameRulesDescription,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(AppLocalizations.of(context).ok),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _handleConnectPressed() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final newNickname = _nicknameController.text.trim();
+      final newNickname = UserName.normalize(_nicknameController.text);
       final newServerUrl = _serverUrlController.text.trim();
 
       final newConfiguration = InMemoryUserConfiguration.fromConfiguration(
@@ -125,10 +148,18 @@ final class _InitialScreenState extends State<InitialScreen> {
                   TextFormField(
                     enabled: !_isConnecting,
                     controller: _nicknameController,
+                    inputFormatters: const [UserNameInputFormatter()],
                     decoration: InputDecoration(
                       labelText: AppLocalizations.of(context).nickname,
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.person),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.help_outline),
+                        tooltip: AppLocalizations.of(
+                          context,
+                        ).learnAboutNickname,
+                        onPressed: _showNicknameRulesDialog,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {

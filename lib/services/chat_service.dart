@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:logging/logging.dart';
 import 'package:retry/retry.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -35,12 +36,13 @@ interface class ChatService {
   /// Creates a [ChatService].
   ChatService({
     required Uri url,
-    required this.nickname,
+    required String nickname,
     this.initialChannel,
     required this._configuration,
     required this._httpClient,
     required this.webSocketFactory,
-  }) : _currentChannel = initialChannel ?? ChannelName('#general'),
+  }) : _nickname = UserName.normalize(nickname),
+       _currentChannel = initialChannel ?? ChannelName('#general'),
        _url = url,
        _wsUrl = deriveWebSocketUrl(url);
 
@@ -58,7 +60,11 @@ interface class ChatService {
   Uri _wsUrl;
 
   /// The nickname to use when logging in to the chat server.
-  String nickname;
+  String get nickname => _nickname;
+  set nickname(String value) {
+    _nickname = UserName.normalize(value);
+  }
+  String _nickname;
 
   /// The initial channel to join on connection.
   final ChannelName? initialChannel;
@@ -385,10 +391,15 @@ interface class ChatService {
       }
     }
 
-    final isNickChange = content.contains('Your new nick is: @');
+    final isNickChange =
+        content.contains('Your new nick is: @') ||
+        content.contains('Your new nick was normalized to: @') ||
+        content.contains('Your nickname was normalized to: @');
 
     if (isNickChange) {
-      final match = RegExp(r'Your new nick is: @(.*)').firstMatch(content);
+      final match = RegExp(
+        r'Your (?:new nick (?:is|was normalized to)|nickname was normalized to): @(.*)',
+      ).firstMatch(content);
       if (match != null) {
         if (match.group(1) case final newNick?) {
           _nickChangeController.add(newNick);

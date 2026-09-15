@@ -214,6 +214,26 @@ void main() {
       expect(service.isLoggedIn, isFalse);
       expect(service.isConnected, isFalse);
     });
+
+    test('emits nick changes when server confirms nick change or normalization', () async {
+      final channel = await connectAndLogin();
+
+      final nickChange1 = service.nickChanges.first;
+      channel.feed('|10:00:00| [@server]: Your new nick is: @bob');
+      expect(await nickChange1, 'bob');
+
+      final nickChange2 = service.nickChanges.first;
+      channel.feed(
+        '|10:00:00| [@server]: Your new nick was normalized to: @bob-norm',
+      );
+      expect(await nickChange2, 'bob-norm');
+
+      final nickChange3 = service.nickChanges.first;
+      channel.feed(
+        '|10:00:00| [@server]: Your nickname was normalized to: @bob-initial',
+      );
+      expect(await nickChange3, 'bob-initial');
+    });
   });
 
   group('ChatService.deriveWebSocketUrl', () {

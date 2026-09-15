@@ -10,26 +10,32 @@ List<RouteBase> get $appRoutes => [$initialRoute];
 
 RouteBase get $initialRoute => GoRouteData.$route(
   path: '/',
+  hasOverriddenOnExit: false,
   factory: $InitialRoute._fromState,
   routes: [
     GoRouteData.$route(
       path: 'privacy-policy',
+      hasOverriddenOnExit: false,
       factory: $InitialPrivacyPolicyRoute._fromState,
     ),
     GoRouteData.$route(
       path: 'chat',
+      hasOverriddenOnExit: false,
       factory: $ChatRoute._fromState,
       routes: [
         GoRouteData.$route(
           path: 'config',
+          hasOverriddenOnExit: false,
           factory: $ConfigurationsRoute._fromState,
         ),
         GoRouteData.$route(
           path: 'privacy-policy',
+          hasOverriddenOnExit: false,
           factory: $PrivacyPolicyRoute._fromState,
         ),
         GoRouteData.$route(
           path: 'licenses',
+          hasOverriddenOnExit: false,
           factory: $LicensesRoute._fromState,
         ),
       ],

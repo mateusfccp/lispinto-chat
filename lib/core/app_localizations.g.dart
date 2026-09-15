@@ -39,6 +39,16 @@ mixin _$AppLocalizationsMixin {
   String get pleaseEnterNickname =>
       fluent.getMessage('please-enter-nickname') ?? 'please-enter-nickname';
 
+  String get nicknameRulesTitle =>
+      fluent.getMessage('nickname-rules-title') ?? 'nickname-rules-title';
+
+  String get nicknameRulesDescription =>
+      fluent.getMessage('nickname-rules-description') ??
+      'nickname-rules-description';
+
+  String get learnAboutNickname =>
+      fluent.getMessage('learn-about-nickname') ?? 'learn-about-nickname';
+
   String get pleaseEnterServerUrl =>
       fluent.getMessage('please-enter-server-url') ?? 'please-enter-server-url';
 

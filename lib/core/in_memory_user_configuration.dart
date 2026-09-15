@@ -1,11 +1,12 @@
 import '../models/channel_name.dart';
+import '../models/username.dart';
 import 'user_configuration.dart';
 
 /// In-memory implementation of [UserConfiguration] for preview and testing.
 final class InMemoryUserConfiguration extends UserConfiguration {
   /// Creates an [InMemoryUserConfiguration] with optional initial values.
   InMemoryUserConfiguration({
-    this._nickname = '',
+    String nickname = '',
     this._serverUrl = 'https://chat.manoel.dev',
     this._pushNotificationsEnabled = false,
     this._mentionNotificationsEnabled = false,
@@ -18,11 +19,11 @@ final class InMemoryUserConfiguration extends UserConfiguration {
     this._groupMessages = true,
     this._lastChannel = const ChannelName.general(),
     this._imgbbApiKey = '',
-  });
+  }) : _nickname = UserName.normalize(nickname);
 
   /// Creates an [InMemoryUserConfiguration] from another [UserConfiguration].
   InMemoryUserConfiguration.fromConfiguration(UserConfiguration config)
-    : _nickname = config.nickname,
+    : _nickname = UserName.normalize(config.nickname),
       _serverUrl = config.serverUrl,
       _pushNotificationsEnabled = config.pushNotificationsEnabled,
       _mentionNotificationsEnabled = config.mentionNotificationsEnabled,
@@ -55,7 +56,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
 
   @override
   set nickname(String value) {
-    _nickname = value;
+    _nickname = UserName.normalize(value);
     notifyListeners();
   }
 
@@ -172,7 +173,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
 
   @override
   void updateWith(UserConfiguration other) {
-    _nickname = other.nickname;
+    _nickname = UserName.normalize(other.nickname);
     _serverUrl = other.serverUrl;
     _imgbbApiKey = other.imgbbApiKey;
     _pushNotificationsEnabled = other.pushNotificationsEnabled;

@@ -55,10 +55,14 @@ void main() {
     });
 
     test(
-      'hasNickname returns true only for non-empty trimmed nicknames',
+      'hasNickname returns true only for valid nicknames',
       () async {
         SharedPreferences.setMockInitialValues({'nickname': '  '});
         var config = await UserConfiguration.load();
+        expect(config.hasNickname, isFalse);
+
+        SharedPreferences.setMockInitialValues({'nickname': '!@#\$%'});
+        config = await UserConfiguration.load();
         expect(config.hasNickname, isFalse);
 
         SharedPreferences.setMockInitialValues({'nickname': 'bob'});
@@ -66,6 +70,17 @@ void main() {
         expect(config.hasNickname, isTrue);
       },
     );
+
+    test('normalizes nickname on load and save', () async {
+      SharedPreferences.setMockInitialValues({'nickname': 'João Vitor'});
+      final config = await UserConfiguration.load();
+      expect(config.nickname, 'Joao-Vitor');
+
+      config.nickname = 'Alice Bob';
+      final preferences = await SharedPreferences.getInstance();
+      expect(config.nickname, 'Alice-Bob');
+      expect(preferences.getString('nickname'), 'Alice-Bob');
+    });
 
     test('updateWith persists changes to SharedPreferences', () async {
       SharedPreferences.setMockInitialValues({});

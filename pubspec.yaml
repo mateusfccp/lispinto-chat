@@ -10,6 +10,7 @@ environment:
 dependencies:
   ansicolor: ^2.0.3
   async: ^2.13.1
+  diacritic: ^0.1.6
   fluent_i18n: ^2.1.0
   flutter:
     sdk: flutter

@@ -237,4 +237,62 @@ void main() {
     await tester.pump();
     await tester.pump();
   });
+
+  testWidgets(
+    'InitialScreen nickname field formats input and opens requirements dialog',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: const [Locale('en')],
+            localizationsDelegates: const [
+              FluentLocalizationsDelegate([Locale('en')]),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Builder(
+              builder: (context) {
+                if (FluentLocalizations.of(context) == null) {
+                  return const SizedBox.shrink();
+                }
+                return const InitialScreen();
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      });
+
+      // Verify help icon is present
+      expect(find.byIcon(Icons.help_outline), findsOneWidget);
+
+      // Tap help icon and verify dialog
+      await tester.tap(find.byIcon(Icons.help_outline));
+      await tester.pumpAndSettle();
+      expect(find.text('Nickname Requirements'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      // Dismiss dialog
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+
+      // Test input formatter on nickname field
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'João Vitor @1!',
+      );
+      await tester.pumpAndSettle();
+
+      // Formatter should convert diacritics, space to hyphen, drop @ and !
+      expect(find.text('Joao-Vitor-1'), findsOneWidget);
+
+      // Test empty validation
+      await tester.enterText(find.byType(TextFormField).first, '');
+      await tester.tap(find.text('Connect'));
+      await tester.pumpAndSettle();
+      expect(find.text('Please enter a nickname'), findsOneWidget);
+    },
+  );
 }

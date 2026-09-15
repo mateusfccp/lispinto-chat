@@ -9,6 +9,7 @@ import 'package:lispinto_chat/core/router.dart';
 import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/widgets/message_bubble.dart';
 import 'package:lispinto_chat/widgets/scrollable_screen.dart';
@@ -85,6 +86,28 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
         _newConfiguration.groupMessages != _configuration.groupMessages;
   }
 
+  void _showNicknameRulesDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context).nicknameRulesTitle),
+          content: Text(
+            AppLocalizations.of(context).nicknameRulesDescription,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(AppLocalizations.of(context).ok),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final platform = Theme.of(context).platform;
@@ -96,7 +119,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       onPopInvokedWithResult: (didPop, value) {
         if (didPop) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_isDirty) {
+            if (_isDirty && UserName.isValid(_newConfiguration.nickname)) {
               _chatProvider.updateConfiguration(_newConfiguration);
             }
           });
@@ -117,10 +140,18 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                   children: [
                     TextFormField(
                       controller: _nicknameController,
+                      inputFormatters: const [UserNameInputFormatter()],
                       decoration: InputDecoration(
                         labelText: AppLocalizations.of(context).nickname,
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.person),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.help_outline),
+                          tooltip: AppLocalizations.of(
+                            context,
+                          ).learnAboutNickname,
+                          onPressed: _showNicknameRulesDialog,
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -65,7 +66,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
   /// Creates a [PersistentUserConfiguration].
   PersistentUserConfiguration({required SharedPreferences preferences})
     : _preferences = preferences,
-      _nickname = preferences.getString(_keyNickname) ?? '',
+      _nickname = UserName.normalize(preferences.getString(_keyNickname) ?? ''),
       _serverUrl = preferences.getString(_keyServerUrl) ?? _defaultServerUrl,
       _pushNotificationsEnabled =
           preferences.getBool(_keyPushNotifications) ?? false,
@@ -120,8 +121,8 @@ final class PersistentUserConfiguration extends UserConfiguration {
 
   @override
   set nickname(String value) {
-    _nickname = value;
-    unawaited(_preferences.setString(_keyNickname, value));
+    _nickname = UserName.normalize(value);
+    unawaited(_preferences.setString(_keyNickname, _nickname));
     notifyListeners();
   }
 
@@ -148,7 +149,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
   }
 
   @override
-  bool get hasNickname => nickname.trim().isNotEmpty;
+  bool get hasNickname => UserName.isValid(nickname);
 
   @override
   bool get pushNotificationsEnabled => _pushNotificationsEnabled;
@@ -262,7 +263,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
 
   @override
   void updateWith(UserConfiguration other) {
-    _nickname = other.nickname;
+    _nickname = UserName.normalize(other.nickname);
     unawaited(_preferences.setString(_keyNickname, _nickname));
 
     _serverUrl = other.serverUrl;

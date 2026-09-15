@@ -229,13 +229,18 @@ exec "\$HERE/usr/bin/lispinto_chat" "\$@"
 }
 
 Future<void> _runFlutter(List<String> args) async {
-  final result = await Process.run('flutter', args);
-  if (result.exitCode != 0) {
-    stdout.writeln('Error running flutter ${args.join(' ')}:');
-    stdout.writeln(result.stderr);
-    exit(result.exitCode);
+  final process = await Process.start(
+    'flutter',
+    args,
+    mode: ProcessStartMode.inheritStdio,
+  );
+  final exitCode = await process.exitCode;
+  if (exitCode != 0) {
+    stderr.writeln(
+      'Error running flutter ${args.join(' ')} (exit code: $exitCode)',
+    );
+    exit(exitCode);
   }
-  stdout.writeln(result.stdout);
 }
 
 Future<void> _copyDirectory(Directory source, Directory destination) async {

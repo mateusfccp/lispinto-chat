@@ -6,8 +6,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../providers/chat_provider.dart';
 import '../services/chat_service.dart';
+import '../services/clipboard_service.dart';
 import '../services/image_upload_service.dart';
 import '../services/imgbb_upload_service.dart';
+import '../services/pasteboard_clipboard_service.dart';
 import '../services/link_preview_service.dart';
 import '../services/websocket_factory.dart';
 import 'message_grouper.dart';
@@ -65,5 +67,9 @@ Future<void> setupServiceLocator() async {
 
   locator.registerSingleton<ImageUploadService>(
     ImgBBImageUploadService(apiKey: configuration.imgbbApiKey),
+  );
+
+  locator.registerSingleton<ClipboardService>(
+    const PasteboardClipboardService(),
   );
 }

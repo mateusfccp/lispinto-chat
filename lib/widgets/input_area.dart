@@ -18,8 +18,8 @@ import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/link_preview.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
+import 'package:lispinto_chat/services/clipboard_service.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
-import 'package:pasteboard/pasteboard.dart';
 
 import '../core/get_nickname_color.dart';
 
@@ -221,12 +221,13 @@ class _InputAreaState extends State<InputArea> {
     bool uploaded = false;
 
     if (canUpload) {
-      final imageBytes = await Pasteboard.image;
+      final clipboardService = locator<ClipboardService>();
+      final imageBytes = await clipboardService.getImage();
       if (imageBytes != null && imageBytes.isNotEmpty) {
         if (mounted) await _uploadImage(imageBytes);
         uploaded = true;
       } else {
-        final files = await Pasteboard.files();
+        final files = await clipboardService.getFiles();
         for (final path in files) {
           final lower = path.toLowerCase();
           if (lower.endsWith('.png') ||

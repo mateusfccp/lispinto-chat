@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +15,7 @@ import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/link_preview.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
-import 'package:pasteboard/pasteboard.dart';
+import 'package:lispinto_chat/services/clipboard_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that displays a single chat message bubble.
@@ -281,7 +280,7 @@ Future<void> _showImageContextMenu(
   if (!context.mounted || action == null) return;
 
   if (action == 'copy_address') {
-    await Clipboard.setData(ClipboardData(text: imageType.url));
+    await locator<ClipboardService>().writeText(imageType.url);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -293,7 +292,7 @@ Future<void> _showImageContextMenu(
     try {
       final response = await http.get(Uri.parse(imageType.url));
       if (response.statusCode == 200) {
-        await Pasteboard.writeImage(response.bodyBytes);
+        await locator<ClipboardService>().writeImage(response.bodyBytes);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(AppLocalizations.of(context).imageCopied)),

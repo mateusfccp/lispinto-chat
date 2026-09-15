@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes (markdown text)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -18,7 +23,7 @@ jobs:
       - name: Extract version from pubspec.yaml
         id: version
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
@@ -135,7 +140,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
 
@@ -148,12 +153,21 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
           VERSION="v${{ needs.check-version.outputs.version }}"
 
+          NOTES_ARGS=()
+          if [ -n "$RELEASE_NOTES" ]; then
+            printf '%s\n' "$RELEASE_NOTES" > /tmp/release_notes.txt
+            NOTES_ARGS+=(--notes-file /tmp/release_notes.txt)
+          else
+            NOTES_ARGS+=(--generate-notes)
+          fi
+
           gh release create "$VERSION" \
             --title "Lispinto Chat $VERSION" \
-            --generate-notes \
+            "${NOTES_ARGS[@]}" \
             artifacts/android-artifacts/*.apk \
             artifacts/macos-artifact/LispintoChat-macOS.zip \
             artifacts/web-artifact/LispintoChat-Web.tar.gz \

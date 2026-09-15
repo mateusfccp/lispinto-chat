@@ -16,7 +16,7 @@ import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/link_preview.dart';
 import 'package:lispinto_chat/widgets/text_styles.dart';
-import 'package:super_clipboard/super_clipboard.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that displays a single chat message bubble.
@@ -293,20 +293,11 @@ Future<void> _showImageContextMenu(
     try {
       final response = await http.get(Uri.parse(imageType.url));
       if (response.statusCode == 200) {
-        final clipboard = SystemClipboard.instance;
-        if (clipboard != null) {
-          final item = DataWriterItem();
-          if (imageType is SvgImageType) {
-            item.add(Formats.svg(response.bodyBytes));
-          } else {
-            item.add(Formats.png(response.bodyBytes));
-          }
-          await clipboard.write([item]);
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(AppLocalizations.of(context).imageCopied)),
-            );
-          }
+        await Pasteboard.writeImage(response.bodyBytes);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).imageCopied)),
+          );
         }
       } else {
         throw Exception('Failed to load image');

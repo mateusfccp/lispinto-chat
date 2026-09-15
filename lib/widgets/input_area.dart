@@ -16,10 +16,10 @@ import 'package:lispinto_chat/services/link_preview_service.dart';
 import 'package:lispinto_chat/widgets/autocomplete_dropdown.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/channel_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/autocomplete_triggers/command_autocomplete_trigger.dart';
-import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:lispinto_chat/widgets/link_preview.dart';
+import 'package:lispinto_chat/widgets/autocomplete_triggers/tag_autocomplete_trigger.dart';
 import 'package:prototype_constrained_box/prototype_constrained_box.dart';
-import 'package:super_clipboard/super_clipboard.dart';
+import 'package:pasteboard/pasteboard.dart';
 
 import '../core/get_nickname_color.dart';
 
@@ -215,47 +215,30 @@ class _InputAreaState extends State<InputArea> {
     }
   }
 
-  Future<void> _handleSuperClipboardPaste() async {
-    final clipboard = SystemClipboard.instance;
+  Future<void> _handleClipboardPaste() async {
+    final imgbbApiKey = locator<UserConfiguration>().imgbbApiKey.trim();
+    final canUpload = imgbbApiKey.isNotEmpty;
     bool uploaded = false;
 
-    if (clipboard != null) {
-      final imgbbApiKey = locator<UserConfiguration>().imgbbApiKey.trim();
-      final canUpload = imgbbApiKey.isNotEmpty;
-
-      final reader = await clipboard.read();
-
-      for (final item in reader.items) {
-        if (canUpload && item.canProvide(Formats.fileUri)) {
-          final uri = await item.readValue(Formats.fileUri);
-          if (uri != null) {
-            final path = uri.toFilePath().toLowerCase();
-            if (path.endsWith('.png') ||
-                path.endsWith('.jpg') ||
-                path.endsWith('.jpeg') ||
-                path.endsWith('.gif') ||
-                path.endsWith('.webp')) {
-              final bytes = await File.fromUri(uri).readAsBytes();
-              await _uploadImage(bytes);
-              uploaded = true;
-              continue; // Handled this item
-            }
+    if (canUpload) {
+      final imageBytes = await Pasteboard.image;
+      if (imageBytes != null && imageBytes.isNotEmpty) {
+        if (mounted) await _uploadImage(imageBytes);
+        uploaded = true;
+      } else {
+        final files = await Pasteboard.files();
+        for (final path in files) {
+          final lower = path.toLowerCase();
+          if (lower.endsWith('.png') ||
+              lower.endsWith('.jpg') ||
+              lower.endsWith('.jpeg') ||
+              lower.endsWith('.gif') ||
+              lower.endsWith('.webp')) {
+            final bytes = await File(path).readAsBytes();
+            if (mounted) await _uploadImage(bytes);
+            uploaded = true;
+            break;
           }
-        }
-
-        // Try raw image data
-        if (canUpload && item.canProvide(Formats.png)) {
-          item.getFile(Formats.png, (file) async {
-            final bytes = await file.readAll();
-            if (mounted) _uploadImage(bytes);
-          });
-          uploaded = true;
-        } else if (canUpload && item.canProvide(Formats.jpeg)) {
-          item.getFile(Formats.jpeg, (file) async {
-            final bytes = await file.readAll();
-            if (mounted) _uploadImage(bytes);
-          });
-          uploaded = true;
         }
       }
     }
@@ -470,7 +453,7 @@ class _InputAreaState extends State<InputArea> {
                                         HardwareKeyboard
                                             .instance
                                             .isControlPressed)) {
-                                  _handleSuperClipboardPaste();
+                                  _handleClipboardPaste();
                                   return KeyEventResult.handled;
                                 }
                               }
@@ -489,7 +472,7 @@ class _InputAreaState extends State<InputArea> {
                                 final pasteButton = ContextMenuButtonItem(
                                   type: ContextMenuButtonType.paste,
                                   onPressed: () {
-                                    _handleSuperClipboardPaste();
+                                    _handleClipboardPaste();
                                     editableTextState.hideToolbar();
                                   },
                                 );

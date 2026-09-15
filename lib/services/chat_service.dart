@@ -36,13 +36,11 @@ interface class ChatService {
   /// Creates a [ChatService].
   ChatService({
     required Uri url,
-    required String nickname,
     this.initialChannel,
     required this._configuration,
     required this._httpClient,
     required this.webSocketFactory,
-  }) : _nickname = UserName.normalize(nickname),
-       _currentChannel = initialChannel ?? ChannelName('#general'),
+  }) : _currentChannel = initialChannel ?? ChannelName('#general'),
        _url = url,
        _wsUrl = deriveWebSocketUrl(url);
 
@@ -60,11 +58,10 @@ interface class ChatService {
   Uri _wsUrl;
 
   /// The nickname to use when logging in to the chat server.
-  String get nickname => _nickname;
+  String get nickname => _configuration.nickname;
   set nickname(String value) {
-    _nickname = UserName.normalize(value);
+    _configuration.nickname = UserName.normalize(value);
   }
-  String _nickname;
 
   /// The initial channel to join on connection.
   final ChannelName? initialChannel;
@@ -402,6 +399,7 @@ interface class ChatService {
       ).firstMatch(content);
       if (match != null) {
         if (match.group(1) case final newNick?) {
+          nickname = newNick;
           _nickChangeController.add(newNick);
         }
       }
@@ -421,7 +419,13 @@ interface class ChatService {
         if (match != null) {
           final oldNick = match.group(1)!;
           final newNick = match.group(2)!;
+          if (UserName.normalize(oldNick) == nickname) {
+            nickname = newNick;
+            _nickChangeController.add(newNick);
+          }
+          final normalizedOldNick = UserName.normalize(oldNick);
           _currentUsers.remove(oldNick);
+          _currentUsers.remove(normalizedOldNick);
           if (!_currentUsers.contains(newNick)) {
             _currentUsers.add(newNick);
           }

@@ -49,7 +49,6 @@ Future<void> setupServiceLocator() async {
       configuration: configuration,
       httpClient: locator(),
       initialChannel: configuration.lastChannel,
-      nickname: configuration.nickname,
       url: Uri.parse(configuration.serverUrl),
       webSocketFactory: locator(),
     ),

@@ -25,7 +25,14 @@ class MockHttpClient extends Fake implements http.Client {
 
 class FakeUserConfiguration extends Fake implements UserConfiguration {
   @override
-  String get nickname => 'tester';
+  String get nickname => _nickname;
+
+  @override
+  set nickname(String value) {
+    _nickname = value;
+  }
+
+  String _nickname = 'tester';
 
   @override
   String get serverUrl => 'http://localhost:8080';
@@ -97,7 +104,6 @@ void main() {
     httpClient = MockHttpClient();
     service = ChatService(
       url: Uri.parse('http://localhost:8080'),
-      nickname: 'tester',
       initialChannel: ChannelName('#test'),
       webSocketFactory: factory,
       httpClient: httpClient,
@@ -215,24 +221,62 @@ void main() {
       expect(service.isConnected, isFalse);
     });
 
-    test('emits nick changes when server confirms nick change or normalization', () async {
+    test('emits nick changes and updates nickname when server confirms nick change or normalization', () async {
       final channel = await connectAndLogin();
 
       final nickChange1 = service.nickChanges.first;
       channel.feed('|10:00:00| [@server]: Your new nick is: @bob');
       expect(await nickChange1, 'bob');
+      expect(service.nickname, 'bob');
 
       final nickChange2 = service.nickChanges.first;
       channel.feed(
         '|10:00:00| [@server]: Your new nick was normalized to: @bob-norm',
       );
       expect(await nickChange2, 'bob-norm');
+      expect(service.nickname, 'bob-norm');
 
       final nickChange3 = service.nickChanges.first;
       channel.feed(
         '|10:00:00| [@server]: Your nickname was normalized to: @bob-initial',
       );
       expect(await nickChange3, 'bob-initial');
+      expect(service.nickname, 'bob-initial');
+    });
+
+    test('broadcast nick change updates current users and nickname if self', () async {
+      final channel = await connectAndLogin();
+
+      final usersFuture = service.users.first;
+      final nickFuture = service.nickChanges.first;
+      channel.feed(
+        '|2099-01-01 10:00:01| [@command]: User @tester is now known as @cancer',
+      );
+
+      final users = await usersFuture;
+      expect(await nickFuture, 'cancer');
+      expect(users, contains('cancer'));
+      expect(users, isNot(contains('tester')));
+      expect(service.nickname, 'cancer');
+    });
+
+    test('reconciles users list without resurrecting old nickname', () async {
+      final channel = await connectAndLogin();
+
+      final nickFuture = service.nickChanges.first;
+      channel.feed(
+        '|2099-01-01 10:00:00| [@server]: Your new nick is: @cancer',
+      );
+      expect(await nickFuture, 'cancer');
+      expect(service.nickname, 'cancer');
+
+      httpClient.responseBody = '{"result": "users: cancer, pintao"}';
+      final users = await service.requestUsersList(
+        targetChannel: ChannelName('#test'),
+      );
+
+      expect(users, containsAll(['cancer', 'pintao']));
+      expect(users, isNot(contains('tester')));
     });
   });
 

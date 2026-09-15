@@ -123,7 +123,6 @@ void main() {
 
       final chatService = ChatService(
         url: Uri.parse('ws://localhost'),
-        nickname: 'test',
         webSocketFactory: webSocketFactory,
         httpClient: MockHttpClient(),
         configuration: config,

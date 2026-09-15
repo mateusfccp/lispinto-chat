@@ -309,11 +309,12 @@ class ChatProvider with ChangeNotifier {
     }
     // If only the nickname or settings changed, sync them.
     else {
+      if (newNickname != oldNickname && _isConnected) {
+        _chatService.nickname = newNickname;
+        _chatService.sendMessage('/nick $newNickname');
+      }
       if (_isConnected) {
         _fetchUsersAndChannelsList();
-      }
-      if (newNickname != oldNickname && _isConnected) {
-        _chatService.sendMessage('/nick $newNickname');
       }
     }
 

@@ -164,8 +164,7 @@ final class _InitialScreenState extends State<InitialScreen> {
                     ),
                     validator: (value) {
                       if (value == null || !UserName.isValid(value)) {
-                        return AppLocalizations.of(context)
-                            .pleaseEnterNickname;
+                        return AppLocalizations.of(context).pleaseEnterNickname;
                       }
                       return null;
                     },

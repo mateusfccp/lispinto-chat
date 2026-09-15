@@ -68,12 +68,10 @@ final class MessageList extends StatelessWidget {
                     const Gap(16.0),
                     Text(
                       provider.searchQuery.isEmpty
-                          ? AppLocalizations.of(
-                              context,
-                            ).noMessagesYet(provider.activeChannel)
-                          : AppLocalizations.of(
-                              context,
-                            ).noMessagesFound(provider.searchQuery),
+                          ? AppLocalizations.of(context)
+                                .noMessagesYet(provider.activeChannel)
+                          : AppLocalizations.of(context)
+                                .noMessagesFound(provider.searchQuery),
                       style: TextStyle(
                         color: Colors.grey.withValues(alpha: 0.8),
                         fontSize: 16.0,

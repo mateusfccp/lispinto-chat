@@ -346,8 +346,7 @@ void main() {
     ) async {
       final message = ChatMessage(
         from: 'user',
-        content:
-            'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.gif',
+        content: 'Links: https://example.com/a.jpg and https://example.com/b.png and https://example.com/c.gif',
         date: DateTime.now(),
       );
 

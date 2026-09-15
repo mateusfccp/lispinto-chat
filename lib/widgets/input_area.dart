@@ -193,9 +193,8 @@ class _InputAreaState extends State<InputArea> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(
-                context,
-              ).failedToUploadImage(exception.toString()),
+              AppLocalizations.of(context)
+                  .failedToUploadImage(exception.toString()),
             ),
           ),
         );
@@ -351,14 +350,12 @@ class _InputAreaState extends State<InputArea> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).imgbbApiKeyRequired,
+                                AppLocalizations.of(context)
+                                    .imgbbApiKeyRequired,
                               ),
                               content: Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).imgbbApiKeyRequiredDescription,
+                                AppLocalizations.of(context)
+                                    .imgbbApiKeyRequiredDescription,
                               ),
                               actions: [
                                 TextButton(
@@ -536,9 +533,8 @@ class _InputAreaState extends State<InputArea> {
                                   minHeight: 0.0,
                                 ),
                                 isDense: context.isDesktop,
-                                hintText: AppLocalizations.of(
-                                  context,
-                                ).inputAreaHintText,
+                                hintText: AppLocalizations.of(context)
+                                    .inputAreaHintText,
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20.0,

@@ -6,13 +6,12 @@ import 'package:flutter/widgets.dart';
 ///
 /// This allows for custom text styling, such as syntax highlighting, while
 /// still supporting the delete-aware functionality of the controller.
-typedef DeleteAwareEditingControllerBuilder =
-    TextSpan Function(
-      BuildContext context,
-      String text,
-      TextStyle? style,
-      bool withComposing,
-    );
+typedef DeleteAwareEditingControllerBuilder = TextSpan Function(
+  BuildContext context,
+  String text,
+  TextStyle? style,
+  bool withComposing,
+);
 
 /// A custom [TextEditingController] that manages a zero-width space prefix to
 /// detect when a user deletes everything in the field using the backspace key.

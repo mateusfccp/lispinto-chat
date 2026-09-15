@@ -71,7 +71,8 @@ class _MessageBubbleState extends State<MessageBubble> {
       channel,
       () =>
           TapGestureRecognizer()
-            ..onTap = () => locator<ChatProvider>().joinChannel(ChannelName(channel)),
+            ..onTap = () =>
+                locator<ChatProvider>().joinChannel(ChannelName(channel)),
     );
   }
 
@@ -114,9 +115,8 @@ class _MessageBubbleState extends State<MessageBubble> {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          getNicknameColor(
-                            widget.message.from,
-                          ).withValues(alpha: 0.5),
+                          getNicknameColor(widget.message.from)
+                              .withValues(alpha: 0.5),
                           Colors.transparent,
                         ],
                       )

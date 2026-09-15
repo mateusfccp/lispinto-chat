@@ -581,9 +581,8 @@ class _ChatScreenState extends State<ChatScreen> {
               width: double.infinity,
               child: Text(
                 AppLocalizations.of(context).options,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             if (!_provider.isGeneralChannel &&
@@ -654,9 +653,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Text(
                     AppLocalizations.of(context).onlineUsers(users.length),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
                 Expanded(

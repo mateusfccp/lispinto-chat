@@ -115,9 +115,8 @@ class _VerticalUserListState extends State<VerticalUserList> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    ).onlineUsers(''),
+                                    AppLocalizations.of(context)
+                                        .onlineUsers(''),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -135,9 +134,8 @@ class _VerticalUserListState extends State<VerticalUserList> {
                               ],
                             )
                           : Text(
-                              AppLocalizations.of(
-                                context,
-                              ).onlineUsers(users.length),
+                              AppLocalizations.of(context)
+                                  .onlineUsers(users.length),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -454,9 +452,8 @@ class MobileChannelSheet extends StatelessWidget {
                       selected: channelEntry.key == provider.activeChannel,
                       title: Text(channelEntry.key),
                       trailing: Text(
-                        AppLocalizations.of(
-                          context,
-                        ).userCount(channelEntry.value),
+                        AppLocalizations.of(context)
+                            .userCount(channelEntry.value),
                       ),
                       onTap: () => onChannelSelected(channelEntry.key),
                     ),

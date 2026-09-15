@@ -40,7 +40,9 @@ final class _InitialScreenState extends State<InitialScreen> {
     _chatProvider = locator<ChatProvider>();
     _logger = locator<Logger>();
 
-    _nicknameController = TextEditingController(text: _configuration.nickname);
+    _nicknameController = TextEditingController(
+      text: _configuration.nickname ?? '',
+    );
     _serverUrlController = TextEditingController(
       text: _configuration.serverUrl,
     );
@@ -82,9 +84,8 @@ final class _InitialScreenState extends State<InitialScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(
-                context,
-              ).connectionError(exception.toString()),
+              AppLocalizations.of(context)
+                  .connectionError(exception.toString()),
             ),
           ),
         );
@@ -98,9 +99,7 @@ final class _InitialScreenState extends State<InitialScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(AppLocalizations.of(context).nicknameRulesTitle),
-          content: Text(
-            AppLocalizations.of(context).nicknameRulesDescription,
-          ),
+          content: Text(AppLocalizations.of(context).nicknameRulesDescription),
           actions: [
             TextButton(
               onPressed: () {
@@ -116,7 +115,10 @@ final class _InitialScreenState extends State<InitialScreen> {
 
   Future<void> _handleConnectPressed() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final newNickname = UserName.normalize(_nicknameController.text);
+      final newNickname = UserName.tryParse(_nicknameController.text);
+      if (newNickname == null) {
+        return;
+      }
       final newServerUrl = _serverUrlController.text.trim();
 
       final newConfiguration = InMemoryUserConfiguration.fromConfiguration(
@@ -155,15 +157,15 @@ final class _InitialScreenState extends State<InitialScreen> {
                       prefixIcon: const Icon(Icons.person),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.help_outline),
-                        tooltip: AppLocalizations.of(
-                          context,
-                        ).learnAboutNickname,
+                        tooltip: AppLocalizations.of(context)
+                            .learnAboutNickname,
                         onPressed: _showNicknameRulesDialog,
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return AppLocalizations.of(context).pleaseEnterNickname;
+                      if (value == null || !UserName.isValid(value)) {
+                        return AppLocalizations.of(context)
+                            .pleaseEnterNickname;
                       }
                       return null;
                     },
@@ -180,9 +182,8 @@ final class _InitialScreenState extends State<InitialScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return AppLocalizations.of(
-                          context,
-                        ).pleaseEnterServerUrl;
+                        return AppLocalizations.of(context)
+                            .pleaseEnterServerUrl;
                       }
                       if (!value.startsWith(httpUrlPattern)) {
                         return AppLocalizations.of(context).urlMustStart;
@@ -239,12 +240,10 @@ final class _InitialScreenState extends State<InitialScreen> {
                 const Gap(4.0),
                 Center(
                   child: Text(
-                    AppLocalizations.of(
-                      context,
-                    ).version(locator<PackageInfo>().version),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    AppLocalizations.of(context)
+                        .version(locator<PackageInfo>().version),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: Colors.grey),
                   ),
                 ),
               ],

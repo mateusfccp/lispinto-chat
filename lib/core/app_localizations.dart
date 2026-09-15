@@ -9,8 +9,9 @@ part 'app_localizations.g.dart';
 @GenerateLocalizations()
 final class AppLocalizations with _$AppLocalizationsMixin {
   /// Gets the [AppLocalizations] instance for the given [context].
-  factory AppLocalizations.of(BuildContext context) =>
-      AppLocalizations._(context);
+  factory AppLocalizations.of(BuildContext context) {
+    return AppLocalizations._(context);
+  }
 
   AppLocalizations._(BuildContext context) : _context = context;
 

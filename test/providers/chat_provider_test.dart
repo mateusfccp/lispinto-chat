@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
-import 'package:lispinto_chat/models/chat_message.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
+import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
@@ -25,14 +26,14 @@ class MockFlutterLocalNotificationsPlugin extends Mock
 
 class FakeUserConfiguration extends Fake implements UserConfiguration {
   @override
-  String get nickname => _nickname;
-  String _nickname = 'tester';
+  UserName? get nickname => _nickname;
+  UserName? _nickname = UserName('tester');
 
   @override
-  set nickname(String value) => _nickname = value;
+  set nickname(UserName value) => _nickname = value;
 
   @override
-  bool get hasNickname => _nickname.isNotEmpty;
+  bool get hasNickname => _nickname != null;
 
   @override
   String get serverUrl => 'http://localhost:8080';
@@ -80,7 +81,8 @@ class FakeChatService extends Fake implements ChatService {
   final _currentChannelController = StreamController<ChannelName>.broadcast();
 
   @override
-  Stream<ChannelName> get currentChannelStream => _currentChannelController.stream;
+  Stream<ChannelName> get currentChannelStream =>
+      _currentChannelController.stream;
 
   @override
   WebSocketFactory get webSocketFactory =>
@@ -126,7 +128,7 @@ class FakeChatService extends Fake implements ChatService {
   bool _isConnected = true;
 
   @override
-  Stream<String> get nickChanges => const Stream.empty();
+  Stream<UserName> get nickChanges => const Stream.empty();
 
   void setConnectionState(bool connected) {
     _isConnected = connected;
@@ -147,7 +149,9 @@ class FakeChatService extends Fake implements ChatService {
   Future<Map<ChannelName, int>> requestChannelsList() async => {};
 
   @override
-  Future<List<String>> requestUsersList({required String targetChannel}) async {
+  Future<List<String>> requestUsersList({
+    required ChannelName targetChannel,
+  }) async {
     return [];
   }
 
@@ -262,43 +266,39 @@ void main() {
       expect(provider.isCurrentChannelPrivate, isFalse);
     });
 
-    test(
-      'reconnectInNonDefaultChannel: sends /join after login, not just connection',
-      () async {
-        // 1. Setup: be in a non-default channel
-        fakeChatService.setLoggedIn(true);
-        provider.joinChannel(ChannelName('#testing'));
-        fakeChatService.sentMessages.clear();
+    test('reconnectInNonDefaultChannel: sends /join after login, not just connection', () async {
+      // 1. Setup: be in a non-default channel
+      fakeChatService.setLoggedIn(true);
+      provider.joinChannel(ChannelName('#testing'));
+      fakeChatService.sentMessages.clear();
 
-        // 2. Simulate disconnect
-        fakeChatService.setConnectionState(false);
-        fakeChatService.setLoggedIn(false);
+      // 2. Simulate disconnect
+      fakeChatService.setConnectionState(false);
+      fakeChatService.setLoggedIn(false);
 
-        // 3. Simulate reconnect - only socket connects, not yet logged in
-        fakeChatService.setConnectionState(true);
-        // We must wait for the connectionState event to be processed by ChatProvider
-        // BEFORE it becomes logged in, to confirm that the /join attempt is dropped.
-        await Future<void>.delayed(Duration.zero);
+      // 3. Simulate reconnect - only socket connects, not yet logged in
+      fakeChatService.setConnectionState(true);
+      // We must wait for the connectionState event to be processed by ChatProvider
+      // BEFORE it becomes logged in, to confirm that the /join attempt is dropped.
+      await Future<void>.delayed(Duration.zero);
 
-        // Verify that /join was NOT sent yet (because it would be dropped by ChatService)
-        expect(
-          fakeChatService.sentMessages,
-          isNot(contains('/join #testing')),
-          reason:
-              'Should not send /join before login because it will be dropped',
-        );
+      // Verify that /join was NOT sent yet (because it would be dropped by ChatService)
+      expect(
+        fakeChatService.sentMessages,
+        isNot(contains('/join #testing')),
+        reason: 'Should not send /join before login because it will be dropped',
+      );
 
-        // 4. Simulate login complete
-        fakeChatService.setLoggedIn(true);
-        await Future<void>.delayed(Duration.zero);
+      // 4. Simulate login complete
+      fakeChatService.setLoggedIn(true);
+      await Future<void>.delayed(Duration.zero);
 
-        expect(
-          fakeChatService.sentMessages,
-          contains('/join #testing'),
-          reason: 'Should send /join after login to ensure correct channel',
-        );
-      },
-    );
+      expect(
+        fakeChatService.sentMessages,
+        contains('/join #testing'),
+        reason: 'Should send /join after login to ensure correct channel',
+      );
+    });
   });
 
   group('hasMention', () {

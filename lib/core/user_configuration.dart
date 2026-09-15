@@ -9,7 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// A class that manages user configuration such as nickname and server URL.
 abstract class UserConfiguration with ChangeNotifier {
   /// Gets the nickname from shared preferences.
-  abstract String nickname;
+  UserName? get nickname;
+  set nickname(UserName value);
 
   /// Gets the server URL from shared preferences.
   abstract String serverUrl;
@@ -66,7 +67,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
   /// Creates a [PersistentUserConfiguration].
   PersistentUserConfiguration({required SharedPreferences preferences})
     : _preferences = preferences,
-      _nickname = UserName.normalize(preferences.getString(_keyNickname) ?? ''),
+      _nickname = UserName.tryParse(preferences.getString(_keyNickname)),
       _serverUrl = preferences.getString(_keyServerUrl) ?? _defaultServerUrl,
       _pushNotificationsEnabled =
           preferences.getBool(_keyPushNotifications) ?? false,
@@ -108,21 +109,20 @@ final class PersistentUserConfiguration extends UserConfiguration {
       final preferences = await SharedPreferences.getInstance();
       return PersistentUserConfiguration(preferences: preferences);
     } catch (exception, stackTrace) {
-      Logger(
-        'UserConfiguration',
-      ).severe('Failed to load SharedPreferences', exception, stackTrace);
+      Logger('UserConfiguration')
+          .severe('Failed to load SharedPreferences', exception, stackTrace);
       rethrow;
     }
   }
 
   @override
-  String get nickname => _nickname;
-  String _nickname;
+  UserName? get nickname => _nickname;
+  UserName? _nickname;
 
   @override
-  set nickname(String value) {
-    _nickname = UserName.normalize(value);
-    unawaited(_preferences.setString(_keyNickname, _nickname));
+  set nickname(UserName value) {
+    _nickname = value;
+    unawaited(_preferences.setString(_keyNickname, value));
     notifyListeners();
   }
 
@@ -149,7 +149,7 @@ final class PersistentUserConfiguration extends UserConfiguration {
   }
 
   @override
-  bool get hasNickname => UserName.isValid(nickname);
+  bool get hasNickname => _nickname != null;
 
   @override
   bool get pushNotificationsEnabled => _pushNotificationsEnabled;
@@ -263,8 +263,10 @@ final class PersistentUserConfiguration extends UserConfiguration {
 
   @override
   void updateWith(UserConfiguration other) {
-    _nickname = UserName.normalize(other.nickname);
-    unawaited(_preferences.setString(_keyNickname, _nickname));
+    if (other.nickname case final nickname?) {
+      _nickname = nickname;
+      unawaited(_preferences.setString(_keyNickname, nickname));
+    }
 
     _serverUrl = other.serverUrl;
     unawaited(_preferences.setString(_keyServerUrl, _serverUrl));

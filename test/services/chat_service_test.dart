@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
 import 'package:lispinto_chat/services/websocket_factory.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -24,15 +25,16 @@ class MockHttpClient extends Fake implements http.Client {
 }
 
 class FakeUserConfiguration extends Fake implements UserConfiguration {
-  @override
-  String get nickname => _nickname;
+  FakeUserConfiguration({UserName? nickname})
+    : nickname = nickname ?? UserName('tester');
+
+  FakeUserConfiguration.withoutNickname() : nickname = null;
 
   @override
-  set nickname(String value) {
-    _nickname = value;
-  }
+  UserName? nickname;
 
-  String _nickname = 'tester';
+  @override
+  bool get hasNickname => nickname != null;
 
   @override
   String get serverUrl => 'http://localhost:8080';
@@ -64,6 +66,7 @@ class MockWebSocketChannel extends Fake implements WebSocketChannel {
 
 class _MockWebSocketSink extends Fake implements WebSocketSink {
   final StreamController<dynamic> _controller;
+
   _MockWebSocketSink(this._controller);
 
   @override
@@ -244,21 +247,24 @@ void main() {
       expect(service.nickname, 'bob-initial');
     });
 
-    test('broadcast nick change updates current users and nickname if self', () async {
-      final channel = await connectAndLogin();
+    test(
+      'broadcast nick change updates current users and nickname if self',
+      () async {
+        final channel = await connectAndLogin();
 
-      final usersFuture = service.users.first;
-      final nickFuture = service.nickChanges.first;
-      channel.feed(
-        '|2099-01-01 10:00:01| [@command]: User @tester is now known as @cancer',
-      );
+        final usersFuture = service.users.first;
+        final nickFuture = service.nickChanges.first;
+        channel.feed(
+          '|2099-01-01 10:00:01| [@command]: User @tester is now known as @cancer',
+        );
 
-      final users = await usersFuture;
-      expect(await nickFuture, 'cancer');
-      expect(users, contains('cancer'));
-      expect(users, isNot(contains('tester')));
-      expect(service.nickname, 'cancer');
-    });
+        final users = await usersFuture;
+        expect(await nickFuture, 'cancer');
+        expect(users, contains('cancer'));
+        expect(users, isNot(contains('tester')));
+        expect(service.nickname, 'cancer');
+      },
+    );
 
     test('reconciles users list without resurrecting old nickname', () async {
       final channel = await connectAndLogin();
@@ -277,6 +283,19 @@ void main() {
 
       expect(users, containsAll(['cancer', 'pintao']));
       expect(users, isNot(contains('tester')));
+    });
+
+    test('throws StateError when connecting without a nickname', () async {
+      final config = FakeUserConfiguration.withoutNickname();
+      final noNickService = ChatService(
+        url: Uri.parse('http://localhost:8080'),
+        initialChannel: const ChannelName.general(),
+        webSocketFactory: factory,
+        httpClient: httpClient,
+        configuration: config,
+      );
+
+      expect(noNickService.connect(), throwsA(isA<StateError>()));
     });
   });
 

@@ -42,10 +42,9 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       _configuration,
     );
     _chatProvider = locator<ChatProvider>();
-    _nicknameController = TextEditingController(text: _configuration.nickname);
-    _nicknameController.addListener(() {
-      _newConfiguration.nickname = _nicknameController.text;
-    });
+    _nicknameController = TextEditingController(
+      text: _configuration.nickname ?? '',
+    );
     _serverUrlController = TextEditingController(
       text: _configuration.serverUrl,
     );
@@ -69,7 +68,9 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
   }
 
   bool get _isDirty {
-    return _newConfiguration.nickname != _configuration.nickname ||
+    final parsedNickname = UserName.tryParse(_nicknameController.text);
+    return (parsedNickname != null &&
+            parsedNickname != _configuration.nickname) ||
         _newConfiguration.serverUrl != _configuration.serverUrl ||
         _newConfiguration.imgbbApiKey != _configuration.imgbbApiKey ||
         _newConfiguration.pushNotificationsEnabled !=
@@ -92,9 +93,7 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(AppLocalizations.of(context).nicknameRulesTitle),
-          content: Text(
-            AppLocalizations.of(context).nicknameRulesDescription,
-          ),
+          content: Text(AppLocalizations.of(context).nicknameRulesDescription),
           actions: [
             TextButton(
               onPressed: () {
@@ -119,8 +118,14 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
       onPopInvokedWithResult: (didPop, value) {
         if (didPop) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_isDirty && UserName.isValid(_newConfiguration.nickname)) {
-              _chatProvider.updateConfiguration(_newConfiguration);
+            if (_formKey.currentState?.validate() ?? false) {
+              if (UserName.tryParse(_nicknameController.text)
+                  case final newNickname?) {
+                _newConfiguration.nickname = newNickname;
+              }
+              if (_isDirty) {
+                _chatProvider.updateConfiguration(_newConfiguration);
+              }
             }
           });
         }
@@ -147,17 +152,15 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         prefixIcon: const Icon(Icons.person),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.help_outline),
-                          tooltip: AppLocalizations.of(
-                            context,
-                          ).learnAboutNickname,
+                          tooltip: AppLocalizations.of(context)
+                              .learnAboutNickname,
                           onPressed: _showNicknameRulesDialog,
                         ),
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return AppLocalizations.of(
-                            context,
-                          ).pleaseEnterNickname;
+                        if (value == null || !UserName.isValid(value)) {
+                          return AppLocalizations.of(context)
+                              .pleaseEnterNickname;
                         }
                         return null;
                       },
@@ -173,9 +176,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return AppLocalizations.of(
-                            context,
-                          ).pleaseEnterServerUrl;
+                          return AppLocalizations.of(context)
+                              .pleaseEnterServerUrl;
                         }
                         if (!value.startsWith(httpUrlPattern)) {
                           return AppLocalizations.of(context).urlMustStart;
@@ -202,9 +204,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                     AppLocalizations.of(context).imgbbApiKey,
                                   ),
                                   content: Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    ).imgbbApiKeyDescription,
+                                    AppLocalizations.of(context)
+                                        .imgbbApiKeyDescription,
                                   ),
                                   actions: [
                                     TextButton(
@@ -246,9 +247,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                               AppLocalizations.of(context).serverMessages,
                             ),
                             subtitle: Text(
-                              AppLocalizations.of(
-                                context,
-                              ).serverMessagesDescription,
+                              AppLocalizations.of(context)
+                                  .serverMessagesDescription,
                             ),
                             value: _newConfiguration.pushNotificationsEnabled,
                             onChanged: (value) async {
@@ -262,9 +262,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        ).notificationPermissionsDisabled,
+                                        AppLocalizations.of(context)
+                                            .notificationPermissionsDisabled,
                                       ),
                                     ),
                                   );
@@ -295,9 +294,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        ).notificationPermissionsDisabled,
+                                        AppLocalizations.of(context)
+                                            .notificationPermissionsDisabled,
                                       ),
                                     ),
                                   );
@@ -324,9 +322,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             AppLocalizations.of(context).showTimeSeconds,
                           ),
                           subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).showTimeSecondsDescription,
+                            AppLocalizations.of(context)
+                                .showTimeSecondsDescription,
                           ),
                           value: _newConfiguration.showTimeSeconds,
                           onChanged: (value) {
@@ -339,9 +336,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             AppLocalizations.of(context).inlineImagePreviews,
                           ),
                           subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).inlineImagePreviewsDescription,
+                            AppLocalizations.of(context)
+                                .inlineImagePreviewsDescription,
                           ),
                           value: _newConfiguration.showImagePreviews,
                           onChanged: (value) {
@@ -354,9 +350,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             AppLocalizations.of(context).showLinkPreviews,
                           ),
                           subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).showLinkPreviewsDescription,
+                            AppLocalizations.of(context)
+                                .showLinkPreviewsDescription,
                           ),
                           value: _newConfiguration.showLinkPreviews,
                           onChanged: (value) {
@@ -369,9 +364,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             AppLocalizations.of(context).enableMarkdown,
                           ),
                           subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).enableMarkdownDescription,
+                            AppLocalizations.of(context)
+                                .enableMarkdownDescription,
                           ),
                           value: _newConfiguration.showMarkdown,
                           onChanged: (value) {
@@ -381,14 +375,12 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         const Divider(),
                         SwitchListTile(
                           title: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).groupSequentialMessages,
+                            AppLocalizations.of(context)
+                                .groupSequentialMessages,
                           ),
                           subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).groupSequentialMessagesDescription,
+                            AppLocalizations.of(context)
+                                .groupSequentialMessagesDescription,
                           ),
                           value: _newConfiguration.groupMessages,
                           onChanged: (value) {
@@ -406,9 +398,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                             AppLocalizations.of(context).showEmptyChannels,
                           ),
                           subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).showEmptyChannelsDescription,
+                            AppLocalizations.of(context)
+                                .showEmptyChannelsDescription,
                           ),
                           value: _newConfiguration.showEmptyChannels,
                           onChanged: (value) {
@@ -442,9 +433,8 @@ final class _ConfigurationsScreenState extends State<ConfigurationsScreen> {
                         ListTile(
                           leading: const Icon(Icons.info),
                           title: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).version(locator<PackageInfo>().version),
+                            AppLocalizations.of(context)
+                                .version(locator<PackageInfo>().version),
                           ),
                         ),
                       ],
@@ -525,8 +515,7 @@ final class _MessagePreview extends StatelessWidget {
       ChatMessage(from: 'User1', content: "It's so pica!", date: messageTime),
       ChatMessage(
         from: 'User2',
-        content:
-            'Check this image, @User1 : https://picsum.photos/seed/lispinto/200',
+        content: 'Check this image, @User1 : https://picsum.photos/seed/lispinto/200',
         date: DateTime.now().add(const Duration(seconds: 14)),
       ),
     ];

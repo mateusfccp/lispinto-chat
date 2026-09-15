@@ -10,6 +10,7 @@ import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
@@ -57,7 +58,7 @@ class MockChatService extends Mock implements ChatService {
   Stream<List<String>> get users => Stream.value(['alice']);
 
   @override
-  Stream<String> get nickChanges => const Stream.empty();
+  Stream<UserName> get nickChanges => const Stream.empty();
 
   @override
   Stream<Map<ChannelName, int>> get channels => const Stream.empty();

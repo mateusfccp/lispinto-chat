@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lispinto_chat/core/in_memory_user_configuration.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -10,7 +11,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final config = await UserConfiguration.load();
 
-      expect(config.nickname, '');
+      expect(config.nickname, isNull);
       expect(config.serverUrl, 'https://chat.manoel.dev');
       expect(config.pushNotificationsEnabled, isFalse);
       expect(config.mentionNotificationsEnabled, isFalse);
@@ -45,7 +46,7 @@ void main() {
       final configuration = await UserConfiguration.load();
       final preferences = await SharedPreferences.getInstance();
 
-      configuration.nickname = 'bob';
+      configuration.nickname = UserName('bob');
       configuration.serverUrl = 'ws://new-server.com';
       configuration.autoConnect = true;
 
@@ -54,29 +55,29 @@ void main() {
       expect(preferences.getBool('auto_connect'), isTrue);
     });
 
-    test(
-      'hasNickname returns true only for valid nicknames',
-      () async {
-        SharedPreferences.setMockInitialValues({'nickname': '  '});
-        var config = await UserConfiguration.load();
-        expect(config.hasNickname, isFalse);
+    test('hasNickname returns true only for valid nicknames', () async {
+      SharedPreferences.setMockInitialValues({'nickname': '  '});
+      var config = await UserConfiguration.load();
+      expect(config.hasNickname, isFalse);
+      expect(config.nickname, isNull);
 
-        SharedPreferences.setMockInitialValues({'nickname': '!@#\$%'});
-        config = await UserConfiguration.load();
-        expect(config.hasNickname, isFalse);
+      SharedPreferences.setMockInitialValues({'nickname': '!@#\$%'});
+      config = await UserConfiguration.load();
+      expect(config.hasNickname, isFalse);
+      expect(config.nickname, isNull);
 
-        SharedPreferences.setMockInitialValues({'nickname': 'bob'});
-        config = await UserConfiguration.load();
-        expect(config.hasNickname, isTrue);
-      },
-    );
+      SharedPreferences.setMockInitialValues({'nickname': 'bob'});
+      config = await UserConfiguration.load();
+      expect(config.hasNickname, isTrue);
+      expect(config.nickname, UserName('bob'));
+    });
 
     test('normalizes nickname on load and save', () async {
       SharedPreferences.setMockInitialValues({'nickname': 'João Vitor'});
       final config = await UserConfiguration.load();
       expect(config.nickname, 'Joao-Vitor');
 
-      config.nickname = 'Alice Bob';
+      config.nickname = UserName('Alice Bob');
       final preferences = await SharedPreferences.getInstance();
       expect(config.nickname, 'Alice-Bob');
       expect(preferences.getString('nickname'), 'Alice-Bob');
@@ -88,7 +89,7 @@ void main() {
       final preferences = await SharedPreferences.getInstance();
 
       final other = InMemoryUserConfiguration(
-        nickname: 'updated-nick',
+        nickname: UserName('updated-nick'),
         serverUrl: 'https://updated-server.com',
       );
 

@@ -192,11 +192,12 @@ class ChatProvider with ChangeNotifier {
 
         notifyListeners();
 
+        final nickname = configuration.nickname;
         if (configuration.mentionNotificationsEnabled &&
-            configuration.hasNickname &&
-            message.from != configuration.nickname &&
+            nickname != null &&
+            message.from != nickname &&
             !message.isSystemMessage &&
-            hasMention(message.content, configuration.nickname)) {
+            hasMention(message.content, nickname)) {
           final timestamp = message.date ?? DateTime.now();
           if (timestamp.isAfter(_lastNotificationTimestamp)) {
             _lastNotificationTimestamp = timestamp;
@@ -295,7 +296,9 @@ class ChatProvider with ChangeNotifier {
       _chatService.disconnect();
 
       _chatService.url = Uri.parse(newServerUrl);
-      _chatService.nickname = newNickname;
+      if (newNickname case final nick?) {
+        _chatService.nickname = nick;
+      }
 
       _messages.clear();
       _usersFuture = null;
@@ -310,8 +313,10 @@ class ChatProvider with ChangeNotifier {
     // If only the nickname or settings changed, sync them.
     else {
       if (newNickname != oldNickname && _isConnected) {
-        _chatService.nickname = newNickname;
-        _chatService.sendMessage('/nick $newNickname');
+        if (newNickname case final nickname?) {
+          _chatService.nickname = nickname;
+          _chatService.sendMessage('/nick $nickname');
+        }
       }
       if (_isConnected) {
         _fetchUsersAndChannelsList();

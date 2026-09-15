@@ -35,14 +35,13 @@ enum ChatConnectionState {
 interface class ChatService {
   /// Creates a [ChatService].
   ChatService({
-    required Uri url,
+    required this._url,
     this.initialChannel,
     required this._configuration,
     required this._httpClient,
     required this.webSocketFactory,
   }) : _currentChannel = initialChannel ?? ChannelName('#general'),
-       _url = url,
-       _wsUrl = deriveWebSocketUrl(url);
+       _wsUrl = deriveWebSocketUrl(_url);
 
   /// The HTTP server URL to connect to.
   Uri get url => _url;
@@ -58,9 +57,10 @@ interface class ChatService {
   Uri _wsUrl;
 
   /// The nickname to use when logging in to the chat server.
-  String get nickname => _configuration.nickname;
-  set nickname(String value) {
-    _configuration.nickname = UserName.normalize(value);
+  UserName? get nickname => _configuration.nickname;
+
+  set nickname(UserName value) {
+    _configuration.nickname = value;
   }
 
   /// The initial channel to join on connection.
@@ -127,8 +127,8 @@ interface class ChatService {
   ///
   /// The UI can listen to this stream to update the displayed nickname when the
   /// user changes their nick.
-  Stream<String> get nickChanges => _nickChangeController.stream;
-  final _nickChangeController = StreamController<String>.broadcast();
+  Stream<UserName> get nickChanges => _nickChangeController.stream;
+  final _nickChangeController = StreamController<UserName>.broadcast();
 
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
@@ -209,7 +209,12 @@ interface class ChatService {
       return;
     }
 
-    _logger.info('Connecting to $url as $nickname...');
+    final currentNick = nickname;
+    if (currentNick == null) {
+      throw StateError('Cannot connect without a nickname configured.');
+    }
+
+    _logger.info('Connecting to $url as $currentNick...');
     disconnect();
 
     final loginCompleter = Completer<void>();
@@ -315,8 +320,20 @@ interface class ChatService {
       if (line.isEmpty) continue;
 
       if (!_loggedIn && line.contains('> Type your username:')) {
-        _logger.info('Successfully logged in as $nickname.');
-        channel.sink.add(nickname);
+        final currentNick = nickname;
+        if (currentNick == null) {
+          _notificationsController.add(
+            ChatMessage(
+              from: 'system',
+              content: 'Nickname cannot be empty. Please set a valid nickname.',
+              date: DateTime.now(),
+            ),
+          );
+          disconnect();
+          return;
+        }
+        _logger.info('Successfully logged in as $currentNick.');
+        channel.sink.add(currentNick);
         _loggedIn = true;
         _stateController.add(state);
         channel.sink.add('/session');
@@ -398,9 +415,11 @@ interface class ChatService {
         r'Your (?:new nick (?:is|was normalized to)|nickname was normalized to): @(.*)',
       ).firstMatch(content);
       if (match != null) {
-        if (match.group(1) case final newNick?) {
-          nickname = newNick;
-          _nickChangeController.add(newNick);
+        if (match.group(1) case final newNickname?) {
+          if (UserName.tryParse(newNickname) case final username?) {
+            nickname = username;
+            _nickChangeController.add(username);
+          }
         }
       }
     }
@@ -417,17 +436,19 @@ interface class ChatService {
         final match = RegExp(r'User @(.*) is now known as @(.*)')
             .firstMatch(content);
         if (match != null) {
-          final oldNick = match.group(1)!;
-          final newNick = match.group(2)!;
-          if (UserName.normalize(oldNick) == nickname) {
-            nickname = newNick;
-            _nickChangeController.add(newNick);
+          final oldNickname = match.group(1)!;
+          final newNickname = match.group(2)!;
+          if (UserName.normalize(oldNickname) == nickname) {
+            if (UserName.tryParse(newNickname) case final username?) {
+              nickname = username;
+              _nickChangeController.add(username);
+            }
           }
-          final normalizedOldNick = UserName.normalize(oldNick);
-          _currentUsers.remove(oldNick);
+          final normalizedOldNick = UserName.normalize(oldNickname);
+          _currentUsers.remove(oldNickname);
           _currentUsers.remove(normalizedOldNick);
-          if (!_currentUsers.contains(newNick)) {
-            _currentUsers.add(newNick);
+          if (!_currentUsers.contains(newNickname)) {
+            _currentUsers.add(newNickname);
           }
           _usersController.add(_currentUsers.toList());
         }
@@ -625,10 +646,10 @@ interface class ChatService {
           if (user.isNotEmpty) user.trim(),
       ];
 
-      if (_loggedIn &&
-          targetChannel == _currentChannel &&
-          !usersList.contains(nickname)) {
-        usersList.add(nickname);
+      if (_loggedIn && targetChannel == _currentChannel) {
+        if (nickname case final nick? when !usersList.contains(nick)) {
+          usersList.add(nick);
+        }
       }
 
       _currentUsers.clear();

@@ -9,6 +9,7 @@ import 'package:lispinto_chat/core/service_locator.dart';
 import 'package:lispinto_chat/core/user_configuration.dart';
 import 'package:lispinto_chat/models/channel_name.dart';
 import 'package:lispinto_chat/models/chat_message.dart';
+import 'package:lispinto_chat/models/username.dart';
 import 'package:lispinto_chat/providers/chat_provider.dart';
 import 'package:lispinto_chat/screens/chat_screen.dart';
 import 'package:lispinto_chat/services/chat_service.dart';
@@ -47,10 +48,10 @@ class FakeChatProvider extends ChatProvider {
 
 class FakeUserConfiguration extends Fake implements UserConfiguration {
   @override
-  String get nickname => 'testuser';
+  UserName? get nickname => UserName('testuser');
 
   @override
-  set nickname(String value) {}
+  set nickname(UserName value) {}
 
   @override
   bool get hasNickname => true;
@@ -244,7 +245,7 @@ class FakeTestChatService extends Fake implements ChatService {
   Stream<Map<ChannelName, int>> get channels => const Stream.empty();
 
   @override
-  Stream<String> get nickChanges => const Stream.empty();
+  Stream<UserName> get nickChanges => const Stream.empty();
 
   @override
   Stream<ChatMessage> get notifications => const Stream.empty();
@@ -265,7 +266,9 @@ class FakeTestChatService extends Fake implements ChatService {
   void sendMessage(String text, {params}) {}
 
   @override
-  Future<List<String>> requestUsersList({required String targetChannel}) async {
+  Future<List<String>> requestUsersList({
+    required ChannelName targetChannel,
+  }) async {
     return [];
   }
 

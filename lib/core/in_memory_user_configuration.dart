@@ -6,7 +6,7 @@ import 'user_configuration.dart';
 final class InMemoryUserConfiguration extends UserConfiguration {
   /// Creates an [InMemoryUserConfiguration] with optional initial values.
   InMemoryUserConfiguration({
-    String nickname = '',
+    this._nickname,
     this._serverUrl = 'https://chat.manoel.dev',
     this._pushNotificationsEnabled = false,
     this._mentionNotificationsEnabled = false,
@@ -19,11 +19,11 @@ final class InMemoryUserConfiguration extends UserConfiguration {
     this._groupMessages = true,
     this._lastChannel = const ChannelName.general(),
     this._imgbbApiKey = '',
-  }) : _nickname = UserName.normalize(nickname);
+  });
 
   /// Creates an [InMemoryUserConfiguration] from another [UserConfiguration].
   InMemoryUserConfiguration.fromConfiguration(UserConfiguration config)
-    : _nickname = UserName.normalize(config.nickname),
+    : _nickname = config.nickname,
       _serverUrl = config.serverUrl,
       _pushNotificationsEnabled = config.pushNotificationsEnabled,
       _mentionNotificationsEnabled = config.mentionNotificationsEnabled,
@@ -37,7 +37,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
       _lastChannel = config.lastChannel,
       _imgbbApiKey = config.imgbbApiKey;
 
-  String _nickname;
+  UserName? _nickname;
   String _serverUrl;
   bool _pushNotificationsEnabled;
   bool _mentionNotificationsEnabled;
@@ -52,11 +52,11 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   String _imgbbApiKey;
 
   @override
-  String get nickname => _nickname;
+  UserName? get nickname => _nickname;
 
   @override
-  set nickname(String value) {
-    _nickname = UserName.normalize(value);
+  set nickname(UserName value) {
+    _nickname = value;
     notifyListeners();
   }
 
@@ -79,7 +79,7 @@ final class InMemoryUserConfiguration extends UserConfiguration {
   }
 
   @override
-  bool get hasNickname => _nickname.trim().isNotEmpty;
+  bool get hasNickname => _nickname != null;
 
   @override
   bool get pushNotificationsEnabled => _pushNotificationsEnabled;
@@ -173,7 +173,9 @@ final class InMemoryUserConfiguration extends UserConfiguration {
 
   @override
   void updateWith(UserConfiguration other) {
-    _nickname = UserName.normalize(other.nickname);
+    if (other.nickname case final nickname?) {
+      _nickname = nickname;
+    }
     _serverUrl = other.serverUrl;
     _imgbbApiKey = other.imgbbApiKey;
     _pushNotificationsEnabled = other.pushNotificationsEnabled;
